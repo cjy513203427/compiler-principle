@@ -1,0 +1,72 @@
+import { lessons, presets, defaultOptions } from './content/lessons';
+import type { Stage, OptimizationOptions } from './compiler/model';
+
+export type Route = Stage | 'home' | 'notes' | 'sources';
+export const MAX_SOURCE = 2000;
+export function readUrl(search: string) {
+  const params = new URLSearchParams(search);
+  const requested = params.get('lab');
+  const route: Route = [...lessons.map((l) => l.id), 'home', 'notes', 'sources'].includes(
+    requested || '',
+  )
+    ? (requested as Route)
+    : 'home';
+  const raw = params.get('code');
+  const source = raw !== null && raw.length <= MAX_SOURCE ? raw : presets[0].code;
+  const step = Math.max(0, Math.min(10000, Math.floor(Number(params.get('step')) || 0)));
+  const flags = params.get('opt');
+  const options: OptimizationOptions =
+    flags && /^[01]{3}$/.test(flags)
+      ? { fold: flags[0] === '1', propagate: flags[1] === '1', dead: flags[2] === '1' }
+      : route === 'vm'
+        ? { fold: false, propagate: false, dead: false }
+        : defaultOptions;
+  return { route, source, step, options };
+}
+export function shareUrl(
+  base: string,
+  route: Route,
+  source: string,
+  step: number,
+  options: OptimizationOptions,
+) {
+  const url = new URL(base);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('lab', route);
+  url.searchParams.set('code', source);
+  url.searchParams.set('step', String(step));
+  url.searchParams.set('opt', `${+options.fold}${+options.propagate}${+options.dead}`);
+  return url.href;
+}
+export interface Notebook {
+  version: 1;
+  notes: Partial<Record<Stage, string>>;
+  completed: Stage[];
+}
+export const emptyNotebook = (): Notebook => ({ version: 1, notes: {}, completed: [] });
+export function validateNotebook(value: unknown): Notebook {
+  if (!value || typeof value !== 'object') throw new Error('笔记文件格式不正确。');
+  const data = value as Partial<Notebook>;
+  if (
+    data.version !== 1 ||
+    !data.notes ||
+    typeof data.notes !== 'object' ||
+    Array.isArray(data.notes) ||
+    !Array.isArray(data.completed)
+  )
+    throw new Error('笔记版本或内容不正确。');
+  const notes: Notebook['notes'] = {};
+  for (const lesson of lessons) {
+    const text = data.notes[lesson.id];
+    if (text !== undefined && (typeof text !== 'string' || text.length > 20000))
+      throw new Error('单篇笔记需要是 20,000 字以内的文本。');
+    if (text !== undefined) notes[lesson.id] = text;
+  }
+  return {
+    version: 1,
+    notes,
+    completed: [...new Set(data.completed.filter((id) => lessons.some((l) => l.id === id)))],
+  };
+}
+export const STORAGE_KEY = 'compiler-notebook-v1';
