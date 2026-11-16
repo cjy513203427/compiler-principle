@@ -1,3 +1,6 @@
+import { evaluateBinary } from './operations';
+import { optimizeControlFlow } from './global-optimizer';
+import type { DataflowAnalysis } from './dataflow';
 import {
   constant,
   reference,
@@ -13,37 +16,7 @@ import {
   type ValueInstruction,
 } from './model';
 
-export function arithmetic(op: string, left: Value, right: Value): number {
-  if (typeof left !== 'number' || typeof right !== 'number')
-    throw new Error('算术操作数不是整数。');
-  if (op === '/' && right === 0) throw new Error('整数除法的除数不能为 0。');
-  const value =
-    op === '+'
-      ? left + right
-      : op === '-'
-        ? left - right
-        : op === '*'
-          ? left * right
-          : Math.trunc(left / right);
-  if (!Number.isSafeInteger(value)) throw new Error('计算结果超出安全整数范围。');
-  return value;
-}
-export function evaluateBinary(op: string, left: Value, right: Value): Value {
-  if (op === '==') return left === right;
-  if (op === '!=') return left !== right;
-  if (['<', '<=', '>', '>='].includes(op)) {
-    if (typeof left !== 'number' || typeof right !== 'number')
-      throw new Error('比较操作数不是整数。');
-    return op === '<'
-      ? left < right
-      : op === '<='
-        ? left <= right
-        : op === '>'
-          ? left > right
-          : left >= right;
-  }
-  return arithmetic(op, left, right);
-}
+export { arithmetic, evaluateBinary } from './operations';
 export const hasControlFlow = (instructions: Instruction[]) =>
   instructions.some((i) => i.op === 'branch' || i.op === 'jump' || i.op === 'label');
 export function generateIR(ast: Program, analysis: Analysis): Instruction[] {
@@ -127,6 +100,7 @@ export function instructionText(instruction: Instruction): string {
 export function optimize(
   original: Instruction[],
   options: OptimizationOptions,
+  facts?: DataflowAnalysis,
 ): OptimizationStep[] {
   const steps: OptimizationStep[] = [
     {
@@ -135,22 +109,7 @@ export function optimize(
       instructions: original,
     },
   ];
-  if (hasControlFlow(original))
-    return [
-      ...steps,
-      {
-        title: '控制流边界',
-        detail:
-          '这段程序包含分支或循环。当前优化器只分析直线代码，不能把一条路径上的常量当成所有路径的值；本次保留原始 IR。',
-        instructions: original,
-      },
-      {
-        title: '保留控制流语义',
-        detail:
-          '跨基本块的常量传播与活跃性分析尚未实现；开关不对这段程序应用变换，跳转和潜在异常均保持原样。',
-        instructions: original,
-      },
-    ];
+  if (hasControlFlow(original)) return optimizeControlFlow(original, options, facts);
   const linear = original as ValueInstruction[];
   const known = new Map<string, Value>();
   let changes = 0;

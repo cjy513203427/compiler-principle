@@ -1,4 +1,4 @@
-export type Stage = 'lex' | 'parse' | 'semantic' | 'ir' | 'optimize' | 'vm' | 'cfg';
+export type Stage = 'lex' | 'parse' | 'semantic' | 'ir' | 'optimize' | 'vm' | 'cfg' | 'dataflow';
 export type Value = number | boolean;
 export type DataType = 'int' | 'bool';
 export type TokenKind = 'keyword' | 'identifier' | 'number' | 'operator' | 'punctuation' | 'eof';

@@ -3,6 +3,9 @@ import type { Stage } from '../compiler/model';
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
   'https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl05.html';
+export const DATAFLOW_REFERENCE = 'https://www.cs.cornell.edu/courses/cs4120/2026sp/notes/';
+export const CONSTANT_PROPAGATION_REFERENCE =
+  'https://llvm.org/docs/Passes.html#sccp-sparse-conditional-constant-propagation';
 export const chapters = [
   {
     number: '02',
@@ -218,7 +221,7 @@ export const lessons: Lesson[] = [
     note: [
       {
         title: '传播与折叠相互配合',
-        body: '传播把已知常量替换到使用位置；折叠把合法的常量算术提前算出。一次顺序扫描中，前面的变换可能让后续语句继续简化。可变变量被重新赋值时，必须更新或清除旧信息。',
+        body: '传播把已知常量替换到使用位置，折叠把合法常量算术提前算出。直线代码可以顺序扫描；遇到分支和循环，则先合并前驱、迭代到不动点，再使用稳定事实改写。可变变量的每次赋值都会更新或清除旧信息。',
       },
       {
         title: '从可观察行为反向看',
@@ -231,7 +234,7 @@ export const lessons: Lesson[] = [
     ],
     misconception: '指令更少并不等于实测运行更快。本页统计指令条数，没有进行 CPU 性能测试。',
     limit:
-      '仅做直线代码的局部优化；整数采用 JS 安全整数，除法向零取整。没有浮点重排、CSE 或循环优化。',
+      '支持直线代码与基于 CFG 的常量传播、分支简化和活跃性清理；没有 SSA、范围分析、浮点重排、CSE 或循环展开。',
     challenge:
       '关闭常量传播后，为什么有些折叠消失了？再试试 int unused = 1 / 0;，解释它为何必须保留。',
     answer:
@@ -307,7 +310,7 @@ export const lessons: Lesson[] = [
       },
     ],
     misconception:
-      '不能把某条分支里算出的常量直接传播到汇合后的代码。不同前驱可能带来不同的值；这里先保留原始 IR，跨块数据流分析与 SSA 留待后续。',
+      '不能把某条分支里算出的常量直接传播到汇合后的代码。第 08 个实验会保守合并所有可能执行前驱的事实；SSA 与 φ 仍未实现。',
     limit:
       '支持 if / else、while、比较与嵌套块，主体必须用花括号；没有 break / continue、逻辑短路、函数与 SSA。每次最多执行 2000 条字节码；达到上限只表示本次回放暂停。',
     challenge:
@@ -319,6 +322,47 @@ export const lessons: Lesson[] = [
       options: ['0 次', '1 次', '仍然会一直执行'],
       correct: 0,
       explain: 'while 先判断条件，为 false 就直接走退出边；循环体可以一次都不执行。',
+    },
+  },
+  {
+    id: 'dataflow',
+    number: '08',
+    title: '数据流分析',
+    english: 'Dataflow analysis',
+    question: '跨过分支，还能确定一个常量吗？',
+    intro:
+      '逐轮合并各基本块的 IN / OUT，观察循环如何让事实变化、两条路径怎样汇合，直到达到不动点。再把静态推导用于真正的跨块优化。',
+    chapter: '07',
+    minutes: 18,
+    icon: '⋈',
+    color: 'purple',
+    note: [
+      {
+        title: '合并事实，需要同时考虑多条路径',
+        body: '本实验用三层信息表示变量：⊥ 是尚无信息，常量 c 表示确定的值，⊤ 表示不能确定唯一常量。两个前驱都给出 7，汇合后仍是 7；若分别给出 7 与 9，就合并为 ⊤。bool true 与整数 1 也不是同一个常量。',
+      },
+      {
+        title: '循环要求反复传播到不动点',
+        body: '先从入口出发，合并当前可能执行的边传来的 OUT，再顺序处理本块指令。常量条件只启用一条边，未知条件保守启用两条；启用不代表已经证明这条路径实际可走。回边加入后可能推翻早期常量；重新处理各块，直到事实和边都不再变化。这里没有借用 VM 本次运行的结果。',
+      },
+      {
+        title: '向后求活跃性，再删除无用写入',
+        body: '变量的当前值若可能沿后续路径被读取，它就是活跃的。各块的 OUT 合并后继 IN，IN 则加入本块使用并扣除本块定义。优化器在改写后的 CFG 上重新求解，清理无用复制；未折叠算术仍保留，以免吞掉除零或溢出。',
+      },
+    ],
+    misconception:
+      '循环实际跑完后 i 等于 2，不代表常量分析一定能证明它等于 2。这个有限分析域不追踪取值范围或循环次数；⊤ 是保守结论，不是计算错误。',
+    limit:
+      '可变变量上的稠密条件常量传播与活跃性分析；不是 LLVM 的稀疏 SSA 实现。最多 200 轮，未收敛则保留原始 IR。中间回放最多记录 240 次处理，最后一步仍展示完整结果。没有范围分析、SSA 或通用等价证明。',
+    challenge:
+      '运行“两条路径相同常量”，找到汇合后的 value。把 else 中的 7 改成 9，解释静态事实为什么变成 ⊤，而本次实际输出仍可能是 7。',
+    answer:
+      '循环让 i 的常量事实变成 ⊤，分析必须考虑 if 的两条路径。两边都赋 7 时，value 汇合为 7；其中一边变成 9 后，不能选任意一个值，必须合并成 ⊤。VM 本次走真分支而输出 7，只是一次执行，不能替代静态证明。',
+    quiz: {
+      question: '两个可执行前驱分别给 x = 7 与 x = 9，汇合点的常量事实是什么？',
+      options: ['7', '9', '⊤：无法确定唯一常量'],
+      correct: 2,
+      explain: '任一前驱都可能到达；没有额外证明时必须保留两种可能，不能只取一次运行的值。',
     },
   },
 ];
@@ -358,6 +402,38 @@ export const flowPresets = [
     label: '回放边界 · 忘记更新循环变量',
     code: 'int i = 0;\nwhile (i < 1) {\n  int unchanged = i;\n}\nprint(99);',
     prediction: '条件一直为真时会怎样？回放上限能否证明程序永远不终止？',
+  },
+];
+export const dataflowPresets = [
+  {
+    id: 'merge-same',
+    label: '数据流 · 两条路径相同常量',
+    code: 'int i = 0;\nwhile (i < 2) {\n  i = i + 1;\n}\nint value = 0;\nif (i == 2) {\n  value = 7;\n} else {\n  value = 7;\n}\nprint(value);',
+    prediction: '分析不能确定循环结束时的 i，但两个分支都给出 7。value 在汇合后还是常量吗？',
+  },
+  {
+    id: 'merge-different',
+    label: '数据流 · 两条路径不同常量',
+    code: 'int i = 0;\nwhile (i < 2) {\n  i = i + 1;\n}\nint value = 0;\nif (i == 2) {\n  value = 7;\n} else {\n  value = 9;\n}\nprint(value);',
+    prediction: '本次输出还是 7，静态分析为什么不能直接传播 7？',
+  },
+  {
+    id: 'constant-branch',
+    label: '数据流 · 证明分支不可达',
+    code: 'bool ready = false;\nint value = 3;\nif (ready) {\n  value = 1 / 0;\n} else {\n  value = 7;\n}\nprint(value);',
+    prediction: 'ready 已知为 false，哪一条边能被证明不可执行？除零可以随该分支一起删除吗？',
+  },
+  {
+    id: 'loop-facts',
+    label: '数据流 · 回边改变早期事实',
+    code: 'int i = 0;\nint fixed = 5;\nwhile (i < 3) {\n  i = i + 1;\n}\nprint(i + fixed);',
+    prediction: '回边合并后，i 与 fixed 的常量事实会一起消失吗？',
+  },
+  {
+    id: 'live-across-edge',
+    label: '数据流 · 跨边界的活跃变量',
+    code: 'int value = 7;\nint dead = 99;\nint i = 0;\nwhile (i < 2) {\n  if (i == 1) {\n    print(value);\n  }\n  i = i + 1;\n}',
+    prediction: '关闭常量传播后，value 的写入还能删除吗？dead 与 i 呢？',
   },
 ];
 export const presets = [
@@ -422,5 +498,6 @@ export const presets = [
     prediction: '变量未被使用，除零指令能直接删掉吗？',
   },
   ...flowPresets,
+  ...dataflowPresets,
 ];
 export const defaultOptions = { fold: true, propagate: true, dead: true };

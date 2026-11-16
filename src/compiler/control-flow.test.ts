@@ -119,7 +119,7 @@ describe('control flow semantics and code generation', () => {
       expect(result.execution?.halted).toBe(true);
     }
   });
-  it('preserves raw IR across all optimization flag combinations when control flow is present', () => {
+  it('preserves behavior under all flags and leaves IR unchanged when every transform is disabled', () => {
     const source =
       'int x = 0; if (true) { x = 2; } else { x = 5; } while (x < 4) { x = x + 1; } print(x);';
     for (let flags = 0; flags < 8; flags++) {
@@ -128,9 +128,10 @@ describe('control flow semantics and code generation', () => {
         propagate: !!(flags & 2),
         dead: !!(flags & 4),
       });
-      expect(result.optimization?.at(-1)?.instructions.map(instructionText)).toEqual(
-        result.ir?.map(instructionText),
-      );
+      if (flags === 0)
+        expect(result.optimization?.at(-1)?.instructions.map(instructionText)).toEqual(
+          result.ir?.map(instructionText),
+        );
       expect(result.execution?.output).toEqual([4]);
     }
   });

@@ -31,7 +31,9 @@ test('CFG replays actual branches, loops and scoped state without stale frames',
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('execution limits and unsupported cross-block optimization are explicit', async ({ page }) => {
+test('execution limits remain explicit when cross-block optimization is enabled', async ({
+  page,
+}) => {
   await page.goto('/?lab=cfg');
   await page.getByLabel('选择一个观察角度').selectOption('loop-limit');
   await expect(page.getByRole('alert')).toContainText('回放已暂停');
@@ -39,10 +41,10 @@ test('execution limits and unsupported cross-block optimization are explicit', a
   await expect(page.locator('.step-explanation')).toContainText('上限');
   await expect(page.locator('.output-console pre')).toHaveText('等待 print…');
   await page.goto('/?lab=optimize&code=' + encodeURIComponent('while (true) {}'));
-  await expect(page.getByLabel('常量折叠', { exact: true })).toBeDisabled();
+  await expect(page.getByLabel('常量折叠', { exact: true })).toBeEnabled();
   await expect(page.locator('.equivalence')).toContainText('暂不能判定行为一致');
   await page.getByRole('button', { name: '看最终结果' }).click();
-  await expect(page.locator('.step-explanation')).toContainText('跨基本块');
+  await expect(page.locator('.step-explanation')).toContainText('活跃变量');
 });
 
 test('readable font sizes hold at narrow widths and new notes coexist with old notes', async ({
@@ -71,12 +73,12 @@ test('readable font sizes hold at narrow widths and new notes coexist with old n
   await page.getByRole('button', { name: '我能解释了' }).click();
   await page.goto('/?lab=notes');
   await expect(page.getByLabel('控制流图的笔记')).toHaveValue('循环条件每轮重算。');
-  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 7');
+  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 8');
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('home computes the example and all seven labs render with no external requests', async ({
+test('home computes the example and all eight labs render with no external requests', async ({
   page,
 }) => {
   const failures: string[] = [];
@@ -90,7 +92,7 @@ test('home computes the example and all seven labs render with no external reque
   await expect(page.locator('.demo-result strong')).toHaveText('14');
   await page.getByRole('button', { name: '给加法加一对括号' }).click();
   await expect(page.locator('.demo-result strong')).toHaveText('20');
-  for (const stage of ['lex', 'parse', 'semantic', 'ir', 'optimize', 'vm', 'cfg']) {
+  for (const stage of ['lex', 'parse', 'semantic', 'ir', 'optimize', 'vm', 'cfg', 'dataflow']) {
     await page.goto(`/?lab=${stage}`);
     await expect(page.locator('.result-content')).toBeVisible();
     await expect(page.getByRole('button', { name: '看最终结果' })).toBeVisible();

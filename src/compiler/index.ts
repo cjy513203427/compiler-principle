@@ -4,6 +4,7 @@ import { analyze } from './semantic';
 import { generateIR, optimize, hasControlFlow } from './ir';
 import { generateBytecode, execute } from './vm';
 import { buildCFG, traceCFG } from './cfg';
+import { analyzeConstants, analyzeLiveness } from './dataflow';
 import { CompileError, type Diagnostic, type OptimizationOptions } from './model';
 export * from './model';
 export { tokenize, parse, analyze, generateIR, optimize, generateBytecode, execute };
@@ -21,12 +22,16 @@ export function compile(source: string, options: OptimizationOptions) {
   let cfg: ReturnType<typeof buildCFG> | undefined;
   let controlTrace: ReturnType<typeof traceCFG> | undefined;
   let baselineBytecode: ReturnType<typeof generateBytecode> | undefined;
+  let dataflow: ReturnType<typeof analyzeConstants> | undefined;
+  let liveness: ReturnType<typeof analyzeLiveness> | undefined;
   try {
     lex = tokenize(source);
     syntax = parse(lex.tokens);
     semantic = analyze(syntax.ast);
     ir = generateIR(syntax.ast, semantic);
-    optimization = optimize(ir, options);
+    dataflow = analyzeConstants(ir);
+    liveness = analyzeLiveness(ir);
+    optimization = optimize(ir, options, dataflow);
     bytecode = generateBytecode(optimization.at(-1)!.instructions);
     execution = execute(bytecode);
     baselineBytecode = generateBytecode(ir);
@@ -60,6 +65,8 @@ export function compile(source: string, options: OptimizationOptions) {
     cfg,
     controlTrace,
     baselineBytecode,
+    dataflow,
+    liveness,
     hasControlFlow: ir ? hasControlFlow(ir) : false,
   };
 }

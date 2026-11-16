@@ -11,6 +11,8 @@ import {
 import { instructionText } from '../compiler/ir';
 import { bytecodeText } from '../compiler/vm';
 import { ControlFlowView } from './ControlFlowView';
+import { DataflowView } from './DataflowView';
+import type { OptimizationOptions } from '../compiler/model';
 
 const valueText = (value: Value) => String(value);
 function revealCurrentRow(container: HTMLDivElement | null) {
@@ -41,6 +43,8 @@ export function traceLength(result: Compilation, stage: Stage): number {
       return result.execution?.steps.length || 0;
     case 'cfg':
       return result.controlTrace?.length || 0;
+    case 'dataflow':
+      return result.dataflow?.steps.length || 0;
   }
 }
 export function traceMessage(result: Compilation, stage: Stage, step: number): string {
@@ -61,6 +65,8 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
       return result.execution?.steps[step]?.message || '';
     case 'cfg':
       return result.controlTrace?.[step]?.message || '';
+    case 'dataflow':
+      return result.dataflow?.steps[step]?.message || '';
   }
 }
 export function AstTree({
@@ -274,11 +280,13 @@ export function ResultView({
   result,
   source,
   step,
+  options,
 }: {
   stage: Stage;
   result: Compilation;
   source: string;
   step: number;
+  options: OptimizationOptions;
 }) {
   const bytecodeContainer = useRef<HTMLDivElement>(null);
   const tokenContainer = useRef<HTMLDivElement>(null);
@@ -494,8 +502,8 @@ export function ResultView({
             <CodeRows instructions={current.instructions} />
           </div>
         </div>
-        <div className={`equivalence ${equivalent ? '' : 'failed'}`}>
-          <b>{equivalent ? '✓' : '!'}</b>
+        <div className={`equivalence ${equivalent || inconclusive ? '' : 'failed'}`}>
+          <b>{inconclusive ? '…' : equivalent ? '✓' : '!'}</b>
           <div>
             <strong>
               {inconclusive
@@ -521,6 +529,8 @@ export function ResultView({
     );
   }
   if (stage === 'cfg') return <ControlFlowView result={result} step={step} />;
+  if (stage === 'dataflow')
+    return <DataflowView result={result} step={step} source={source} options={options} />;
   const current = result.execution!.steps[step];
   return (
     <>

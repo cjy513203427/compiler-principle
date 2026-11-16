@@ -1,0 +1,303 @@
+.dataflow-view {
+  color: #526847;
+}
+.dataflow-domain {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 10px;
+  padding: 16px 12px;
+  background: #f3f6ec;
+  border: 1px solid #dfe7d4;
+  border-radius: 6px;
+  margin-bottom: 24px;
+}
+.dataflow-domain > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+  min-width: 0;
+}
+.dataflow-domain b {
+  color: #53743d;
+  font: 24px var(--mono);
+}
+.dataflow-domain span {
+  font-size: 13px;
+  color: #788b66;
+}
+.dataflow-domain i {
+  color: #93a580;
+  font-style: normal;
+}
+.dataflow-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.dataflow-heading h3 {
+  font-size: 20px;
+  margin-top: 5px;
+  font-weight: 550;
+}
+.dataflow-heading > div > span {
+  color: #81966d;
+  font-size: 13px;
+}
+.dataflow-heading > label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: #7d906a;
+}
+.dataflow-heading select {
+  padding: 7px 10px;
+  background: #fff;
+  color: #5e7b4a;
+  border: 1px solid #d5e1c9;
+  border-radius: 4px;
+  min-width: 110px;
+  max-width: 210px;
+  font-size: 14px;
+}
+.dataflow-static-note {
+  margin: 15px 0 20px;
+  padding-left: 11px;
+  border-left: 2px solid #b9cc9f;
+  font-size: 14px;
+  line-height: 1.95;
+  color: #7b8d6b;
+}
+.dataflow-predecessors {
+  margin: 23px 0;
+}
+.dataflow-predecessors details {
+  padding: 9px 12px;
+  margin: 8px 0;
+  background: #f8faf4;
+  border: 1px solid #e1e8d8;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #8b9980;
+}
+.dataflow-predecessors details.enabled {
+  border-color: #b8cc9d;
+  color: #5a7844;
+  background: #f1f7e7;
+}
+.dataflow-predecessors summary {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.dataflow-predecessors code {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.9;
+  padding: 12px 0 3px;
+  font-size: 14px;
+}
+.dataflow-table-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.dataflow-table-heading label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: #839572;
+}
+.dataflow-facts {
+  max-height: 380px;
+  border: 1px solid #dfe7d4;
+  border-radius: 5px;
+  margin-bottom: 22px;
+}
+.dataflow-facts table {
+  font-size: 15px;
+}
+.dataflow-facts th {
+  position: sticky;
+  top: 0;
+  font-size: 13px;
+  background: #f5f8ee;
+  padding: 10px;
+}
+.dataflow-facts td {
+  padding: 10px;
+}
+.dataflow-facts td:first-child {
+  max-width: 180px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.dataflow-facts td:last-child {
+  font-size: 12px;
+  color: #7a9366;
+}
+.fact-top {
+  color: #9a774b;
+}
+.dataflow-instructions {
+  margin-bottom: 23px;
+}
+.dataflow-instructions summary,
+.dataflow-liveness summary {
+  cursor: pointer;
+  font-size: 15px;
+  color: #63814e;
+  margin-bottom: 12px;
+}
+.dataflow-edges {
+  padding: 15px 0;
+  border-top: 1px solid #e1e8d7;
+  margin-bottom: 16px;
+}
+.dataflow-edges > span {
+  display: block;
+  font-size: 13px;
+  color: #7f916e;
+  margin-bottom: 10px;
+}
+.dataflow-edges > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-height: 180px;
+  overflow: auto;
+}
+.dataflow-edges code {
+  font-size: 12px;
+  padding: 5px 8px;
+  color: #a5b39a;
+  border: 1px dashed #dde5d3;
+  background: #fafcf6;
+  border-radius: 4px;
+}
+.dataflow-edges code.enabled {
+  background: #eaf3db;
+  border-style: solid;
+  color: #658249;
+  border-color: #b7ce98;
+}
+.dataflow-liveness {
+  border-top: 1px solid #e1e8d7;
+  padding-top: 17px;
+  margin-bottom: 24px;
+}
+.dataflow-liveness p {
+  font-size: 14px;
+  line-height: 1.95;
+  color: #7b8e6a;
+  margin: 12px 0;
+}
+.dataflow-formula {
+  background: #f4f8ec;
+  border: 1px solid #e0e8d5;
+  border-radius: 4px;
+  padding: 12px;
+  margin: 15px 0;
+  overflow: auto;
+}
+.dataflow-formula code {
+  display: block;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 2;
+  color: #6b8755;
+}
+.dataflow-liveness .table-scroll {
+  max-height: 300px;
+}
+.dataflow-liveness table {
+  table-layout: fixed;
+  font-size: 14px;
+}
+.dataflow-liveness th:first-child {
+  width: 70px;
+}
+.dataflow-liveness td {
+  white-space: normal;
+  vertical-align: top;
+}
+.dataflow-liveness td code {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.dataflow-outcome {
+  background: #eff5e6;
+  border: 1px solid #d8e5c8;
+  padding: 17px;
+  border-radius: 5px;
+}
+.dataflow-outcome strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 550;
+  color: #58773e;
+}
+.dataflow-outcome p {
+  font-size: 14px;
+  line-height: 1.95;
+  color: #7a9165;
+  margin: 8px 0 12px;
+  overflow-wrap: anywhere;
+}
+.dataflow-outcome a {
+  font-size: 14px;
+  color: #628345;
+}
+@media (max-width: 520px) {
+  .dataflow-domain {
+    gap: 5px;
+    padding: 13px 7px;
+  }
+  .dataflow-domain span {
+    font-size: 12px;
+  }
+  .dataflow-domain b {
+    font-size: 23px;
+  }
+  .dataflow-heading h3 {
+    font-size: 18px;
+  }
+  .dataflow-heading > label {
+    width: 100%;
+  }
+  .dataflow-heading select {
+    max-width: none;
+    width: 100%;
+  }
+  .dataflow-table-heading {
+    gap: 8px;
+  }
+  .dataflow-facts th {
+    font-size: 12px;
+    padding: 8px 6px;
+  }
+  .dataflow-facts td {
+    padding: 9px 6px;
+    font-size: 14px;
+  }
+  .dataflow-facts td:first-child {
+    max-width: 105px;
+  }
+  .dataflow-outcome {
+    padding: 14px;
+  }
+}
+@media (max-width: 420px) {
+  .lesson-tabs > span {
+    display: none;
+  }
+}

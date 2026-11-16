@@ -10,6 +10,9 @@ import {
   defaultOptions,
   flowPresets,
   CONTROL_FLOW_REFERENCE,
+  dataflowPresets,
+  DATAFLOW_REFERENCE,
+  CONSTANT_PROPAGATION_REFERENCE,
   type Lesson,
 } from './content/lessons';
 import {
@@ -32,6 +35,7 @@ const stageNames: Record<Stage, string> = {
   optimize: '代码优化',
   vm: '虚拟机执行',
   cfg: '控制流图',
+  dataflow: '数据流分析',
 };
 function readNotebook(): Notebook {
   try {
@@ -142,7 +146,14 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [notice]);
   function navigate(next: Route) {
-    const nextSource = next === 'cfg' && source === presets[0].code ? flowPresets[0].code : source;
+    const nextSource =
+      source === presets[0].code
+        ? next === 'cfg'
+          ? flowPresets[0].code
+          : next === 'dataflow'
+            ? dataflowPresets[0].code
+            : source
+        : source;
     if (nextSource !== source) {
       setSource(nextSource);
       setDraft(nextSource);
@@ -505,8 +516,13 @@ export default function App() {
                             '修改输入前，先写下你预测会变化的节点、指令或输出。'}
                         </p>
                       </div>
-                      {(lesson.id === 'optimize' || lesson.id === 'vm') && (
-                        <fieldset className="optimization-options" disabled={result.hasControlFlow}>
+                      {(lesson.id === 'optimize' ||
+                        lesson.id === 'vm' ||
+                        lesson.id === 'dataflow') && (
+                        <fieldset
+                          className="optimization-options"
+                          disabled={result.dataflow?.converged === false}
+                        >
                           <legend>编译选项</legend>
                           {(
                             [
@@ -525,9 +541,11 @@ export default function App() {
                             </label>
                           ))}
                           <small>
-                            {result.hasControlFlow
-                              ? '本程序包含控制流，保留原始 IR。跨块优化尚未实现。'
-                              : '切换选项后，回放将从头开始。'}
+                            {result.dataflow?.converged === false
+                              ? '分析尚未完成，保留原始 IR。'
+                              : result.hasControlFlow
+                                ? '先求解跨块事实，再改写 IR。清理同时处理已证明不可达块与无用复制。切换开关重置回放。'
+                                : '切换选项后，回放将从头开始。'}
                           </small>
                         </fieldset>
                       )}
@@ -586,6 +604,7 @@ export default function App() {
                           result={result}
                           source={source}
                           step={currentStep}
+                          options={options}
                         />
                       </div>
                       {length > 0 && (
@@ -900,6 +919,16 @@ export default function App() {
                   <a href={CONTROL_FLOW_REFERENCE} target="_blank" rel="noreferrer">
                     LLVM 官方教程 · 控制流与基本块 ↗
                   </a>
+                  <p>
+                    第 08 个实验于 2026-11-16 补充核对 Cornell CS 4120 的数据流与活跃变量讲义，以及
+                    LLVM 的条件常量传播说明。本项目使用稠密迭代与可变变量，没有实现稀疏 SSA。
+                  </p>
+                  <a href={DATAFLOW_REFERENCE} target="_blank" rel="noreferrer">
+                    Cornell CS 4120 · 数据流与活跃变量 ↗
+                  </a>
+                  <a href={CONSTANT_PROPAGATION_REFERENCE} target="_blank" rel="noreferrer">
+                    LLVM · 条件常量传播 ↗
+                  </a>
                 </section>
                 <section>
                   <h2>访问节制与离线内容</h2>
@@ -916,7 +945,7 @@ export default function App() {
                   <h2>哪些内容还没有覆盖</h2>
                   <p>
                     本版专注前端与基础中间表示。NFA
-                    子集构造、FIRST/FOLLOW、LR、跨块数据流分析、SSA、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。控制流图已支持基础分支与循环。
+                    子集构造、FIRST/FOLLOW、LR、SSA、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。控制流与数据流实验已支持基础分支、循环、条件常量传播和活跃变量分析。
                   </p>
                 </section>
               </div>
@@ -1048,11 +1077,11 @@ function Home({
             <div className="eyebrow">THE BIG PICTURE</div>
             <h2>先看清，这段旅程。</h2>
           </div>
-          <p>六个编译环节，另有控制流图观察分支与循环。</p>
+          <p>六个编译环节，另有控制流和数据流观察程序。</p>
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => item.id !== 'cfg')
+            .filter((item) => item.id !== 'cfg' && item.id !== 'dataflow')
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1069,7 +1098,7 @@ function Home({
                     ][index]
                   }
                 </small>
-                {index < lessons.length - 2 && <i>→</i>}
+                {index < 5 && <i>→</i>}
               </button>
             ))}
         </div>
@@ -1115,9 +1144,11 @@ function Home({
                           ? '后序遍历 / 临时变量'
                           : item.id === 'optimize'
                             ? '常量传播 / 语义等价'
-                            : item.id === 'cfg'
-                              ? '基本块 / 分支 / 循环回边'
-                              : '操作数栈 / 程序状态'}
+                            : item.id === 'dataflow'
+                              ? 'IN / OUT / 不动点 / 活跃性'
+                              : item.id === 'cfg'
+                                ? '基本块 / 分支 / 循环回边'
+                                : '操作数栈 / 程序状态'}
                 </span>
                 <b>→</b>
               </div>
@@ -1169,6 +1200,16 @@ function Reading({ lesson }: { lesson: Lesson }) {
           {chapters.find((c) => c.number === lesson.chapter)!.title} ↗
         </a>
         <small>来源核对：2026-11-16 · 本页说明与图形独立编写</small>
+        {lesson.id === 'dataflow' && (
+          <>
+            <a href={DATAFLOW_REFERENCE} target="_blank" rel="noreferrer">
+              概念核对：Cornell CS 4120 · 数据流与活跃变量 ↗
+            </a>
+            <a href={CONSTANT_PROPAGATION_REFERENCE} target="_blank" rel="noreferrer">
+              延伸：LLVM 条件常量传播（本项目未使用稀疏 SSA） ↗
+            </a>
+          </>
+        )}
         {lesson.id === 'cfg' && (
           <a href={CONTROL_FLOW_REFERENCE} target="_blank" rel="noreferrer">
             概念核对：LLVM 官方教程 · 控制流、基本块与跳转 ↗

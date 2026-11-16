@@ -1,4 +1,4 @@
-import { evaluateBinary } from './ir';
+import { evaluateBinary } from './operations';
 import { type Instruction, type Operand, type Bytecode, type VmStep, type Value } from './model';
 
 export const MAX_VM_STEPS = 2000;

@@ -66,6 +66,7 @@ afterAll(() => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+// Each case starts several child processes. Their individual 5s limits still apply.
 describe('source CLI request discipline (mocked network)', () => {
   it('makes no request without an explicit chapter and reuses successful cache', () => {
     const f = fixture();
@@ -77,7 +78,7 @@ describe('source CLI request discipline (mocked network)', () => {
     expect(f.state().nextAllowedAt).toBeGreaterThanOrEqual(start + 15000);
     expect(f.run().stdout).toContain('使用本地缓存');
     expect(f.requests()).toBe(1);
-  });
+  }, 25_000);
   it('honors persisted cooldowns without sending or automatically retrying', () => {
     const f = fixture();
     expect(f.run().status).toBe(0);
@@ -86,7 +87,7 @@ describe('source CLI request discipline (mocked network)', () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('冷却');
     expect(f.requests()).toBe(1);
-  });
+  }, 25_000);
   it('records long Retry-After on 429 and stops after one attempt', () => {
     const f = fixture('429', '7200');
     const start = Date.now();
@@ -96,7 +97,7 @@ describe('source CLI request discipline (mocked network)', () => {
     expect(f.state().nextAllowedAt).toBeGreaterThanOrEqual(start + 7200000);
     expect(f.run().status).toBe(1);
     expect(f.requests()).toBe(1);
-  });
+  }, 25_000);
   it('backs off after forbidden responses and network failures', () => {
     for (const status of ['403', 'network']) {
       const f = fixture(status);
@@ -109,7 +110,7 @@ describe('source CLI request discipline (mocked network)', () => {
       expect(f.run().status).toBe(1);
       expect(f.requests()).toBe(1);
     }
-  });
+  }, 25_000);
   it('refuses concurrent locks and corrupt state instead of bypassing them', () => {
     const f = fixture();
     const sourceCache = resolve(f.root, '.cache/sources');
@@ -122,5 +123,5 @@ describe('source CLI request discipline (mocked network)', () => {
     writeFileSync(f.statePath, JSON.stringify({ nextAllowedAt: 'bad', failures: 0 }));
     expect(f.run().status).toBe(1);
     expect(f.requests()).toBe(0);
-  });
+  }, 25_000);
 });
