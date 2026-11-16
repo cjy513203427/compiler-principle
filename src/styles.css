@@ -16,7 +16,7 @@
   --line: #e3e8df;
   --paper: #fbfcf9;
   --mono: 'Cascadia Code', Consolas, 'SFMono-Regular', monospace;
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.7;
 }
 * {
@@ -153,7 +153,7 @@ pre {
 }
 .brand small {
   display: block;
-  font-size: 8px;
+  font-size: 12px;
   letter-spacing: 1.3px;
   font-weight: 500;
   margin-top: 5px;
@@ -172,15 +172,15 @@ pre {
   margin: 0 24px 26px;
   padding-top: 20px;
   border-top: 1px solid #dfe5d8;
-  font-size: 12px;
+  font-size: 15px;
   color: #6f7d6f;
 }
 .sidebar-book span {
   color: #4b5f4d;
-  font-size: 13px;
+  font-size: 16px;
 }
 .sidebar-book p {
-  font-size: 11px;
+  font-size: 14px;
   margin-top: 4px;
 }
 .sidebar nav {
@@ -198,11 +198,11 @@ pre {
 }
 .nav-home {
   padding: 10px 13px;
-  font-size: 13px;
+  font-size: 16px;
   min-height: 44px;
 }
 .nav-home > span:first-child {
-  font-size: 17px;
+  font-size: 19px;
 }
 .nav-home.active,
 .nav-lesson.active {
@@ -219,7 +219,7 @@ pre {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 10px;
+  font-size: 13px;
   letter-spacing: 2px;
   color: #7b8774;
   padding: 24px 13px 12px;
@@ -235,7 +235,7 @@ pre {
 .nav-lesson {
   padding: 10px 12px;
   margin-bottom: 3px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 550;
   min-height: 59px;
 }
@@ -244,7 +244,7 @@ pre {
   background: #e9eee2;
 }
 .nav-number {
-  font-size: 11px;
+  font-size: 14px;
   font-family: var(--mono);
   color: #8a957f;
   align-self: flex-start;
@@ -255,7 +255,7 @@ pre {
 }
 .nav-lesson small {
   display: block;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 400;
   color: #8a9485;
   margin-top: 2px;
@@ -275,7 +275,7 @@ pre {
 .progress-label {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 14px;
   color: #7c8676;
 }
 .progress-label b {
@@ -295,7 +295,7 @@ pre {
   transition: width 0.3s;
 }
 .sidebar-bottom p {
-  font-size: 9px;
+  font-size: 12px;
   color: #87907e;
   display: flex;
   align-items: center;
@@ -322,7 +322,7 @@ pre {
   align-items: center;
   justify-content: space-between;
   background: rgba(251, 252, 249, 0.96);
-  font-size: 11px;
+  font-size: 14px;
   color: #84907f;
 }
 .topbar > div {
@@ -345,7 +345,7 @@ pre {
   border: 1px solid #e2e8db;
   border-radius: 20px;
   padding: 3px 11px;
-  font-size: 10px;
+  font-size: 13px;
   color: #788b6b;
 }
 .menu-button {
@@ -359,7 +359,7 @@ main {
   outline: none;
 }
 .eyebrow {
-  font-size: 10px;
+  font-size: 13px;
   letter-spacing: 1.7px;
   font-weight: 600;
   color: #7b8b6c;
@@ -396,7 +396,7 @@ main {
   color: #688450;
 }
 .hero-copy > p {
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.95;
   color: #7a8475;
 }
@@ -413,7 +413,7 @@ main {
   gap: 20px;
   padding: 11px 20px;
   border-radius: 5px;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 550;
   border: 1px solid transparent;
   min-height: 41px;
@@ -428,7 +428,7 @@ main {
   background: #244732;
 }
 .button.primary > span {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 400;
   line-height: 1;
 }
@@ -441,7 +441,7 @@ main {
   background: #f0f5e9;
 }
 .hero-actions > a {
-  font-size: 11px;
+  font-size: 14px;
   text-decoration: none;
   color: #6b7a61;
 }
@@ -450,14 +450,14 @@ main {
   align-items: center;
   gap: 18px;
   margin-top: 26px;
-  font-size: 10px;
+  font-size: 13px;
   color: #8a9381;
 }
 .hero-facts b {
   font-family: var(--mono);
   color: #557147;
   margin-right: 5px;
-  font-size: 13px;
+  font-size: 16px;
 }
 .hero-facts i {
   height: 10px;
@@ -495,18 +495,18 @@ main {
   background: #9ba98a;
 }
 .demo-top code {
-  font-size: 10px;
+  font-size: 13px;
   color: #7f8d75;
 }
 .demo-top small {
   margin-left: auto;
   font-family: var(--mono);
-  font-size: 7px;
+  font-size: 12px;
   letter-spacing: 1px;
   color: #8a9b79;
 }
 .hero-demo > pre {
-  font-size: 14px;
+  font-size: 17px;
   line-height: 2.2;
   padding: 25px 26px 19px;
   color: #5e6e53;
@@ -526,7 +526,7 @@ main {
   align-items: center;
   padding: 0 28px;
   justify-content: space-between;
-  font-size: 9px;
+  font-size: 12px;
   color: #9ba58d;
 }
 .demo-transform > div {
@@ -537,7 +537,7 @@ main {
   font-size: 24px;
 }
 .demo-transform small {
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 2px;
 }
 .demo-result {
@@ -552,7 +552,7 @@ main {
 }
 .demo-result > span {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 12px;
   color: #8b9e78;
 }
 .demo-result strong {
@@ -564,7 +564,7 @@ main {
 }
 .demo-result small {
   margin-left: auto;
-  font-size: 9px;
+  font-size: 12px;
   color: #8a9a7b;
 }
 .demo-interaction {
@@ -579,11 +579,11 @@ main {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 10px;
+  font-size: 13px;
   padding: 0;
 }
 .demo-interaction > span {
-  font-size: 9px;
+  font-size: 12px;
   color: #a0aa93;
 }
 .toggle {
@@ -615,7 +615,7 @@ main {
 }
 .demo-caption {
   padding: 0 24px 15px;
-  font-size: 9px;
+  font-size: 12px;
   color: #97a08d;
 }
 .section-heading {
@@ -633,7 +633,7 @@ main {
   color: #354b35;
 }
 .section-heading > p {
-  font-size: 11px;
+  font-size: 14px;
   color: #919b87;
   padding-bottom: 4px;
 }
@@ -668,7 +668,7 @@ main {
   place-items: center;
   border-radius: 8px;
   font-family: var(--mono);
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 600;
   margin-bottom: 12px;
   transition: transform 0.2s;
@@ -694,11 +694,11 @@ main {
   color: #ac8372;
 }
 .journey strong {
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 550;
 }
 .journey small {
-  font-size: 9px;
+  font-size: 12px;
   color: #8f9886;
   margin-top: 3px;
 }
@@ -708,10 +708,10 @@ main {
   top: 16px;
   color: #bdc8b3;
   font-style: normal;
-  font-size: 14px;
+  font-size: 17px;
 }
 .journey-caption {
-  font-size: 10px;
+  font-size: 13px;
   color: #8a9680;
   margin-top: 14px;
 }
@@ -724,7 +724,7 @@ main {
   scroll-margin-top: 20px;
 }
 .section-count {
-  font-size: 10px;
+  font-size: 13px;
   color: #81916f;
   border: 1px solid #e0e6d8;
   padding: 3px 10px;
@@ -765,36 +765,36 @@ main {
   place-items: center;
   border-radius: 7px;
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   flex-shrink: 0;
 }
 .card-top > span:nth-child(2) {
-  font-size: 9px;
+  font-size: 12px;
   color: #97a08d;
 }
 .card-top b {
   margin-left: auto;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 400;
   color: #bec8b5;
 }
 .lesson-card h3 {
-  font-size: 16px;
+  font-size: 18px;
   letter-spacing: 0.1px;
   font-weight: 600;
 }
 .lesson-card h3 > span {
   display: block;
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 0.4px;
   color: #9aa38f;
   font-weight: 400;
   margin-top: 3px;
 }
 .lesson-card > p {
-  font-size: 11px;
+  font-size: 14px;
   color: #7a8671;
   line-height: 1.8;
   margin: 12px 0 19px;
@@ -806,11 +806,11 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 9px;
+  font-size: 12px;
   color: #9aa58f;
 }
 .card-bottom b {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 400;
   color: #7a9067;
 }
@@ -830,17 +830,17 @@ main {
   line-height: 1;
 }
 .study-method h2 {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 550;
 }
 .study-method p {
-  font-size: 10px;
+  font-size: 13px;
   color: #8a967b;
   margin-top: 5px;
 }
 .study-method .button {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 13px;
   background: transparent;
   gap: 12px;
 }
@@ -849,7 +849,7 @@ main {
   align-items: center;
   gap: 25px;
   justify-content: space-between;
-  font-size: 9px;
+  font-size: 12px;
   color: #9ba492;
   border-top: 1px solid var(--line);
   padding: 20px 46px;
@@ -862,7 +862,7 @@ main {
   padding: 0 8px;
 }
 .site-footer button {
-  font-size: 10px;
+  font-size: 13px;
   color: #7d8d6d;
   padding: 5px;
 }
@@ -885,13 +885,13 @@ main {
   font-weight: 600;
 }
 .lesson-heading > p {
-  font-size: 13px;
+  font-size: 16px;
   color: #7b8674;
   max-width: 790px;
   line-height: 1.95;
 }
 .share-button {
-  font-size: 11px;
+  font-size: 14px;
   padding: 7px 13px;
   min-height: 35px;
   gap: 12px;
@@ -904,7 +904,7 @@ main {
   align-items: center;
 }
 .lesson-tabs > button {
-  font-size: 12px;
+  font-size: 15px;
   padding: 11px 2px 13px;
   color: #839078;
   position: relative;
@@ -925,7 +925,7 @@ main {
 }
 .lesson-tabs > span {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 13px;
   color: #99a18e;
 }
 .experiment-layout {
@@ -952,21 +952,21 @@ main {
   gap: 10px;
 }
 .panel-title h2 {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
 }
 .panel-title > span {
-  font-size: 8px;
+  font-size: 12px;
   color: #91a081;
 }
 .panel-title h2 small {
-  font-size: 9px;
+  font-size: 12px;
   color: #8e9c82;
   font-weight: 400;
   margin-left: 7px;
 }
 .field-label {
-  font-size: 10px;
+  font-size: 13px;
   color: #8b9780;
   display: block;
   margin: 18px 0 5px;
@@ -974,7 +974,7 @@ main {
 .input-panel > select {
   width: 100%;
   max-width: 100%;
-  font-size: 11px;
+  font-size: 14px;
   padding: 8px;
   background: #fafbf7;
   border: 1px solid #dfe6d6;
@@ -996,7 +996,7 @@ main {
   border-bottom: 1px solid #e7ecdf;
   padding: 9px 10px;
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 12px;
   color: #929d86;
 }
 .file-dot {
@@ -1020,7 +1020,7 @@ main {
 }
 .line-numbers {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.9;
   color: #bac4af;
   text-align: right;
@@ -1039,7 +1039,7 @@ main {
   outline: none;
   background: transparent;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.9;
   color: #4f6651;
   padding: 0 8px 0 0;
@@ -1059,12 +1059,12 @@ main {
 }
 .editor-actions .button {
   padding: 7px 14px;
-  font-size: 11px;
+  font-size: 14px;
   min-height: 35px;
   gap: 15px;
 }
 .text-button {
-  font-size: 11px;
+  font-size: 14px;
   color: #779061;
   padding: 4px 0;
   text-align: left;
@@ -1073,14 +1073,14 @@ main {
   text-decoration: underline;
 }
 .editor-actions .text-button {
-  font-size: 10px;
+  font-size: 13px;
 }
 .keyboard-hint {
-  font-size: 8px;
+  font-size: 12px;
   color: #a2ad96;
 }
 .dirty-note {
-  font-size: 10px;
+  font-size: 13px;
   color: #9e7a3d;
   margin-top: 9px;
 }
@@ -1090,7 +1090,7 @@ main {
   padding-top: 16px;
 }
 .prediction > span {
-  font-size: 10px;
+  font-size: 13px;
   color: #7d9466;
   font-weight: 550;
   display: flex;
@@ -1099,17 +1099,17 @@ main {
 }
 .prediction > span::before {
   content: '✳';
-  font-size: 12px;
+  font-size: 15px;
 }
 .prediction > p {
-  font-size: 11px;
+  font-size: 14px;
   color: #7c8b72;
   line-height: 1.9;
   margin-top: 7px;
 }
 .language-help {
   margin-top: 17px;
-  font-size: 10px;
+  font-size: 13px;
   color: #87957b;
 }
 .language-help summary {
@@ -1126,11 +1126,11 @@ main {
   padding: 14px;
   border: 1px solid #e3e9dc;
   border-radius: 5px;
-  font-size: 11px;
+  font-size: 14px;
 }
 .optimization-options legend {
   color: #779362;
-  font-size: 10px;
+  font-size: 13px;
 }
 .optimization-options label {
   display: flex;
@@ -1144,7 +1144,7 @@ main {
   height: 13px;
 }
 .optimization-options small {
-  font-size: 8px;
+  font-size: 12px;
   color: #9aa78e;
 }
 .output-panel > .panel-title {
@@ -1156,7 +1156,7 @@ main {
   border: 1px solid #e1ead5;
   border-radius: 20px;
   padding: 2px 9px !important;
-  font-size: 9px !important;
+  font-size: 12px !important;
   color: #7b9364 !important;
 }
 .result-badge.error {
@@ -1172,13 +1172,13 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 15px;
   color: #6d8260;
   gap: 10px;
   margin: 0 0 10px;
 }
 .view-label small {
-  font-size: 10px;
+  font-size: 13px;
   color: #7b8d6d;
 }
 .character-stream {
@@ -1186,7 +1186,7 @@ main {
   word-break: break-all;
   overflow-wrap: anywhere;
   line-height: 2.1;
-  font-size: 12px;
+  font-size: 15px;
   color: #9aab8d;
   background: #f6f8f2;
   border: 1px solid #e6ebde;
@@ -1220,7 +1220,7 @@ main {
   marker-end: url(#arrow);
 }
 .state-machine text {
-  font-size: 10px;
+  font-size: 13px;
   fill: #8f9d83;
 }
 .state-machine .state rect {
@@ -1228,7 +1228,7 @@ main {
   stroke: #d5dfcb;
 }
 .state-machine .state text {
-  font-size: 12px;
+  font-size: 15px;
   fill: #86977a;
 }
 .state-machine .state.active rect {
@@ -1260,17 +1260,17 @@ main {
   overflow-wrap: anywhere;
 }
 .token code {
-  font-size: 12px;
+  font-size: 15px;
   color: #4c7040;
 }
 .token > span {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 12px;
   color: #778966;
   line-height: 1.5;
 }
 .token > small {
-  font-size: 9px;
+  font-size: 12px;
   color: #7f8e71;
   line-height: 1.6;
 }
@@ -1295,7 +1295,7 @@ main {
   opacity: 0.6;
 }
 .empty-inline {
-  font-size: 10px;
+  font-size: 13px;
   color: #9ba78f;
   padding: 10px 0;
 }
@@ -1313,7 +1313,7 @@ main {
 .step-number {
   font-family: var(--mono);
   color: #6a8c4f;
-  font-size: 11px;
+  font-size: 14px;
   border: 1px solid #dce6ce;
   border-radius: 4px;
   line-height: 1;
@@ -1322,7 +1322,7 @@ main {
   flex-shrink: 0;
 }
 .step-explanation > p {
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.8;
   color: #6a7f5d;
   overflow-wrap: anywhere;
@@ -1348,19 +1348,19 @@ main {
   border: 1px solid #dfe6d5;
   background: #fff;
   border-radius: 4px;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1;
   padding: 3px 7px;
 }
 .player-controls .play-button {
-  font-size: 10px;
+  font-size: 13px;
   background: #e7efdb;
   color: #52723e;
   min-width: 68px;
 }
 .player-controls > span {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 12px;
   color: #94a381;
   margin-left: 2px;
 }
@@ -1368,13 +1368,13 @@ main {
   border: 0;
   background: transparent;
   color: #7d906a;
-  font-size: 9px;
+  font-size: 12px;
   cursor: pointer;
   max-width: 60px;
 }
 .player-controls .jump-end {
   margin-left: auto;
-  font-size: 9px;
+  font-size: 12px;
   border: 0;
   background: transparent;
   padding: 4px 0;
@@ -1388,7 +1388,7 @@ main {
   overflow: auto;
 }
 .token-tape code {
-  font-size: 10px;
+  font-size: 13px;
   background: #f6f8f2;
   border: 1px solid #e6ebde;
   border-radius: 4px;
@@ -1436,7 +1436,7 @@ main {
   stroke-width: 1;
 }
 .tree-node text {
-  font: 12px var(--mono);
+  font: 15px var(--mono);
   fill: #718661;
   pointer-events: none;
 }
@@ -1457,7 +1457,7 @@ main {
   fill: #eaf1dc;
 }
 .figure-caption {
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.9;
   color: #94a086;
   margin: 9px 0 0;
@@ -1466,7 +1466,7 @@ main {
 .grammar {
   border-top: 1px solid #e8ede2;
   margin-top: 18px;
-  font-size: 10px;
+  font-size: 13px;
   color: #839574;
   padding-top: 12px;
 }
@@ -1474,7 +1474,7 @@ main {
   cursor: pointer;
 }
 .grammar pre {
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.9;
   overflow: auto;
   color: #788c68;
@@ -1496,10 +1496,10 @@ main {
 .scope-chain b {
   font-weight: 400;
   color: #b3bfa7;
-  font-size: 12px;
+  font-size: 15px;
 }
 .scope-chain code {
-  font-size: 11px;
+  font-size: 14px;
   padding: 6px 14px;
   background: #f5f8ef;
   border: 1px solid #dfe8d4;
@@ -1520,16 +1520,16 @@ table {
   border-collapse: collapse;
   text-align: left;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 14px;
 }
 caption {
   text-align: left;
-  font-size: 9px;
+  font-size: 12px;
   color: #92a083;
   margin-bottom: 8px;
 }
 th {
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 500;
   color: #9aa58e;
   padding: 9px 10px;
@@ -1550,7 +1550,7 @@ tr.highlight-row td {
 }
 .code-rows {
   position: relative;
-  font-size: 13px;
+  font-size: 16px;
   background: #f8faf4;
   border: 1px solid #e5ebdc;
   border-radius: 5px;
@@ -1571,7 +1571,7 @@ tr.highlight-row td {
 .code-row > span {
   color: #b1bea4;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 12px;
   min-width: 15px;
   line-height: 2;
 }
@@ -1601,10 +1601,10 @@ tr.highlight-row td {
 }
 .optimization-heading small {
   color: #94a381;
-  font-size: 9px;
+  font-size: 12px;
 }
 .optimization-heading h3 {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 550;
   margin-top: 3px;
 }
@@ -1621,7 +1621,7 @@ tr.highlight-row td {
   line-height: 1.2;
 }
 .count span {
-  font-size: 8px;
+  font-size: 12px;
   color: #a1ad93;
 }
 .comparison {
@@ -1633,7 +1633,7 @@ tr.highlight-row td {
   min-width: 0;
 }
 .comparison .code-row {
-  font-size: 10px;
+  font-size: 13px;
   padding-left: 8px;
   padding-right: 8px;
   gap: 8px;
@@ -1655,16 +1655,16 @@ tr.highlight-row td {
   display: grid;
   place-items: center;
   color: #6b904c;
-  font-size: 12px;
+  font-size: 15px;
   flex-shrink: 0;
 }
 .equivalence strong {
-  font-size: 10px;
+  font-size: 13px;
   color: #67824e;
   font-weight: 550;
 }
 .equivalence p {
-  font-size: 9px;
+  font-size: 12px;
   color: #90a17d;
   margin-top: 3px;
 }
@@ -1684,7 +1684,7 @@ tr.highlight-row td {
   max-height: 360px;
 }
 .bytecode .code-row {
-  font-size: 12px;
+  font-size: 15px;
   gap: 10px;
 }
 .operand-stack {
@@ -1702,7 +1702,7 @@ tr.highlight-row td {
 .operand-stack > span {
   text-align: center;
   color: #b1bda5;
-  font-size: 10px;
+  font-size: 13px;
   padding: 26px 0;
 }
 .stack-value {
@@ -1711,7 +1711,7 @@ tr.highlight-row td {
   background: #e9f1dc;
   color: #628145;
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 17px;
   border: 1px solid #ceddb9;
   margin-bottom: 4px;
   border-radius: 3px;
@@ -1731,7 +1731,7 @@ tr.highlight-row td {
   justify-content: space-between;
   gap: 10px;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 12px;
   padding: 7px 0;
   border-bottom: 1px solid #e9eee2;
   color: #7e926b;
@@ -1753,13 +1753,13 @@ tr.highlight-row td {
 }
 .output-console > span {
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 12px;
   color: #8ca17d;
   display: block;
 }
 .output-console pre {
   margin: 5px 0 1px;
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.8;
   color: #dae7c4;
   max-height: 170px;
@@ -1776,11 +1776,11 @@ tr.highlight-row td {
   color: #a0ad93;
 }
 .pipeline-strip > span {
-  font-size: 9px;
+  font-size: 12px;
   margin-right: 12px;
 }
 .pipeline-strip > button {
-  font-size: 9px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -1822,13 +1822,13 @@ tr.highlight-row td {
   color: #8ea66f;
 }
 .learning-tip p {
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.9;
   color: #8b9a7a;
 }
 .learning-tip strong {
   display: block;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 550;
   color: #65804f;
   margin-bottom: 2px;
@@ -1843,18 +1843,18 @@ tr.highlight-row td {
   align-items: center;
   border-top: 1px solid var(--line);
   padding: 22px 0 35px;
-  font-size: 10px;
+  font-size: 13px;
   color: #98a68b;
   gap: 12px;
 }
 .lesson-pagination > button {
-  font-size: 11px;
+  font-size: 14px;
   padding: 5px 0;
   color: #6a8358;
 }
 .lesson-pagination > span {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 12px;
 }
 .diagnostic {
   margin: 17px 19px 0;
@@ -1866,16 +1866,16 @@ tr.highlight-row td {
   color: #9e7c5e;
 }
 .diagnostic strong {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
 }
 .diagnostic p {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.9;
   margin: 4px 0;
 }
 .diagnostic small {
-  font-size: 8px;
+  font-size: 12px;
   color: #b6987e;
 }
 .blocked-state {
@@ -1894,20 +1894,20 @@ tr.highlight-row td {
   margin-bottom: 15px;
 }
 .blocked-state h3 {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 500;
   color: #80916f;
   margin-bottom: 13px;
 }
 .blocked-state p {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 2;
   margin-top: 6px;
 }
 .reading-page {
   max-width: 790px;
   margin: 35px auto 40px;
-  font-size: 14px;
+  font-size: 17px;
   color: #7c8973;
 }
 .reading-lead {
@@ -1924,7 +1924,7 @@ tr.highlight-row td {
   font-size: 21px;
 }
 .reading-lead small {
-  font-size: 10px;
+  font-size: 13px;
   letter-spacing: 1px;
   color: #96a38b;
 }
@@ -1945,18 +1945,18 @@ tr.highlight-row td {
   margin-bottom: 14px;
 }
 .reading-page h3 {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 550;
   color: #4b6541;
   margin-bottom: 13px;
 }
 .reading-page section > p {
   line-height: 2.1;
-  font-size: 15px;
+  font-size: 17px;
   margin: 12px 0;
 }
 .reading-number {
-  font: 11px var(--mono);
+  font: 14px var(--mono);
   color: #a2b390;
   position: absolute;
   left: -37px;
@@ -1967,11 +1967,11 @@ tr.highlight-row td {
   border-left: 2px solid #c3b27e;
   padding: 16px 19px;
   margin: 0 0 32px;
-  font-size: 12px;
+  font-size: 15px;
   color: #9b9073;
 }
 .misconception strong {
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 550;
   color: #988860;
 }
@@ -1987,19 +1987,19 @@ tr.highlight-row td {
 .reading-source small {
   display: block;
   color: #a2ad95;
-  font-size: 10px;
+  font-size: 13px;
 }
 .reading-source a {
   display: block;
-  font-size: 12px;
+  font-size: 15px;
   margin: 9px 0;
   color: #738d5d;
 }
 .reading-source small {
-  font-size: 9px;
+  font-size: 12px;
 }
 .reading-page a {
-  font-size: 12px;
+  font-size: 15px;
 }
 .recall-page {
   max-width: 820px;
@@ -2015,7 +2015,7 @@ tr.highlight-row td {
 }
 .quiz-card h2,
 .recall-card h2 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 550;
   color: #4c6543;
   margin: 13px 0 20px;
@@ -2032,13 +2032,13 @@ tr.highlight-row td {
   border: 1px solid #e1e7d8;
   border-radius: 5px;
   background: #fafcf7;
-  font-size: 12px;
+  font-size: 15px;
   flex: 1;
   text-align: left;
 }
 .quiz-options button > span {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 13px;
   color: #a9b89b;
 }
 .quiz-options button.chosen {
@@ -2051,7 +2051,7 @@ tr.highlight-row td {
   border: 1px solid #ede0c9;
   color: #a38b60;
   padding: 14px 16px;
-  font-size: 12px;
+  font-size: 15px;
   margin-top: 18px;
   border-radius: 4px;
 }
@@ -2061,12 +2061,12 @@ tr.highlight-row td {
   color: #7b965c;
 }
 .quiz-feedback p {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.9;
   margin-top: 5px;
 }
 .recall-card > p {
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.9;
   color: #89977c;
   margin-bottom: 19px;
@@ -2080,7 +2080,7 @@ tr.highlight-row td {
   border-radius: 5px;
   background: #fafcf7;
   color: #5c7550;
-  font-size: 13px;
+  font-size: 16px;
   line-height: 1.9;
 }
 .recall-card textarea::placeholder,
@@ -2095,14 +2095,14 @@ tr.highlight-row td {
   margin: 7px 0 22px;
 }
 .note-status > span {
-  font-size: 9px;
+  font-size: 12px;
   color: #a1ae92;
 }
 .note-status > .text-button {
-  font-size: 10px;
+  font-size: 13px;
 }
 .reference-answer {
-  font-size: 12px;
+  font-size: 15px;
   padding: 16px;
   background: #f4f7ec;
   color: #889c73;
@@ -2121,7 +2121,7 @@ tr.highlight-row td {
   margin: 15px 0;
 }
 .page-heading p {
-  font-size: 13px;
+  font-size: 16px;
   line-height: 2;
   color: #87947c;
   max-width: 780px;
@@ -2136,7 +2136,7 @@ tr.highlight-row td {
   flex-wrap: wrap;
 }
 .notebook-toolbar > span {
-  font-size: 11px;
+  font-size: 14px;
   color: #8c9b7c;
 }
 .notebook-toolbar > div {
@@ -2146,13 +2146,13 @@ tr.highlight-row td {
   flex-wrap: wrap;
 }
 .notebook-toolbar .button {
-  font-size: 10px;
+  font-size: 13px;
   min-height: 33px;
   padding: 6px 14px;
 }
 .danger {
   color: #ac8b76;
-  font-size: 10px;
+  font-size: 13px;
 }
 .notebook-grid {
   display: grid;
@@ -2172,35 +2172,35 @@ tr.highlight-row td {
   gap: 10px;
 }
 .note-card > div > span {
-  font-size: 12px;
+  font-size: 15px;
   color: #698052;
 }
 .note-card label {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
+  font-size: 12px;
   color: #9aac88;
 }
 .note-card input {
   margin: 0;
 }
 .note-card > p {
-  font-size: 11px;
+  font-size: 14px;
   color: #99a58d;
   line-height: 1.9;
   margin: 14px 0;
 }
 .note-card textarea {
   min-height: 145px;
-  font-size: 12px;
+  font-size: 15px;
 }
 .note-card > .text-button {
   margin-top: 9px;
-  font-size: 10px;
+  font-size: 13px;
 }
 .privacy-note {
-  font-size: 10px;
+  font-size: 13px;
   color: #a5af9a;
   line-height: 1.9;
   margin: 26px 0 40px;
@@ -2225,17 +2225,17 @@ tr.highlight-row td {
   color: #536d42;
 }
 .source-intro p {
-  font-size: 11px;
+  font-size: 14px;
   color: #91a27e;
   margin: 4px 0 8px;
 }
 .source-intro a {
-  font-size: 10px;
+  font-size: 13px;
   color: #7a965f;
 }
 .source-intro > span:last-child {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 13px;
   color: #a2b18e;
 }
 .source-table {
@@ -2243,7 +2243,7 @@ tr.highlight-row td {
 }
 .source-table td {
   white-space: normal;
-  font-size: 11px;
+  font-size: 14px;
 }
 .source-table td:first-child {
   white-space: nowrap;
@@ -2255,14 +2255,14 @@ tr.highlight-row td {
 }
 .source-table td a,
 .source-table td button {
-  font-size: 11px;
+  font-size: 14px;
   color: #76935c;
 }
 .source-table + .reading-page {
   max-width: none;
 }
 .share-fallback {
-  font-size: 11px;
+  font-size: 14px;
   color: #82986e;
   display: block;
   padding: 12px;
@@ -2272,7 +2272,7 @@ tr.highlight-row td {
 .share-fallback input {
   display: block;
   width: 100%;
-  font-size: 10px;
+  font-size: 13px;
   padding: 7px;
   margin-top: 6px;
   border: 1px solid #d6e0ca;
@@ -2286,7 +2286,7 @@ tr.highlight-row td {
   transform: translateX(-50%);
   max-width: calc(100% - 40px);
   z-index: 80;
-  font-size: 12px;
+  font-size: 15px;
   line-height: 1.8;
   color: #f4f9eb;
   background: #3a563c;
@@ -2319,13 +2319,13 @@ tr.highlight-row td {
     padding: 24px;
   }
   .hero-copy > p {
-    font-size: 15px;
+    font-size: 17px;
   }
   .section-heading h2 {
     font-size: 24px;
   }
   .hero-demo > pre {
-    font-size: 16px;
+    font-size: 18px;
   }
   .hero-demo {
     margin-top: 10px;
@@ -2345,7 +2345,7 @@ tr.highlight-row td {
     padding-left: 20px;
   }
   .brand small {
-    font-size: 7px;
+    font-size: 12px;
   }
   .sidebar-book {
     margin-left: 20px;
@@ -2369,7 +2369,7 @@ tr.highlight-row td {
     flex-wrap: wrap;
   }
   .hero-demo > pre {
-    font-size: 12px;
+    font-size: 15px;
     padding-left: 20px;
   }
   .hero-facts {
@@ -2386,7 +2386,7 @@ tr.highlight-row td {
     margin-right: 16px;
   }
   .demo-result small {
-    font-size: 8px;
+    font-size: 12px;
   }
   .lesson-grid {
     gap: 12px;
@@ -2398,20 +2398,20 @@ tr.highlight-row td {
     gap: 7px;
   }
   .card-top > span:nth-child(2) {
-    font-size: 8px;
+    font-size: 12px;
   }
   .lesson-card h3 > span {
-    font-size: 8px;
+    font-size: 12px;
   }
   .lesson-card > p {
-    font-size: 10px;
+    font-size: 13px;
   }
   .study-method {
     padding: 22px 19px;
     gap: 14px;
   }
   .study-method p {
-    font-size: 9px;
+    font-size: 12px;
   }
   .study-method .button {
     padding: 8px 10px;
@@ -2434,7 +2434,7 @@ tr.highlight-row td {
     gap: 7px;
   }
   .player-controls .jump-end {
-    font-size: 8px;
+    font-size: 12px;
   }
   .site-footer {
     padding-left: 30px;
@@ -2449,10 +2449,10 @@ tr.highlight-row td {
     font-size: 32px;
   }
   .hero-copy > p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .hero-demo > pre {
-    font-size: 11px;
+    font-size: 14px;
   }
   .demo-result {
     gap: 10px;
@@ -2463,7 +2463,7 @@ tr.highlight-row td {
   }
   .hero-actions > .button {
     padding: 9px 13px;
-    font-size: 11px;
+    font-size: 14px;
     gap: 15px;
   }
   .lesson-grid {
@@ -2492,7 +2492,7 @@ tr.highlight-row td {
   .section-heading > p {
     max-width: 150px;
     text-align: right;
-    font-size: 10px;
+    font-size: 13px;
   }
   .experiment-layout {
     grid-template-columns: 1fr;
@@ -2622,7 +2622,7 @@ tr.highlight-row td {
     display: block;
     padding: 3px 7px 3px 0;
     color: #728d5f;
-    font-size: 17px;
+    font-size: 19px;
   }
   .topbar > div {
     gap: 12px;
@@ -2631,11 +2631,11 @@ tr.highlight-row td {
     display: none;
   }
   .local-badge {
-    font-size: 8px;
+    font-size: 12px;
     padding: 3px 8px;
   }
   .topbar {
-    font-size: 10px;
+    font-size: 13px;
   }
   main {
     padding: 0 24px;
@@ -2649,7 +2649,7 @@ tr.highlight-row td {
     margin: 15px 0;
   }
   .hero-copy .eyebrow {
-    font-size: 7px;
+    font-size: 12px;
     letter-spacing: 1px;
     gap: 7px;
   }
@@ -2657,21 +2657,21 @@ tr.highlight-row td {
     width: 15px;
   }
   .hero-copy > p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .hero-actions {
     margin-top: 23px;
     gap: 13px;
   }
   .hero-actions > a {
-    font-size: 10px;
+    font-size: 13px;
   }
   .hero-facts {
     margin-top: 18px;
-    font-size: 9px;
+    font-size: 12px;
   }
   .hero-facts b {
-    font-size: 11px;
+    font-size: 14px;
   }
   .demo-top {
     padding: 10px;
@@ -2680,7 +2680,7 @@ tr.highlight-row td {
     display: none;
   }
   .demo-top code {
-    font-size: 8px;
+    font-size: 12px;
   }
   .demo-result {
     padding: 10px 12px;
@@ -2689,29 +2689,29 @@ tr.highlight-row td {
   .demo-result small {
     margin: 0 0 0 auto;
     max-width: 60px;
-    font-size: 7px;
+    font-size: 12px;
   }
   .hero-demo > pre {
     padding: 20px 13px 10px;
-    font-size: 10px;
+    font-size: 13px;
   }
   .demo-transform {
     padding: 0 17px;
-    font-size: 8px;
+    font-size: 12px;
   }
   .demo-transform small {
-    font-size: 7px;
+    font-size: 12px;
     letter-spacing: 0;
   }
   .demo-transform > div {
     font-size: 19px;
   }
   .demo-caption {
-    font-size: 8px;
+    font-size: 12px;
     padding: 0 15px 12px;
   }
   .demo-interaction button {
-    font-size: 9px;
+    font-size: 12px;
   }
   .journey-section {
     padding-top: 24px;
@@ -2720,7 +2720,7 @@ tr.highlight-row td {
     font-size: 20px;
   }
   .section-heading .eyebrow {
-    font-size: 9px;
+    font-size: 12px;
   }
   .lesson-grid {
     gap: 14px;
@@ -2729,26 +2729,26 @@ tr.highlight-row td {
     padding: 19px;
   }
   .lesson-card > p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .card-top > span:nth-child(2) {
-    font-size: 9px;
+    font-size: 12px;
   }
   .lesson-card h3 > span {
-    font-size: 9px;
+    font-size: 12px;
   }
   .study-method h2 {
-    font-size: 16px;
+    font-size: 18px;
   }
   .study-method p {
-    font-size: 10px;
+    font-size: 13px;
   }
   .site-footer {
     padding: 19px 24px;
   }
   .toast {
     left: 50%;
-    font-size: 11px;
+    font-size: 14px;
     width: max-content;
   }
   .lesson-heading {
@@ -2765,13 +2765,13 @@ tr.highlight-row td {
   }
   .share-button {
     padding: 6px 10px;
-    font-size: 10px;
+    font-size: 13px;
     gap: 7px;
     min-height: 30px;
     margin-top: 6px;
   }
   .lesson-heading > p {
-    font-size: 12px;
+    font-size: 15px;
   }
   .lesson-tabs {
     gap: 22px;
@@ -2780,7 +2780,7 @@ tr.highlight-row td {
     font-size: 28px;
   }
   .reading-page section > p {
-    font-size: 13px;
+    font-size: 16px;
   }
   .reading-lead h2 {
     font-size: 20px;
@@ -2804,11 +2804,11 @@ tr.highlight-row td {
     margin-top: 15px;
   }
   .hero-copy .eyebrow {
-    font-size: 8px;
+    font-size: 12px;
     letter-spacing: 1.1px;
   }
   .hero-copy > p {
-    font-size: 12px;
+    font-size: 15px;
     line-height: 2;
   }
   .hero-actions {
@@ -2818,14 +2818,14 @@ tr.highlight-row td {
   }
   .hero-actions > .button {
     padding: 10px 15px;
-    font-size: 11px;
+    font-size: 14px;
     gap: 16px;
   }
   .hero-actions > a {
-    font-size: 10px;
+    font-size: 13px;
   }
   .hero-facts {
-    font-size: 9px;
+    font-size: 12px;
     margin: 20px 0 30px;
   }
   .hero-demo {
@@ -2833,7 +2833,7 @@ tr.highlight-row td {
     margin: 0 5px;
   }
   .hero-demo > pre {
-    font-size: 13px;
+    font-size: 16px;
     padding: 21px 22px 12px;
   }
   .demo-top {
@@ -2843,13 +2843,13 @@ tr.highlight-row td {
     display: block;
   }
   .demo-top code {
-    font-size: 9px;
+    font-size: 12px;
   }
   .demo-transform {
     padding: 0 24px;
   }
   .demo-transform small {
-    font-size: 9px;
+    font-size: 12px;
     letter-spacing: 1px;
   }
   .demo-result {
@@ -2858,7 +2858,7 @@ tr.highlight-row td {
     gap: 18px;
   }
   .demo-result small {
-    font-size: 8px;
+    font-size: 12px;
     max-width: none;
     margin-left: auto;
   }
@@ -2869,15 +2869,15 @@ tr.highlight-row td {
     padding: 14px 20px;
   }
   .demo-interaction button {
-    font-size: 10px;
+    font-size: 13px;
   }
   .demo-interaction > span {
     display: block;
-    font-size: 8px;
+    font-size: 12px;
   }
   .demo-caption {
     padding-left: 21px;
-    font-size: 8px;
+    font-size: 12px;
   }
   .section-heading {
     gap: 12px;
@@ -2887,11 +2887,11 @@ tr.highlight-row td {
     font-size: 20px;
   }
   .section-heading > p {
-    font-size: 9px;
+    font-size: 12px;
     max-width: 110px;
   }
   .section-heading .eyebrow {
-    font-size: 8px;
+    font-size: 12px;
     letter-spacing: 1.4px;
   }
   .journey {
@@ -2899,19 +2899,19 @@ tr.highlight-row td {
     gap: 20px 0;
   }
   .journey strong {
-    font-size: 11px;
+    font-size: 14px;
   }
   .journey small {
-    font-size: 8px;
+    font-size: 12px;
   }
   .journey-icon {
     height: 32px;
     width: 33px;
-    font-size: 16px;
+    font-size: 18px;
     margin-bottom: 10px;
   }
   .journey-caption {
-    font-size: 9px;
+    font-size: 12px;
     line-height: 2;
     margin-top: 13px;
   }
@@ -2923,30 +2923,30 @@ tr.highlight-row td {
     padding: 20px 21px 16px;
   }
   .lesson-card h3 {
-    font-size: 18px;
+    font-size: 20px;
     display: flex;
     align-items: baseline;
     gap: 13px;
   }
   .lesson-card h3 > span {
-    font-size: 9px;
+    font-size: 12px;
   }
   .card-top {
     margin-bottom: 13px;
   }
   .lesson-card > p {
     margin: 12px 0 15px;
-    font-size: 12px;
+    font-size: 15px;
   }
   .card-bottom {
-    font-size: 10px;
+    font-size: 13px;
     padding-top: 11px;
   }
   .card-top > span:nth-child(2) {
-    font-size: 9px;
+    font-size: 12px;
   }
   .card-top b {
-    font-size: 15px;
+    font-size: 17px;
   }
   .lesson-icon {
     width: 30px;
@@ -2965,10 +2965,10 @@ tr.highlight-row td {
     min-width: 0;
   }
   .study-method h2 {
-    font-size: 14px;
+    font-size: 17px;
   }
   .study-method p {
-    font-size: 10px;
+    font-size: 13px;
     line-height: 1.9;
   }
   .method-mark {
@@ -2976,23 +2976,23 @@ tr.highlight-row td {
   }
   .study-method .button {
     margin-left: 43px;
-    font-size: 10px;
+    font-size: 13px;
     gap: 12px;
   }
   .site-footer {
     padding: 15px 20px;
-    font-size: 8px;
+    font-size: 12px;
     gap: 8px;
   }
   .site-footer i {
     padding: 0 3px;
   }
   .site-footer button {
-    font-size: 9px;
+    font-size: 12px;
     white-space: nowrap;
   }
   .lesson-heading .eyebrow {
-    font-size: 8px;
+    font-size: 12px;
     letter-spacing: 1px;
     gap: 8px;
   }
@@ -3004,12 +3004,12 @@ tr.highlight-row td {
   }
   .title-row > .share-button {
     margin-top: 10px;
-    font-size: 9px;
+    font-size: 12px;
     padding: 5px 10px;
     min-height: 28px;
   }
   .lesson-heading > p {
-    font-size: 12px;
+    font-size: 15px;
     line-height: 1.95;
   }
   .lesson-tabs {
@@ -3017,11 +3017,11 @@ tr.highlight-row td {
     margin-bottom: 17px;
   }
   .lesson-tabs > button {
-    font-size: 11px;
+    font-size: 14px;
     padding-bottom: 12px;
   }
   .lesson-tabs > span {
-    font-size: 8px;
+    font-size: 12px;
   }
   .input-panel {
     display: block;
@@ -3043,30 +3043,30 @@ tr.highlight-row td {
   }
   .editor textarea {
     min-height: 140px;
-    font-size: 12px;
+    font-size: 15px;
     line-height: 1.9;
   }
   .line-numbers {
-    font-size: 12px;
+    font-size: 15px;
     line-height: 1.9;
   }
   .keyboard-hint {
-    font-size: 9px;
-  }
-  .editor-toolbar {
-    font-size: 9px;
-  }
-  .prediction > p {
-    font-size: 11px;
-  }
-  .language-help {
-    font-size: 11px;
-  }
-  .input-panel > select {
     font-size: 12px;
   }
+  .editor-toolbar {
+    font-size: 12px;
+  }
+  .prediction > p {
+    font-size: 14px;
+  }
+  .language-help {
+    font-size: 14px;
+  }
+  .input-panel > select {
+    font-size: 15px;
+  }
   .editor-actions .button {
-    font-size: 11px;
+    font-size: 14px;
   }
   .result-content {
     padding: 15px;
@@ -3076,23 +3076,23 @@ tr.highlight-row td {
     padding: 14px 15px;
   }
   .panel-title h2 {
-    font-size: 13px;
+    font-size: 16px;
   }
   .panel-title h2 small {
-    font-size: 8px;
+    font-size: 12px;
   }
   .panel-title > span {
-    font-size: 8px;
+    font-size: 12px;
   }
   .view-label {
-    font-size: 10px;
+    font-size: 13px;
   }
   .view-label small {
-    font-size: 8px;
+    font-size: 12px;
     text-align: right;
   }
   .character-stream {
-    font-size: 11px;
+    font-size: 14px;
     padding: 11px;
     margin-bottom: 19px;
   }
@@ -3107,16 +3107,16 @@ tr.highlight-row td {
     padding: 5px 7px;
   }
   .token code {
-    font-size: 10px;
+    font-size: 13px;
   }
   .token > span {
-    font-size: 7px;
+    font-size: 12px;
   }
   .trace-player {
     padding: 13px 13px;
   }
   .step-explanation > p {
-    font-size: 11px;
+    font-size: 14px;
     line-height: 1.9;
   }
   .player-controls {
@@ -3134,15 +3134,15 @@ tr.highlight-row td {
     min-width: 60px;
   }
   .player-controls > span {
-    font-size: 8px;
+    font-size: 12px;
     margin-left: 0;
   }
   .player-controls .jump-end {
     margin-left: auto;
-    font-size: 8px;
+    font-size: 12px;
   }
   .player-controls select {
-    font-size: 9px;
+    font-size: 12px;
     max-width: 46px;
   }
   .pipeline-strip {
@@ -3151,10 +3151,10 @@ tr.highlight-row td {
   }
   .pipeline-strip > span {
     width: 100%;
-    font-size: 9px;
+    font-size: 12px;
   }
   .pipeline-strip > button {
-    font-size: 9px;
+    font-size: 12px;
   }
   .learning-tip {
     padding: 15px;
@@ -3165,22 +3165,22 @@ tr.highlight-row td {
     font-size: 21px;
   }
   .learning-tip p {
-    font-size: 10px;
+    font-size: 13px;
   }
   .learning-tip .text-button {
-    font-size: 9px;
+    font-size: 12px;
     padding-top: 3px;
   }
   .lesson-pagination {
-    font-size: 9px;
+    font-size: 12px;
     gap: 5px;
     padding: 20px 0 28px;
   }
   .lesson-pagination > button {
-    font-size: 10px;
+    font-size: 13px;
   }
   .lesson-pagination > span {
-    font-size: 8px;
+    font-size: 12px;
   }
   .comparison {
     grid-template-columns: 1fr;
@@ -3191,12 +3191,12 @@ tr.highlight-row td {
     margin-bottom: 10px;
   }
   .comparison .code-row {
-    font-size: 10px;
+    font-size: 13px;
     gap: 12px;
     padding-left: 11px;
   }
   .optimization-heading h3 {
-    font-size: 16px;
+    font-size: 18px;
   }
   .equivalence {
     padding: 12px 10px;
@@ -3212,11 +3212,11 @@ tr.highlight-row td {
   .bytecode .code-row {
     padding-left: 7px;
     padding-right: 5px;
-    font-size: 9px;
+    font-size: 12px;
     gap: 7px;
   }
   .bytecode .code-row > span {
-    font-size: 8px;
+    font-size: 12px;
     min-width: 10px;
   }
   .operand-stack {
@@ -3225,7 +3225,7 @@ tr.highlight-row td {
     min-height: 110px;
   }
   .memory > div {
-    font-size: 8px;
+    font-size: 12px;
     gap: 4px;
   }
   .diagnostic {
@@ -3233,7 +3233,7 @@ tr.highlight-row td {
     padding: 12px;
   }
   .diagnostic p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .blocked-state {
     padding: 24px 12px;
@@ -3242,30 +3242,30 @@ tr.highlight-row td {
     max-height: 330px;
   }
   .tree-scroll + .figure-caption {
-    font-size: 8px;
+    font-size: 12px;
   }
   .scope-chain code {
-    font-size: 10px;
+    font-size: 13px;
     padding: 5px 11px;
   }
   table {
-    font-size: 10px;
+    font-size: 13px;
   }
   th {
-    font-size: 8px;
+    font-size: 12px;
     padding: 8px;
   }
   td {
     padding: 9px 8px;
   }
   .figure-caption {
-    font-size: 9px;
+    font-size: 12px;
   }
   .grammar {
-    font-size: 10px;
+    font-size: 13px;
   }
   .grammar pre {
-    font-size: 9px;
+    font-size: 12px;
   }
   .reading-page {
     margin: 24px 0 30px;
@@ -3278,37 +3278,37 @@ tr.highlight-row td {
   .reading-lead > .lesson-icon {
     width: 38px;
     height: 38px;
-    font-size: 18px;
+    font-size: 20px;
   }
   .reading-lead small {
-    font-size: 8px;
+    font-size: 12px;
   }
   .reading-lead h2 {
-    font-size: 16px;
+    font-size: 18px;
   }
   .reading-page h3 {
-    font-size: 16px;
+    font-size: 18px;
   }
   .reading-page section > p {
-    font-size: 13px;
+    font-size: 16px;
   }
   .reading-page section {
     margin-bottom: 27px;
   }
   .reading-number {
-    font-size: 10px;
+    font-size: 13px;
   }
   .misconception {
     padding: 15px;
   }
   .misconception p {
-    font-size: 12px;
+    font-size: 15px;
   }
   .reading-source a {
-    font-size: 11px;
+    font-size: 14px;
   }
   .reading-source small {
-    font-size: 8px;
+    font-size: 12px;
   }
   .quiz-card,
   .recall-card {
@@ -3320,7 +3320,7 @@ tr.highlight-row td {
   }
   .quiz-card h2,
   .recall-card h2 {
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1.7;
     margin-top: 12px;
   }
@@ -3329,21 +3329,21 @@ tr.highlight-row td {
     gap: 8px;
   }
   .quiz-options button {
-    font-size: 12px;
+    font-size: 15px;
     gap: 13px;
     padding: 10px 13px;
   }
   .quiz-card .eyebrow,
   .recall-card .eyebrow {
-    font-size: 8px;
+    font-size: 12px;
     letter-spacing: 1px;
   }
   .recall-card > p {
-    font-size: 12px;
+    font-size: 15px;
     line-height: 2;
   }
   .recall-card textarea {
-    font-size: 12px;
+    font-size: 15px;
     min-height: 170px;
     padding: 12px;
   }
@@ -3353,16 +3353,16 @@ tr.highlight-row td {
     gap: 8px;
   }
   .note-status > span {
-    font-size: 8px;
-  }
-  .note-status > .text-button {
-    font-size: 10px;
-  }
-  .reference-answer {
     font-size: 12px;
   }
+  .note-status > .text-button {
+    font-size: 13px;
+  }
+  .reference-answer {
+    font-size: 15px;
+  }
   .recall-card > .button {
-    font-size: 11px;
+    font-size: 14px;
     padding: 10px 13px;
     max-width: 100%;
     white-space: normal;
@@ -3371,47 +3371,47 @@ tr.highlight-row td {
     padding: 29px 0 23px;
   }
   .page-heading .eyebrow {
-    font-size: 8px;
+    font-size: 12px;
   }
   .page-heading h1 {
     font-size: 26px;
     line-height: 1.6;
   }
   .page-heading p {
-    font-size: 12px;
+    font-size: 15px;
   }
   .notebook-toolbar {
     padding-top: 15px;
     gap: 14px;
   }
   .notebook-toolbar > span {
-    font-size: 10px;
+    font-size: 13px;
   }
   .notebook-toolbar > div {
     gap: 14px 10px;
   }
   .notebook-toolbar .button {
-    font-size: 10px;
+    font-size: 13px;
     padding: 5px 11px;
   }
   .notebook-toolbar .danger {
-    font-size: 9px;
+    font-size: 12px;
   }
   .note-card {
     padding: 19px 17px;
   }
   .note-card textarea {
-    font-size: 12px;
+    font-size: 15px;
     min-height: 155px;
   }
   .note-card > p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .notebook-grid {
     gap: 16px;
   }
   .privacy-note {
-    font-size: 9px;
+    font-size: 12px;
     line-height: 2;
   }
   .source-intro {
@@ -3423,10 +3423,10 @@ tr.highlight-row td {
     font-size: 29px;
   }
   .source-intro h2 {
-    font-size: 17px;
+    font-size: 19px;
   }
   .source-intro p {
-    font-size: 10px;
+    font-size: 13px;
   }
   .source-table {
     margin-bottom: 27px;
@@ -3435,24 +3435,24 @@ tr.highlight-row td {
     min-width: 520px;
   }
   .source-table td {
-    font-size: 10px;
+    font-size: 13px;
   }
   .source-table td a,
   .source-table td button {
-    font-size: 10px;
+    font-size: 13px;
   }
   .source-table + .reading-page h2 {
-    font-size: 17px;
+    font-size: 19px;
   }
   .share-fallback input {
-    font-size: 9px;
+    font-size: 12px;
   }
   .toast:not(:empty) {
     padding: 10px 14px;
   }
   .toast {
     bottom: 15px;
-    font-size: 10px;
+    font-size: 13px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -3501,5 +3501,269 @@ tr.highlight-row td {
     border: 0 !important;
     background: none !important;
     color: #000 !important;
+  }
+}
+
+/* Readable diagrams retain their actual text size; only the figure scrolls. */
+.brand small {
+  font-size: 10px;
+  letter-spacing: 0.55px;
+}
+.diagram-scroll {
+  max-width: 100%;
+  overflow: auto;
+}
+.state-machine {
+  min-width: 510px;
+}
+.player-controls button {
+  min-width: 36px;
+  height: 36px;
+}
+.player-controls .play-button {
+  min-width: 78px;
+  font-size: 14px;
+}
+.player-controls .jump-end {
+  font-size: 13px;
+  min-height: 36px;
+}
+.editor textarea {
+  font-size: 16px;
+}
+.line-numbers {
+  font-size: 16px;
+  line-height: 1.9;
+}
+.code-rows,
+.comparison .code-row,
+.bytecode .code-row {
+  font-size: 15px;
+}
+.step-explanation > p {
+  font-size: 16px;
+}
+.reading-page section > p {
+  font-size: 18px;
+  line-height: 2;
+  color: #56674e;
+}
+.reading-page {
+  max-width: 850px;
+}
+.figure-caption,
+.language-help,
+.keyboard-hint {
+  color: #687b5c;
+}
+.optimization-options:disabled label {
+  opacity: 0.65;
+}
+.optimization-options small {
+  display: block;
+  line-height: 1.8;
+}
+.cfg-summary {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #dbe5cf;
+  background: #f4f8ed;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.cfg-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cfg-summary span {
+  font-size: 13px;
+  color: #7d8f6d;
+}
+.cfg-summary strong {
+  font-size: 18px;
+  font-weight: 550;
+  color: #496b37;
+}
+.cfg-visit-total {
+  margin-left: auto;
+}
+.cfg-scroll {
+  border: 1px solid #dfe7d6;
+  border-radius: 7px;
+  max-height: 560px;
+  overflow: auto;
+  margin-top: 15px;
+  background: #fbfdf8;
+  scrollbar-width: thin;
+}
+.cfg-graph {
+  display: block;
+  margin: 0 auto;
+  max-width: none;
+}
+.cfg-edge path {
+  fill: none;
+  stroke: #b5c3aa;
+  stroke-width: 1.5;
+}
+.cfg-edge text {
+  fill: #708264;
+  font-size: 14px;
+}
+.cfg-edge.back-edge path {
+  stroke-dasharray: 6 4;
+}
+.cfg-edge.visited path {
+  stroke: #829b70;
+  stroke-width: 2;
+}
+.cfg-edge.active path {
+  stroke: #335f3c;
+  stroke-width: 3.5;
+}
+.cfg-edge.active text {
+  fill: #315c37;
+  font-weight: 650;
+}
+.cfg-block {
+  cursor: pointer;
+}
+.cfg-block rect {
+  fill: #fff;
+  stroke: #cad9bd;
+  stroke-width: 1.4;
+}
+.cfg-block.active rect {
+  fill: #edf5df;
+  stroke: #547c3d;
+  stroke-width: 2.5;
+}
+.cfg-block.selected rect {
+  stroke-dasharray: 5 3;
+  stroke-width: 2;
+}
+.cfg-block:hover rect {
+  fill: #f0f6e8;
+}
+.cfg-block text {
+  fill: #526c43;
+  pointer-events: none;
+}
+.cfg-block-name {
+  font: 600 16px var(--mono);
+}
+.cfg-block-visits {
+  font-size: 13px;
+}
+.cfg-instruction {
+  font: 14px var(--mono);
+}
+.cfg-more {
+  font-size: 12px;
+  fill: #7d906b !important;
+}
+.cfg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 12px;
+  color: #708164;
+  margin: 12px 0 20px;
+}
+.cfg-inspection {
+  border-top: 1px solid #e2e9da;
+  padding-top: 15px;
+  margin-bottom: 24px;
+}
+.cfg-inspection summary {
+  cursor: pointer;
+  color: #4f7040;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.cfg-inspection .code-rows {
+  margin-bottom: 9px;
+}
+.cfg-successors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  color: #7b8d6c;
+}
+.cfg-successors button {
+  border: 1px solid #d6e2c9;
+  border-radius: 4px;
+  padding: 6px 12px;
+  background: #f6faef;
+  color: #5a7b43;
+}
+.cfg-memory {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 25px;
+  max-height: 230px;
+}
+.cfg-memory > div {
+  font-size: 14px;
+}
+.cfg-route-history {
+  padding: 15px 0 0;
+  font-size: 13px;
+  color: #778d66;
+}
+.cfg-route-history > span {
+  display: block;
+  margin-bottom: 7px;
+}
+.cfg-route-history code {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 520px) {
+  .reading-page section > p {
+    font-size: 17px;
+  }
+  .player-controls {
+    gap: 10px;
+  }
+  .player-controls .jump-end {
+    margin-left: 0;
+  }
+  .player-controls > span {
+    font-size: 12px;
+  }
+  .panel-title {
+    flex-wrap: wrap;
+  }
+  .panel-title h2 small {
+    display: none;
+  }
+  .cfg-summary {
+    gap: 14px;
+    padding: 13px;
+  }
+  .cfg-summary strong {
+    font-size: 17px;
+  }
+  .cfg-summary span {
+    font-size: 12px;
+  }
+  .cfg-memory {
+    grid-template-columns: 1fr;
+  }
+  .lesson-card h3 {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .hero-actions {
+    flex-wrap: wrap;
+  }
+  .note-card > div {
+    flex-wrap: wrap;
   }
 }

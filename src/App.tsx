@@ -8,6 +8,8 @@ import {
   chapterUrl,
   BOOK,
   defaultOptions,
+  flowPresets,
+  CONTROL_FLOW_REFERENCE,
   type Lesson,
 } from './content/lessons';
 import {
@@ -29,6 +31,7 @@ const stageNames: Record<Stage, string> = {
   ir: '中间代码',
   optimize: '代码优化',
   vm: '虚拟机执行',
+  cfg: '控制流图',
 };
 function readNotebook(): Notebook {
   try {
@@ -139,6 +142,11 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [notice]);
   function navigate(next: Route) {
+    const nextSource = next === 'cfg' && source === presets[0].code ? flowPresets[0].code : source;
+    if (nextSource !== source) {
+      setSource(nextSource);
+      setDraft(nextSource);
+    }
     const nextOptions =
       next === 'vm' && route !== 'optimize'
         ? { fold: false, propagate: false, dead: false }
@@ -153,7 +161,7 @@ export default function App() {
     window.history.pushState(
       null,
       '',
-      shareUrl(window.location.href, next, source, 0, nextOptions),
+      shareUrl(window.location.href, next, nextSource, 0, nextOptions),
     );
     window.scrollTo({ top: 0, behavior: 'instant' });
     window.setTimeout(() => heading.current?.focus({ preventScroll: true }), 0);
@@ -268,7 +276,7 @@ export default function App() {
             <span>▧</span> 学习概览 <span className="nav-arrow">↗</span>
           </a>
           <div className="nav-label">
-            动手实验 <span>6</span>
+            动手实验 <span>{lessons.length}</span>
           </div>
           {lessons.map((item) => (
             <a
@@ -320,10 +328,12 @@ export default function App() {
         <div className="sidebar-bottom">
           <div className="progress-label">
             <span>我的复习进度</span>
-            <b>{notebook.completed.length} / 6</b>
+            <b>
+              {notebook.completed.length} / {lessons.length}
+            </b>
           </div>
           <div className="progress-track">
-            <span style={{ width: `${(notebook.completed.length / 6) * 100}%` }} />
+            <span style={{ width: `${(notebook.completed.length / lessons.length) * 100}%` }} />
           </div>
           <p>
             <span className="status-dot" /> 在浏览器中运行 · 无需服务端
@@ -496,7 +506,7 @@ export default function App() {
                         </p>
                       </div>
                       {(lesson.id === 'optimize' || lesson.id === 'vm') && (
-                        <fieldset className="optimization-options">
+                        <fieldset className="optimization-options" disabled={result.hasControlFlow}>
                           <legend>编译选项</legend>
                           {(
                             [
@@ -514,17 +524,24 @@ export default function App() {
                               {option.label}
                             </label>
                           ))}
-                          <small>切换选项后，回放将从头开始。</small>
+                          <small>
+                            {result.hasControlFlow
+                              ? '本程序包含控制流，保留原始 IR。跨块优化尚未实现。'
+                              : '切换选项后，回放将从头开始。'}
+                          </small>
                         </fieldset>
                       )}
                       <details className="language-help">
                         <summary>这门小语言支持什么？</summary>
                         <p>
-                          int / bool 声明与赋值、四则运算、一元负号、括号、语句块、print 和 //
-                          注释。每条语句以半角分号结尾。
+                          int / bool 声明与赋值、四则运算、比较运算、一元负号、括号、语句块、if /
+                          else、while、print 和 // 注释。语句以半角分号结尾，if / while
+                          主体必须用花括号。
                         </p>
                         <p>
-                          整数除法向零取整；只支持安全整数。变量初始化后才进入作用域，内部块允许遮蔽。没有条件、循环或函数。
+                          条件必须是
+                          bool；整数除法向零取整，只支持安全整数。变量初始化后才进入作用域，内部块允许遮蔽。暂不支持
+                          break / continue、逻辑短路与函数。每次最多回放 2000 条字节码。
                         </p>
                       </details>
                     </section>
@@ -547,7 +564,11 @@ export default function App() {
                         <div className="diagnostic" role="alert">
                           <strong>
                             {stageNames[result.diagnostic.stage]} ·{' '}
-                            {result.diagnostic.stage === 'vm' ? '运行时错误' : '编译未通过'}
+                            {result.execution?.limited
+                              ? '回放已暂停'
+                              : result.diagnostic.stage === 'vm'
+                                ? '运行时错误'
+                                : '编译未通过'}
                           </strong>
                           <p>{result.diagnostic.message}</p>
                           {result.diagnostic.stage !== 'vm' && (
@@ -705,15 +726,19 @@ export default function App() {
                 >
                   <Arrow direction="left" /> 上一个实验
                 </button>
-                <span>{lesson.number} / 06</span>
+                <span>
+                  {lesson.number} / {String(lessons.length).padStart(2, '0')}
+                </span>
                 <button
                   onClick={() =>
                     navigate(
-                      Number(lesson.number) === 6 ? 'notes' : lessons[Number(lesson.number)].id,
+                      Number(lesson.number) === lessons.length
+                        ? 'notes'
+                        : lessons[Number(lesson.number)].id,
                     )
                   }
                 >
-                  {Number(lesson.number) === 6
+                  {Number(lesson.number) === lessons.length
                     ? '整理我的笔记'
                     : `下一站 · ${lessons[Number(lesson.number)].title}`}{' '}
                   →
@@ -731,7 +756,7 @@ export default function App() {
               />
               <div className="notebook-toolbar">
                 <span>
-                  {notebook.completed.length} / 6 个实验已复习
+                  {notebook.completed.length} / {lessons.length} 个实验已复习
                   {storageError && ' · 本地存储不可用，请导出备份'}
                 </span>
                 <div>
@@ -866,6 +891,17 @@ export default function App() {
                   </a>
                 </section>
                 <section>
+                  <h2>控制流的补充参考</h2>
+                  <p>
+                    控制流图实验于 2026-11-16 核对 LLVM
+                    官方教程中的基本块、分支汇合与循环回边概念。本项目采用 bool
+                    条件和可变局部变量，未实现教程中的 SSA / φ。
+                  </p>
+                  <a href={CONTROL_FLOW_REFERENCE} target="_blank" rel="noreferrer">
+                    LLVM 官方教程 · 控制流与基本块 ↗
+                  </a>
+                </section>
+                <section>
                   <h2>访问节制与离线内容</h2>
                   <p>
                     页面、编译器与笔记都在本地运行，没有电子书抓取、外链图片、第三方字体或统计请求。点击原文链接才会由浏览器访问原书。
@@ -880,7 +916,7 @@ export default function App() {
                   <h2>哪些内容还没有覆盖</h2>
                   <p>
                     本版专注前端与基础中间表示。NFA
-                    子集构造、FIRST/FOLLOW、LR、控制流图、SSA、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。没有用静态占位页标记为已实现。
+                    子集构造、FIRST/FOLLOW、LR、跨块数据流分析、SSA、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。控制流图已支持基础分支与循环。
                   </p>
                 </section>
               </div>
@@ -963,7 +999,7 @@ function Home({
           </div>
           <div className="hero-facts">
             <span>
-              <b>06</b> 个动手实验
+              <b>{String(lessons.length).padStart(2, '0')}</b> 个动手实验
             </span>
             <i />
             <span>自由修改 · 逐步验证</span>
@@ -1012,28 +1048,30 @@ function Home({
             <div className="eyebrow">THE BIG PICTURE</div>
             <h2>先看清，这段旅程。</h2>
           </div>
-          <p>用同一段程序，串起六个观察角度。</p>
+          <p>六个编译环节，另有控制流图观察分支与循环。</p>
         </div>
         <div className="journey">
-          {lessons.map((item, index) => (
-            <button key={item.id} onClick={() => navigate(item.id)}>
-              <span className={`journey-icon ${item.color}`}>{item.icon}</span>
-              <strong>{item.title}</strong>
-              <small>
-                {
-                  [
-                    '字符 → Token',
-                    'Token → AST',
-                    'AST → 语义信息',
-                    'AST → 三地址代码',
-                    'IR → 更简洁的 IR',
-                    '字节码 → 输出',
-                  ][index]
-                }
-              </small>
-              {index < lessons.length - 1 && <i>→</i>}
-            </button>
-          ))}
+          {lessons
+            .filter((item) => item.id !== 'cfg')
+            .map((item, index) => (
+              <button key={item.id} onClick={() => navigate(item.id)}>
+                <span className={`journey-icon ${item.color}`}>{item.icon}</span>
+                <strong>{item.title}</strong>
+                <small>
+                  {
+                    [
+                      '字符 → Token',
+                      'Token → AST',
+                      'AST → 语义信息',
+                      'AST → 三地址代码',
+                      'IR → 更简洁的 IR',
+                      '字节码 → 输出',
+                    ][index]
+                  }
+                </small>
+                {index < lessons.length - 2 && <i>→</i>}
+              </button>
+            ))}
         </div>
         <p className="journey-caption">
           <span>↳</span>{' '}
@@ -1046,7 +1084,9 @@ function Home({
             <div className="eyebrow">LEARN BY DOING</div>
             <h2>每一站，回答一个问题。</h2>
           </div>
-          <span className="section-count">{completed.length} / 6 已复习</span>
+          <span className="section-count">
+            {completed.length} / {lessons.length} 已复习
+          </span>
         </div>
         <div className="lesson-grid">
           {lessons.map((item) => (
@@ -1075,7 +1115,9 @@ function Home({
                           ? '后序遍历 / 临时变量'
                           : item.id === 'optimize'
                             ? '常量传播 / 语义等价'
-                            : '操作数栈 / 程序状态'}
+                            : item.id === 'cfg'
+                              ? '基本块 / 分支 / 循环回边'
+                              : '操作数栈 / 程序状态'}
                 </span>
                 <b>→</b>
               </div>
@@ -1127,6 +1169,11 @@ function Reading({ lesson }: { lesson: Lesson }) {
           {chapters.find((c) => c.number === lesson.chapter)!.title} ↗
         </a>
         <small>来源核对：2026-11-16 · 本页说明与图形独立编写</small>
+        {lesson.id === 'cfg' && (
+          <a href={CONTROL_FLOW_REFERENCE} target="_blank" rel="noreferrer">
+            概念核对：LLVM 官方教程 · 控制流、基本块与跳转 ↗
+          </a>
+        )}
       </div>
     </article>
   );

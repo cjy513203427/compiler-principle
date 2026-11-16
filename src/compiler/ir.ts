@@ -10,6 +10,7 @@ import {
   type Value,
   type OptimizationOptions,
   type OptimizationStep,
+  type ValueInstruction,
 } from './model';
 
 export function arithmetic(op: string, left: Value, right: Value): number {
@@ -27,9 +28,29 @@ export function arithmetic(op: string, left: Value, right: Value): number {
   if (!Number.isSafeInteger(value)) throw new Error('计算结果超出安全整数范围。');
   return value;
 }
+export function evaluateBinary(op: string, left: Value, right: Value): Value {
+  if (op === '==') return left === right;
+  if (op === '!=') return left !== right;
+  if (['<', '<=', '>', '>='].includes(op)) {
+    if (typeof left !== 'number' || typeof right !== 'number')
+      throw new Error('比较操作数不是整数。');
+    return op === '<'
+      ? left < right
+      : op === '<='
+        ? left <= right
+        : op === '>'
+          ? left > right
+          : left >= right;
+  }
+  return arithmetic(op, left, right);
+}
+export const hasControlFlow = (instructions: Instruction[]) =>
+  instructions.some((i) => i.op === 'branch' || i.op === 'jump' || i.op === 'label');
 export function generateIR(ast: Program, analysis: Analysis): Instruction[] {
   const code: Instruction[] = [];
   let temp = 0;
+  let label = 0;
+  const nextLabel = () => `L${label++}`;
   function expression(node: Expr): Operand {
     if (node.kind === 'literal') return constant(node.value);
     if (node.kind === 'identifier') return reference(analysis.references.get(node.id)!);
@@ -48,7 +69,40 @@ export function generateIR(ast: Program, analysis: Analysis): Instruction[] {
   }
   function statement(node: Stmt) {
     if (node.kind === 'block') node.body.forEach(statement);
-    else if (node.kind === 'print')
+    else if (node.kind === 'if') {
+      const otherwise = nextLabel();
+      const end = node.otherwise ? nextLabel() : otherwise;
+      code.push({
+        op: 'branch',
+        condition: expression(node.condition),
+        target: otherwise,
+        nodeId: node.id,
+      });
+      statement(node.then);
+      if (node.otherwise) {
+        code.push(
+          { op: 'jump', target: end, nodeId: node.id },
+          { op: 'label', name: otherwise, nodeId: node.id },
+        );
+        statement(node.otherwise);
+      }
+      code.push({ op: 'label', name: end, nodeId: node.id });
+    } else if (node.kind === 'while') {
+      const test = nextLabel();
+      const end = nextLabel();
+      code.push({ op: 'label', name: test, nodeId: node.id });
+      code.push({
+        op: 'branch',
+        condition: expression(node.condition),
+        target: end,
+        nodeId: node.id,
+      });
+      statement(node.body);
+      code.push(
+        { op: 'jump', target: test, nodeId: node.id },
+        { op: 'label', name: end, nodeId: node.id },
+      );
+    } else if (node.kind === 'print')
       code.push({ op: 'print', value: expression(node.value), nodeId: node.id });
     else {
       const value = expression(node.kind === 'declare' ? node.init : node.value);
@@ -62,6 +116,10 @@ export function operandText(value: Operand): string {
   return value.kind === 'constant' ? String(value.value) : value.name;
 }
 export function instructionText(instruction: Instruction): string {
+  if (instruction.op === 'label') return `${instruction.name}:`;
+  if (instruction.op === 'jump') return `goto ${instruction.target}`;
+  if (instruction.op === 'branch')
+    return `ifFalse ${operandText(instruction.condition)} goto ${instruction.target}`;
   if (instruction.op === 'print') return `print ${operandText(instruction.value)}`;
   if (instruction.op === 'move') return `${instruction.dest} = ${operandText(instruction.value)}`;
   return `${instruction.dest} = ${operandText(instruction.left)} ${instruction.operator} ${operandText(instruction.right)}`;
@@ -77,6 +135,23 @@ export function optimize(
       instructions: original,
     },
   ];
+  if (hasControlFlow(original))
+    return [
+      ...steps,
+      {
+        title: '控制流边界',
+        detail:
+          '这段程序包含分支或循环。当前优化器只分析直线代码，不能把一条路径上的常量当成所有路径的值；本次保留原始 IR。',
+        instructions: original,
+      },
+      {
+        title: '保留控制流语义',
+        detail:
+          '跨基本块的常量传播与活跃性分析尚未实现；开关不对这段程序应用变换，跳转和潜在异常均保持原样。',
+        instructions: original,
+      },
+    ];
+  const linear = original as ValueInstruction[];
   const known = new Map<string, Value>();
   let changes = 0;
   const resolve = (operand: Operand): Operand => {
@@ -86,9 +161,9 @@ export function optimize(
     }
     return operand;
   };
-  const transformed = original.map((instruction): Instruction => {
+  const transformed = linear.map((instruction): ValueInstruction => {
     if (instruction.op === 'print') return { ...instruction, value: resolve(instruction.value) };
-    let updated: Instruction;
+    let updated: ValueInstruction;
     if (instruction.op === 'move') updated = { ...instruction, value: resolve(instruction.value) };
     else {
       const left = resolve(instruction.left);
@@ -99,7 +174,7 @@ export function optimize(
           updated = {
             op: 'move',
             dest: instruction.dest,
-            value: constant(arithmetic(instruction.operator, left.value, right.value)),
+            value: constant(evaluateBinary(instruction.operator, left.value, right.value)),
             nodeId: instruction.nodeId,
           };
           changes++;
@@ -122,7 +197,7 @@ export function optimize(
   let final = transformed;
   if (options.dead) {
     const live = new Set<string>();
-    const kept: Instruction[] = [];
+    const kept: ValueInstruction[] = [];
     const read = (operand: Operand) => {
       if (operand.kind === 'ref') live.add(operand.name);
     };

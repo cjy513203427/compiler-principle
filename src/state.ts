@@ -1,4 +1,4 @@
-import { lessons, presets, defaultOptions } from './content/lessons';
+import { lessons, presets, flowPresets, defaultOptions } from './content/lessons';
 import type { Stage, OptimizationOptions } from './compiler/model';
 
 export type Route = Stage | 'home' | 'notes' | 'sources';
@@ -12,7 +12,12 @@ export function readUrl(search: string) {
     ? (requested as Route)
     : 'home';
   const raw = params.get('code');
-  const source = raw !== null && raw.length <= MAX_SOURCE ? raw : presets[0].code;
+  const source =
+    raw !== null && raw.length <= MAX_SOURCE
+      ? raw
+      : route === 'cfg'
+        ? flowPresets[0].code
+        : presets[0].code;
   const step = Math.max(0, Math.min(10000, Math.floor(Number(params.get('step')) || 0)));
   const flags = params.get('opt');
   const options: OptimizationOptions =

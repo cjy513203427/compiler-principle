@@ -74,7 +74,7 @@ export function parse(tokens: Token[]): { ast: Program; steps: ParseStep[] } {
     }
     if (token.text === '(') {
       take();
-      const expr = nested(addition);
+      const expr = nested(equality);
       take(')');
       return expr;
     }
@@ -113,8 +113,63 @@ export function parse(tokens: Token[]): { ast: Program; steps: ParseStep[] } {
     }
     return left;
   }
+  function comparison(): Expr {
+    let left = addition();
+    while (['<', '<=', '>', '>='].includes(peek().text)) {
+      const op = take().text;
+      const right = addition();
+      left = built(
+        { kind: 'binary', op, left, right, id: id++, start: left.start, end: right.end },
+        `构造比较 ${op} 节点，结果类型交给语义阶段检查。`,
+      );
+    }
+    return left;
+  }
+  function equality(): Expr {
+    let left = comparison();
+    while (peek().text === '==' || peek().text === '!=') {
+      const op = take().text;
+      const right = comparison();
+      left = built(
+        { kind: 'binary', op, left, right, id: id++, start: left.start, end: right.end },
+        `构造相等性 ${op} 节点。`,
+      );
+    }
+    return left;
+  }
   function statement(): Stmt {
     const token = peek();
+    if (token.text === 'if' || token.text === 'while') {
+      take();
+      take('(');
+      const condition = equality();
+      take(')');
+      if (peek().text !== '{') fail('if / while 的主体必须使用花括号语句块。');
+      const body = nested(statement);
+      if (token.text === 'while')
+        return built(
+          { kind: 'while', condition, body, id: id++, start: token.start, end: body.end },
+          '构造 while：条件每轮都要重新求值。',
+        );
+      let otherwise: Stmt | undefined;
+      if (peek().text === 'else') {
+        take();
+        if (peek().text !== '{') fail('else 的主体必须使用花括号语句块。');
+        otherwise = nested(statement);
+      }
+      return built(
+        {
+          kind: 'if',
+          condition,
+          then: body,
+          otherwise,
+          id: id++,
+          start: token.start,
+          end: otherwise?.end ?? body.end,
+        },
+        '构造 if / else：运行时只选择一条分支。',
+      );
+    }
     if (token.text === '{') {
       take();
       const body: Stmt[] = [];
@@ -130,7 +185,7 @@ export function parse(tokens: Token[]): { ast: Program; steps: ParseStep[] } {
       if (peek().kind !== 'identifier') fail('类型后面需要一个变量名。');
       const name = take().text;
       take('=');
-      const init = addition();
+      const init = equality();
       const end = take(';').end;
       return built(
         { kind: 'declare', name, dataType, init, id: id++, start: token.start, end },
@@ -140,7 +195,7 @@ export function parse(tokens: Token[]): { ast: Program; steps: ParseStep[] } {
     if (token.text === 'print') {
       take();
       take('(');
-      const value = addition();
+      const value = equality();
       take(')');
       const end = take(';').end;
       return built(
@@ -151,14 +206,14 @@ export function parse(tokens: Token[]): { ast: Program; steps: ParseStep[] } {
     if (token.kind === 'identifier') {
       const name = take().text;
       take('=');
-      const value = addition();
+      const value = equality();
       const end = take(';').end;
       return built(
         { kind: 'assign', name, value, id: id++, start: token.start, end },
         `构造 ${name} 的赋值语句。`,
       );
     }
-    return fail(`这里需要变量声明、赋值、print 或语句块，实际读到「${token.text}」。`);
+    return fail(`这里需要声明、赋值、print、if、while 或语句块，实际读到「${token.text}」。`);
   }
   const body: Stmt[] = [];
   while (peek().kind !== 'eof') body.push(statement());

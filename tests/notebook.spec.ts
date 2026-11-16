@@ -1,6 +1,82 @@
 import { test, expect } from '@playwright/test';
 
-test('home computes the example and all six labs render with no external requests', async ({
+test('CFG replays actual branches, loops and scoped state without stale frames', async ({
+  page,
+}) => {
+  await page.goto('/?lab=cfg');
+  await expect(page.getByLabel('源程序代码')).toHaveValue(/score/);
+  await expect(page.locator('.cfg-graph')).toBeVisible();
+  await page.getByRole('button', { name: '下一步', exact: true }).click();
+  await expect(page.locator('.cfg-edge.active text')).toHaveText('true');
+  const code = await page.getByLabel('源程序代码').inputValue();
+  await page.getByLabel('源程序代码').fill(code.replace('75', '40'));
+  await page.getByRole('button', { name: '运行编译' }).click();
+  await expect(page.getByRole('slider', { name: '当前步骤' })).toHaveValue('0');
+  await page.getByRole('button', { name: '下一步', exact: true }).click();
+  await expect(page.locator('.cfg-edge.active text')).toHaveText('false');
+  await page.getByRole('button', { name: '看最终结果' }).click();
+  await expect(page.locator('.output-console pre')).toHaveText('2');
+  await page.getByLabel('选择一个观察角度').selectOption('loop');
+  await page.getByRole('button', { name: '看最终结果' }).click();
+  await expect(page.locator('.output-console pre')).toHaveText('6');
+  await expect(page.locator('.cfg-memory')).toContainText('4');
+  await page.getByRole('button', { name: '上一步', exact: true }).click();
+  await page.getByRole('button', { name: '重置步骤' }).click();
+  await expect(page.locator('.output-console pre')).toHaveText('等待 print…');
+  await page.getByRole('button', { name: '检查基本块 B1', exact: true }).click();
+  await expect(page.locator('.cfg-inspection summary')).toContainText('B1');
+  await page.getByLabel('选择一个观察角度').selectOption('zero-loop');
+  await page.getByRole('button', { name: '看最终结果' }).click();
+  await expect(page.locator('.output-console pre')).toHaveText('99');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('execution limits and unsupported cross-block optimization are explicit', async ({ page }) => {
+  await page.goto('/?lab=cfg');
+  await page.getByLabel('选择一个观察角度').selectOption('loop-limit');
+  await expect(page.getByRole('alert')).toContainText('回放已暂停');
+  await page.getByRole('button', { name: '看最终结果' }).click();
+  await expect(page.locator('.step-explanation')).toContainText('上限');
+  await expect(page.locator('.output-console pre')).toHaveText('等待 print…');
+  await page.goto('/?lab=optimize&code=' + encodeURIComponent('while (true) {}'));
+  await expect(page.getByLabel('常量折叠', { exact: true })).toBeDisabled();
+  await expect(page.locator('.equivalence')).toContainText('暂不能判定行为一致');
+  await page.getByRole('button', { name: '看最终结果' }).click();
+  await expect(page.locator('.step-explanation')).toContainText('跨基本块');
+});
+
+test('readable font sizes hold at narrow widths and new notes coexist with old notes', async ({
+  page,
+}) => {
+  await page.goto('/?lab=cfg');
+  expect(
+    await page
+      .getByLabel('源程序代码')
+      .evaluate((element) => parseFloat(getComputedStyle(element).fontSize)),
+  ).toBeGreaterThanOrEqual(16);
+  expect(
+    await page
+      .locator('.step-explanation p')
+      .evaluate((element) => parseFloat(getComputedStyle(element).fontSize)),
+  ).toBeGreaterThanOrEqual(16);
+  await page.getByRole('button', { name: '原理笔记', exact: true }).click();
+  expect(
+    await page
+      .locator('.reading-page section p')
+      .first()
+      .evaluate((element) => parseFloat(getComputedStyle(element).fontSize)),
+  ).toBeGreaterThanOrEqual(17);
+  await page.getByRole('button', { name: '复述自测', exact: true }).click();
+  await page.getByLabel('控制流图的复述笔记').fill('循环条件每轮重算。');
+  await page.getByRole('button', { name: '我能解释了' }).click();
+  await page.goto('/?lab=notes');
+  await expect(page.getByLabel('控制流图的笔记')).toHaveValue('循环条件每轮重算。');
+  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 7');
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('home computes the example and all seven labs render with no external requests', async ({
   page,
 }) => {
   const failures: string[] = [];
@@ -14,13 +90,14 @@ test('home computes the example and all six labs render with no external request
   await expect(page.locator('.demo-result strong')).toHaveText('14');
   await page.getByRole('button', { name: '给加法加一对括号' }).click();
   await expect(page.locator('.demo-result strong')).toHaveText('20');
-  for (const stage of ['lex', 'parse', 'semantic', 'ir', 'optimize', 'vm']) {
+  for (const stage of ['lex', 'parse', 'semantic', 'ir', 'optimize', 'vm', 'cfg']) {
     await page.goto(`/?lab=${stage}`);
     await expect(page.locator('.result-content')).toBeVisible();
     await expect(page.getByRole('button', { name: '看最终结果' })).toBeVisible();
     await page.getByRole('button', { name: '看最终结果' }).click();
     await expect(page.locator('.step-explanation')).not.toBeEmpty();
     if (stage === 'vm') await expect(page.locator('.output-console pre')).toHaveText('14');
+    if (stage === 'lex') await expect(page.locator('.token-eof')).toBeInViewport();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);

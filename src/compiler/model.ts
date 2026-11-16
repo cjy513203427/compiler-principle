@@ -1,4 +1,4 @@
-export type Stage = 'lex' | 'parse' | 'semantic' | 'ir' | 'optimize' | 'vm';
+export type Stage = 'lex' | 'parse' | 'semantic' | 'ir' | 'optimize' | 'vm' | 'cfg';
 export type Value = number | boolean;
 export type DataType = 'int' | 'bool';
 export type TokenKind = 'keyword' | 'identifier' | 'number' | 'operator' | 'punctuation' | 'eof';
@@ -22,7 +22,9 @@ export type Stmt =
   | (NodeBase & { kind: 'declare'; name: string; dataType: DataType; init: Expr })
   | (NodeBase & { kind: 'assign'; name: string; value: Expr })
   | (NodeBase & { kind: 'print'; value: Expr })
-  | (NodeBase & { kind: 'block'; body: Stmt[] });
+  | (NodeBase & { kind: 'block'; body: Stmt[] })
+  | (NodeBase & { kind: 'if'; condition: Expr; then: Stmt; otherwise?: Stmt })
+  | (NodeBase & { kind: 'while'; condition: Expr; body: Stmt });
 export interface Program extends NodeBase {
   kind: 'program';
   body: Stmt[];
@@ -63,7 +65,11 @@ export type Operand = { kind: 'constant'; value: Value } | { kind: 'ref'; name: 
 export type Instruction =
   | { op: 'move'; dest: string; value: Operand; nodeId: number }
   | { op: 'binary'; dest: string; operator: string; left: Operand; right: Operand; nodeId: number }
-  | { op: 'print'; value: Operand; nodeId: number };
+  | { op: 'print'; value: Operand; nodeId: number }
+  | { op: 'label'; name: string; nodeId: number }
+  | { op: 'jump'; target: string; nodeId: number }
+  | { op: 'branch'; condition: Operand; target: string; nodeId: number };
+export type ValueInstruction = Extract<Instruction, { op: 'move' | 'binary' | 'print' }>;
 export interface OptimizationOptions {
   fold: boolean;
   propagate: boolean;
@@ -74,10 +80,15 @@ export interface OptimizationStep {
   detail: string;
   instructions: Instruction[];
 }
-export type Bytecode =
+export type Bytecode = (
   | { op: 'PUSH'; value: Value }
-  | { op: 'LOAD' | 'STORE'; name: string }
-  | { op: 'ADD' | 'SUB' | 'MUL' | 'DIV' | 'PRINT' | 'HALT' };
+  | { op: 'LOAD' | 'STORE' | 'LABEL'; name: string }
+  | { op: 'JUMP' | 'BR_FALSE'; target: number }
+  | {
+      op:
+        'ADD' | 'SUB' | 'MUL' | 'DIV' | 'LT' | 'LE' | 'GT' | 'GE' | 'EQ' | 'NE' | 'PRINT' | 'HALT';
+    }
+) & { irIndex?: number };
 export interface VmStep {
   pc: number;
   nextPc: number;
@@ -85,6 +96,7 @@ export interface VmStep {
   stack: Value[];
   memory: Record<string, Value>;
   output: Value[];
+  condition?: boolean;
 }
 export interface Diagnostic {
   stage: Stage;
@@ -106,6 +118,10 @@ export function children(node: AstNode): AstNode[] {
       return node.body;
     case 'declare':
       return [node.init];
+    case 'if':
+      return [node.condition, node.then, ...(node.otherwise ? [node.otherwise] : [])];
+    case 'while':
+      return [node.condition, node.body];
     case 'assign':
     case 'print':
       return [node.value];
@@ -129,6 +145,10 @@ export function nodeLabel(node: AstNode): string {
       return `${node.name} =`;
     case 'print':
       return 'print';
+    case 'if':
+      return 'if / else';
+    case 'while':
+      return 'while';
     case 'binary':
       return node.op;
     case 'unary':

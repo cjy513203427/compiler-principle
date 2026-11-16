@@ -10,6 +10,7 @@ import {
 } from '../compiler/model';
 import { instructionText } from '../compiler/ir';
 import { bytecodeText } from '../compiler/vm';
+import { ControlFlowView } from './ControlFlowView';
 
 const valueText = (value: Value) => String(value);
 function revealCurrentRow(container: HTMLDivElement | null) {
@@ -38,6 +39,8 @@ export function traceLength(result: Compilation, stage: Stage): number {
       return result.optimization?.length || 0;
     case 'vm':
       return result.execution?.steps.length || 0;
+    case 'cfg':
+      return result.controlTrace?.length || 0;
   }
 }
 export function traceMessage(result: Compilation, stage: Stage, step: number): string {
@@ -56,6 +59,8 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
       return result.optimization?.[step]?.detail || '';
     case 'vm':
       return result.execution?.steps[step]?.message || '';
+    case 'cfg':
+      return result.controlTrace?.[step]?.message || '';
   }
 }
 export function AstTree({
@@ -73,7 +78,7 @@ export function AstTree({
   const widths = new Map<number, number>();
   function measure(node: AstNode): number {
     const width = Math.max(
-      92,
+      122,
       children(node).reduce((sum, child) => sum + measure(child), 0),
     );
     widths.set(node.id, width);
@@ -150,7 +155,7 @@ export function AstTree({
                 }
               }}
             >
-              <rect x={-40} y={-16} width={80} height={32} rx={6} />
+              <rect x={-53} y={-19} width={106} height={38} rx={6} />
               <text textAnchor="middle" dominantBaseline="central">
                 {nodeLabel(node).length > 11 ? `${nodeLabel(node).slice(0, 9)}…` : nodeLabel(node)}
               </text>
@@ -276,7 +281,12 @@ export function ResultView({
   step: number;
 }) {
   const bytecodeContainer = useRef<HTMLDivElement>(null);
+  const tokenContainer = useRef<HTMLDivElement>(null);
   useEffect(() => revealCurrentRow(bytecodeContainer.current), [stage, step, result.bytecode]);
+  useEffect(() => {
+    if (tokenContainer.current)
+      tokenContainer.current.scrollTop = tokenContainer.current.scrollHeight;
+  }, [stage, step, result.lex]);
   if (!traceLength(result, stage))
     return (
       <div className="blocked-state">
@@ -326,12 +336,14 @@ export function ResultView({
           <span>02 / 扫描状态</span>
           <small>示意图 · 单行注释另行跳过</small>
         </div>
-        <StateMachine state={current.state} />
+        <div className="diagram-scroll">
+          <StateMachine state={current.state} />
+        </div>
         <div className="view-label">
           <span>03 / 已生成的 Token</span>
           <small>{current.emitted} 个 / 含 EOF</small>
         </div>
-        <div className="tokens">
+        <div ref={tokenContainer} className="tokens">
           {tokens.slice(0, current.emitted).map((token, index) => (
             <div className={`token token-${token.kind}`} key={index}>
               <code>{token.text}</code>
@@ -373,7 +385,7 @@ export function ResultView({
           <summary>本实验使用的表达式文法 EBNF</summary>
           <pre>
             {
-              'expression → term (("+" | "-") term)*\nterm       → unary (("*" | "/") unary)*\nunary      → "-" unary | primary\nprimary    → number | bool | id | "(" expression ")"'
+              'expression → comparison (("==" | "!=") comparison)*\ncomparison → addition (("<" | "<=" | ">" | ">=") addition)*\naddition   → term (("+" | "-") term)*\nterm       → unary (("*" | "/") unary)*\nunary      → "-" unary | primary\nprimary    → number | bool | id | "(" expression ")"'
             }
           </pre>
         </details>
@@ -459,6 +471,7 @@ export function ResultView({
     const equivalent =
       JSON.stringify(result.execution!.output) === JSON.stringify(result.baseline!.output) &&
       result.execution!.error?.message === result.baseline!.error?.message;
+    const inconclusive = result.execution!.limited || result.baseline!.limited;
     return (
       <>
         <div className="optimization-heading">
@@ -484,11 +497,20 @@ export function ResultView({
         <div className={`equivalence ${equivalent ? '' : 'failed'}`}>
           <b>{equivalent ? '✓' : '!'}</b>
           <div>
-            <strong>{equivalent ? '两版程序的输出与错误一致' : '发现行为差异'}</strong>
+            <strong>
+              {inconclusive
+                ? '达到回放上限，暂不能判定行为一致'
+                : equivalent
+                  ? '两版程序的输出与错误一致'
+                  : '发现行为差异'}
+            </strong>
             <p>
-              最终优化结果已实际执行。原始输出 [{result.baseline!.output.map(valueText).join(', ')}]
-              → 优化输出 [{result.execution!.output.map(valueText).join(', ')}]{' '}
-              {result.execution!.error && `· 均在运行时报告：${result.execution!.error.message}`}
+              {inconclusive
+                ? '以下是暂停前的输出前缀。原始输出'
+                : '最终优化结果已实际执行。原始输出'}{' '}
+              [{result.baseline!.output.slice(-30).map(valueText).join(', ')}] → 优化输出 [
+              {result.execution!.output.slice(-30).map(valueText).join(', ')}]{' '}
+              {result.execution!.error && `· 运行时报告：${result.execution!.error.message}`}
             </p>
           </div>
         </div>
@@ -498,6 +520,7 @@ export function ResultView({
       </>
     );
   }
+  if (stage === 'cfg') return <ControlFlowView result={result} step={step} />;
   const current = result.execution!.steps[step];
   return (
     <>

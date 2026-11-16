@@ -1,6 +1,6 @@
 import { CompileError, type Token, type ScanStep } from './model';
 
-const keywords = new Set(['int', 'bool', 'print', 'true', 'false']);
+const keywords = new Set(['int', 'bool', 'print', 'true', 'false', 'if', 'else', 'while']);
 const letter = (c: string) => /[a-zA-Z_]/.test(c);
 const digit = (c: string) => /[0-9]/.test(c);
 export function tokenize(source: string): { tokens: Token[]; steps: ScanStep[] } {
@@ -60,9 +60,14 @@ export function tokenize(source: string): { tokens: Token[]; steps: ScanStep[] }
             : '仍是数字，继续累积整数字面量。',
         );
       }
-    } else if ('+-*/=;(){}'.includes(c)) {
+    } else if (['==', '!=', '<=', '>='].includes(source.slice(i, i + 2))) {
+      addStep(i++, 'symbol', `继续读取双字符运算符 ${source.slice(start, start + 2)}。`);
       i++;
-      emit('+-*/='.includes(c) ? 'operator' : 'punctuation', start);
+      emit('operator', start);
+      addStep(i - 1, 'symbol', `最长匹配：生成 ${source.slice(start, i)} 运算符。`);
+    } else if ('+-*/=<>;(){}'.includes(c)) {
+      i++;
+      emit('+-*/=<>'.includes(c) ? 'operator' : 'punctuation', start);
       addStep(start, 'symbol', `识别单字符符号 ${c}。`);
     } else {
       throw new CompileError({

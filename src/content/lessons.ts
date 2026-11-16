@@ -1,6 +1,8 @@
 import type { Stage } from '../compiler/model';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
+export const CONTROL_FLOW_REFERENCE =
+  'https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl05.html';
 export const chapters = [
   {
     number: '02',
@@ -191,7 +193,8 @@ export const lessons: Lesson[] = [
       },
     ],
     misconception: 'IR 没有统一的唯一格式；这里的文本不是 LLVM IR，也不是某种真实 CPU 的汇编。',
-    limit: '直线代码与词法块，没有控制流图、SSA、φ 节点、寄存器分配或机器码生成。',
+    limit:
+      '三地址代码支持条件跳转与回边，控制流图见第 07 个实验；尚无 SSA、φ 节点、寄存器分配或机器码生成。',
     challenge: '为 int result = 2 + 3 * 4; 写出未优化的三地址代码，解释 t0 为什么先于 t1 出现。',
     answer: 't0 = 3 * 4；t1 = 2 + t0；v0_result = t1。乘法是加法的依赖，必须先得到它的结果。',
     quiz: {
@@ -277,6 +280,85 @@ export const lessons: Lesson[] = [
       explain: 'STORE 弹出栈顶的值，把它存进指定局部变量；栈高减一。',
     },
   },
+  {
+    id: 'cfg',
+    number: '07',
+    title: '控制流图',
+    english: 'Control flow graph',
+    question: '程序为什么会走向另一条路？',
+    intro:
+      '修改 if 条件与 while 循环次数，逐块回放控制流图。观察真正经过的边、每轮更新的变量，以及程序在哪个块汇合或退出。',
+    chapter: '06',
+    minutes: 15,
+    icon: '◇',
+    color: 'blue',
+    note: [
+      {
+        title: '基本块：连续执行的一小段代码',
+        body: '基本块只有一个入口，跳转发生在块的末尾。先把 IR 的开头、标签位置、跳转后的指令标为首指令，再切分基本块。图上的方框是这些块；连线表示允许的下一步。标签和跳转地址来自实际生成的指令。',
+      },
+      {
+        title: '分支汇合，循环回到条件',
+        body: 'if 的条件为 bool，运行时只进入真或假路径，随后汇合。while 先检查条件，条件为真时进入循环体，再沿回边重新判断；为假时退出。图包含所有可能的边，回放只高亮本次实际选择的一条边。',
+      },
+      {
+        title: '把结构和执行分开看',
+        body: '点击图中的块可检查完整 IR 和后继边；播放时看到执行后的变量与输出快照。循环会重复经过相同的块，但每次的变量状态可能不同。尚未经过的块不代表永远不可达。',
+      },
+    ],
+    misconception:
+      '不能把某条分支里算出的常量直接传播到汇合后的代码。不同前驱可能带来不同的值；这里先保留原始 IR，跨块数据流分析与 SSA 留待后续。',
+    limit:
+      '支持 if / else、while、比较与嵌套块，主体必须用花括号；没有 break / continue、逻辑短路、函数与 SSA。每次最多执行 2000 条字节码；达到上限只表示本次回放暂停。',
+    challenge:
+      '先预测循环累加预设的输出。说明循环条件为什么比循环体多执行一次；把 i < 4 改成 i <= 4 后，经过哪些边、输出怎样变化？',
+    answer:
+      'i 从 1 开始，i < 4 执行 3 轮，sum 为 1 + 2 + 3 = 6。最后还要检查 i = 4 才能走 false 退出边，因此条件检查 4 次。改成 <= 后执行 4 轮，输出 10，条件检查 5 次。',
+    quiz: {
+      question: 'while 的条件第一次就是 false 时，循环体会执行几次？',
+      options: ['0 次', '1 次', '仍然会一直执行'],
+      correct: 0,
+      explain: 'while 先判断条件，为 false 就直接走退出边；循环体可以一次都不执行。',
+    },
+  },
+];
+export const flowPresets = [
+  {
+    id: 'branch',
+    label: '控制流 · 两条分支在哪里汇合',
+    code: 'int score = 75;\nint result = 0;\nif (score >= 60) {\n  result = 1;\n} else {\n  result = 2;\n}\nprint(result);',
+    prediction: '把 score 从 75 改成 40，哪条边会改变？两条路径在哪里汇合？',
+  },
+  {
+    id: 'loop',
+    label: '控制流 · 循环累加与回边',
+    code: 'int i = 1;\nint sum = 0;\nwhile (i < 4) {\n  sum = sum + i;\n  i = i + 1;\n}\nprint(sum);',
+    prediction: '输出是 6 还是 10？条件检查次数与循环体执行次数一样吗？',
+  },
+  {
+    id: 'zero-loop',
+    label: '对照 · 循环体一次都不执行',
+    code: 'int i = 4;\nwhile (i < 4) {\n  print(i);\n  i = i + 1;\n}\nprint(99);',
+    prediction: '图中存在的循环体，这次运行一定会经过吗？',
+  },
+  {
+    id: 'nested-flow',
+    label: '控制流 · 循环里的分支',
+    code: 'int i = 1;\nwhile (i <= 3) {\n  if (i == 2) {\n    print(20);\n  } else {\n    print(i);\n  }\n  i = i + 1;\n}',
+    prediction: '同一个 if 基本块，不同轮次会选择相同的边吗？',
+  },
+  {
+    id: 'unselected-error',
+    label: '对照 · 没有执行的除零',
+    code: 'bool ready = false;\nif (ready) {\n  print(1 / 0);\n} else {\n  print(42);\n}',
+    prediction: '语义合法的除零位于未选中的分支，本次运行会报错吗？',
+  },
+  {
+    id: 'loop-limit',
+    label: '回放边界 · 忘记更新循环变量',
+    code: 'int i = 0;\nwhile (i < 1) {\n  int unchanged = i;\n}\nprint(99);',
+    prediction: '条件一直为真时会怎样？回放上限能否证明程序永远不终止？',
+  },
 ];
 export const presets = [
   {
@@ -339,5 +421,6 @@ export const presets = [
     code: 'int unused = 1 / 0;\nprint(42);',
     prediction: '变量未被使用，除零指令能直接删掉吗？',
   },
+  ...flowPresets,
 ];
 export const defaultOptions = { fold: true, propagate: true, dead: true };

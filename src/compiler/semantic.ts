@@ -45,7 +45,14 @@ export function analyze(ast: Program): Analysis {
     let type: DataType;
     if (node.kind === 'literal') type = typeof node.value === 'number' ? 'int' : 'bool';
     else if (node.kind === 'identifier') type = lookup(node, node.name).type;
-    else {
+    else if (node.kind === 'binary' && ['==', '!=', '<', '<=', '>', '>='].includes(node.op)) {
+      const left = expression(node.left);
+      const right = expression(node.right);
+      if (node.op === '==' || node.op === '!=') {
+        if (left !== right) fail(node, '相等性比较两侧必须具有相同类型。');
+      } else if (left !== 'int' || right !== 'int') fail(node, '大小比较的操作数必须是 int。');
+      type = 'bool';
+    } else {
       const types =
         node.kind === 'unary'
           ? [expression(node.operand)]
@@ -59,7 +66,15 @@ export function analyze(ast: Program): Analysis {
     return type;
   }
   function statement(node: Stmt) {
-    if (node.kind === 'block') {
+    if (node.kind === 'if' || node.kind === 'while') {
+      if (expression(node.condition) !== 'bool')
+        fail(node.condition, 'if / while 的条件必须是 bool；整数不会自动转换成布尔值。');
+      record(node, '条件类型检查通过。静态检查会遍历全部分支，执行时才选择实际路径。');
+      if (node.kind === 'if') {
+        statement(node.then);
+        if (node.otherwise) statement(node.otherwise);
+      } else statement(node.body);
+    } else if (node.kind === 'block') {
       scopes.push({ id: nextScope++, symbols: new Map() });
       record(node, '进入语句块，创建新的词法作用域。');
       node.body.forEach(statement);
