@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { assemblyTopics, ASSEMBLY_SOURCES } from './content/assembly';
+import { assemblyShareUrl } from './assembly/state';
+import { defaultParameters } from './content/assembly';
+import { ASSEMBLY_TITLE, assemblyBookReferences } from './content/assembly-reading';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
 import { ResultView, traceLength, traceMessage } from './components/Views';
 import {
@@ -24,8 +28,10 @@ import {
   MAX_SOURCE,
   type Route,
   type Notebook,
+  type NoteId,
 } from './state';
 
+const AssemblyAppendix = lazy(() => import('./components/AssemblyAppendix'));
 const initial = readUrl(window.location.search);
 const stageNames: Record<Stage, string> = {
   lex: '词法分析',
@@ -69,6 +75,9 @@ export default function App() {
   const menuButton = useRef<HTMLButtonElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const lesson = lessons.find((item) => item.id === route);
+  const mainCompleted = notebook.completed.filter((id): id is Stage =>
+    lessons.some((item) => item.id === id),
+  );
   const result = useMemo(() => compile(source, options), [source, options]);
   const length = lesson ? traceLength(result, lesson.id) : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
@@ -138,7 +147,7 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', pause);
   }, []);
   useEffect(() => {
-    document.title = `${lesson?.title || (route === 'notes' ? '我的笔记' : route === 'sources' ? '阅读来源' : '动手理解编译原理')} · 编译手记`;
+    document.title = `${lesson?.title || (route === 'assembly' ? ASSEMBLY_TITLE : route === 'notes' ? '我的笔记' : route === 'sources' ? '阅读来源' : '动手理解编译原理')} · 编译手记`;
   }, [lesson, route]);
   useEffect(() => {
     if (!notice) return;
@@ -172,7 +181,9 @@ export default function App() {
     window.history.pushState(
       null,
       '',
-      shareUrl(window.location.href, next, nextSource, 0, nextOptions),
+      next === 'assembly'
+        ? new URL('?lab=assembly', window.location.href).href
+        : shareUrl(window.location.href, next, nextSource, 0, nextOptions),
     );
     window.scrollTo({ top: 0, behavior: 'instant' });
     window.setTimeout(() => heading.current?.focus({ preventScroll: true }), 0);
@@ -199,10 +210,10 @@ export default function App() {
       setShareFallback(url);
     }
   }
-  function updateNote(id: Stage, text: string) {
+  function updateNote(id: NoteId, text: string) {
     setNotebook((previous) => ({ ...previous, notes: { ...previous.notes, [id]: text } }));
   }
-  function toggleComplete(id: Stage) {
+  function toggleComplete(id: NoteId) {
     setNotebook((previous) => ({
       ...previous,
       completed: previous.completed.includes(id)
@@ -224,7 +235,7 @@ export default function App() {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      if (file.size > 200000) throw new Error('笔记文件不能超过 200 KB。');
+      if (file.size > 1000000) throw new Error('笔记文件不能超过 1 MB。');
       const data = validateNotebook(JSON.parse(await file.text()));
       setNotebook((previous) => ({
         version: 1,
@@ -312,6 +323,18 @@ export default function App() {
               )}
             </a>
           ))}
+          <div className="nav-label extra-label">按需附录</div>
+          <a
+            className={`nav-home ${route === 'assembly' ? 'active' : ''}`}
+            href="?lab=assembly"
+            aria-current={route === 'assembly' ? 'page' : undefined}
+            onClick={(event) => {
+              event.preventDefault();
+              navigate('assembly');
+            }}
+          >
+            <span>⇄</span> {ASSEMBLY_TITLE}
+          </a>
           <div className="nav-label extra-label">留给自己</div>
           <a
             className={`nav-home ${route === 'notes' ? 'active' : ''}`}
@@ -340,11 +363,11 @@ export default function App() {
           <div className="progress-label">
             <span>我的复习进度</span>
             <b>
-              {notebook.completed.length} / {lessons.length}
+              {mainCompleted.length} / {lessons.length}
             </b>
           </div>
           <div className="progress-track">
-            <span style={{ width: `${(notebook.completed.length / lessons.length) * 100}%` }} />
+            <span style={{ width: `${(mainCompleted.length / lessons.length) * 100}%` }} />
           </div>
           <p>
             <span className="status-dot" /> 在浏览器中运行 · 无需服务端
@@ -367,7 +390,13 @@ export default function App() {
             <i>/</i>
             <strong>
               {lesson?.title ||
-                (route === 'notes' ? '我的笔记' : route === 'sources' ? '阅读来源' : '编译器基础')}
+                (route === 'assembly'
+                  ? ASSEMBLY_TITLE
+                  : route === 'notes'
+                    ? '我的笔记'
+                    : route === 'sources'
+                      ? '阅读来源'
+                      : '编译器基础')}
             </strong>
           </div>
           <span className="local-badge">
@@ -376,7 +405,18 @@ export default function App() {
         </header>
         <main id="main" tabIndex={-1}>
           {route === 'home' && (
-            <Home navigate={navigate} headingRef={heading} completed={notebook.completed} />
+            <Home navigate={navigate} headingRef={heading} completed={mainCompleted} />
+          )}
+          {route === 'assembly' && (
+            <Suspense fallback={<p role="status">正在打开汇编附录…</p>}>
+              <AssemblyAppendix
+                headingRef={heading}
+                notebook={notebook}
+                onNote={updateNote}
+                onComplete={toggleComplete}
+                storageError={storageError}
+              />
+            </Suspense>
           )}
           {lesson && (
             <>
@@ -775,7 +815,8 @@ export default function App() {
               />
               <div className="notebook-toolbar">
                 <span>
-                  {notebook.completed.length} / {lessons.length} 个实验已复习
+                  {mainCompleted.length} / {lessons.length} 个实验已复习 · 附录{' '}
+                  {notebook.completed.filter((id) => id.startsWith('assembly-')).length} / 6
                   {storageError && ' · 本地存储不可用，请导出备份'}
                 </span>
                 <div>
@@ -838,6 +879,47 @@ export default function App() {
                   </article>
                 ))}
               </div>
+              <h2 className="appendix-notes-title">汇编附录的笔记</h2>
+              <div className="notebook-grid">
+                {assemblyTopics.map((item) => (
+                  <article className="note-card" key={item.noteId}>
+                    <div>
+                      <span>附录 / {item.title}</span>
+                      <label>
+                        <input
+                          type="checkbox"
+                          aria-label={`${item.title}附录已复习`}
+                          checked={notebook.completed.includes(item.noteId)}
+                          onChange={() => toggleComplete(item.noteId)}
+                        />
+                        已复习
+                      </label>
+                    </div>
+                    <p>{item.challenge}</p>
+                    <textarea
+                      aria-label={`${item.title}的附录笔记`}
+                      placeholder="留下你对指令和状态的理解……"
+                      maxLength={20000}
+                      value={notebook.notes[item.noteId] || ''}
+                      onChange={(event) => updateNote(item.noteId, event.target.value)}
+                    />
+                    <button
+                      className="text-button"
+                      onClick={() => {
+                        navigate('assembly');
+                        history.replaceState(
+                          null,
+                          '',
+                          assemblyShareUrl(location.href, item.id, defaultParameters(item.id), 0),
+                        );
+                        window.dispatchEvent(new PopStateEvent('popstate'));
+                      }}
+                    >
+                      回到本节附录 ↗
+                    </button>
+                  </article>
+                ))}
+              </div>
               <p className="privacy-note">
                 笔记不包含在实验分享链接中，也不会上传或跨设备同步。导入同一实验的笔记会覆盖该实验已有内容，其他实验保留。
               </p>
@@ -895,6 +977,28 @@ export default function App() {
                 </table>
               </div>
               <div className="reading-page">
+                <section>
+                  <h2>随书汇编阅读辅助</h2>
+                  <p>
+                    已选读核对第 08、16 讲中的汇编示例、指令选择与寄存器分配讨论。附录说明原书的
+                    AT&T / Intel 格式及调用上下文，并解释
+                    LEA、缩放寻址、复制消除与指令排序。现有教学回放仍采用 Intel 语法和 Windows x64
+                    ABI，与原书示例分别标注。核对日期：2026-11-16。
+                  </p>
+                  {assemblyBookReferences.map((item) => (
+                    <a key={item.number} href={item.url} target="_blank" rel="noreferrer">
+                      原书第 {item.number} 讲 · {item.title} ↗
+                    </a>
+                  ))}
+                  {ASSEMBLY_SOURCES.map((item) => (
+                    <a key={item.url} href={item.url} target="_blank" rel="noreferrer">
+                      {item.title} ↗
+                    </a>
+                  ))}
+                  <button className="text-button" onClick={() => navigate('assembly')}>
+                    打开汇编附录 ↗
+                  </button>
+                </section>
                 <section>
                   <h2>如何参考这些材料</h2>
                   <p>
@@ -1155,6 +1259,19 @@ function Home({
             </button>
           ))}
         </div>
+      </section>
+      <section className="assembly-teaser">
+        <div>
+          <div className="eyebrow">OPTIONAL APPENDIX / 按需阅读</div>
+          <h2>读到汇编时，先查清它在做什么。</h2>
+          <p>
+            随书查阅第 08、16 讲中的指令、语法差异与编译器写法，保留交互对照。寄存器、8086 与 x86
+            的系统入门适合独立专题。
+          </p>
+        </div>
+        <button className="button secondary" onClick={() => navigate('assembly')}>
+          打开汇编附录 ↗
+        </button>
       </section>
       <section className="study-method">
         <span className="method-mark">✳</span>

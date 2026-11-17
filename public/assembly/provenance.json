@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-11-16",
+  "compiler": "gcc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
+  "target": "x86_64-linux-gnu",
+  "abi": "Microsoft x64 ABI explicitly selected with __attribute__((ms_abi)); Linux GCC output, not a Windows PE artifact.",
+  "flags": "-m64 -S -masm=intel -O0/-O2 -fno-asynchronous-unwind-tables -fno-stack-protector",
+  "sourceHash": "0da6d9e0cb0461468c70e0a7b1437a18faa2b1d101d1f53eea3b9b4e2c134792",
+  "nativeChecks": "9 native checks passed",
+  "outputHashes": {
+    "O0": "3e1e04b7f4157de2d5d158bad73539332607ed2beb7f33a0471d0db6524f1f3e",
+    "O2": "3e03bede2f516622eacfee5e669c4afd62aeafaf9de366bdce41dd106007985a"
+  }
+}

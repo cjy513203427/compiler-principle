@@ -1,14 +1,21 @@
 import { lessons, presets, flowPresets, dataflowPresets, defaultOptions } from './content/lessons';
 import type { Stage, OptimizationOptions } from './compiler/model';
+import { assemblyTopics } from './content/assembly';
+import type { AssemblyNoteId } from './compiler/assembly/model';
 
-export type Route = Stage | 'home' | 'notes' | 'sources';
+export type Route = Stage | 'home' | 'notes' | 'sources' | 'assembly';
+export type NoteId = Stage | AssemblyNoteId;
 export const MAX_SOURCE = 2000;
 export function readUrl(search: string) {
   const params = new URLSearchParams(search);
   const requested = params.get('lab');
-  const route: Route = [...lessons.map((l) => l.id), 'home', 'notes', 'sources'].includes(
-    requested || '',
-  )
+  const route: Route = [
+    ...lessons.map((l) => l.id),
+    'home',
+    'notes',
+    'sources',
+    'assembly',
+  ].includes(requested || '')
     ? (requested as Route)
     : 'home';
   const raw = params.get('code');
@@ -48,8 +55,8 @@ export function shareUrl(
 }
 export interface Notebook {
   version: 1;
-  notes: Partial<Record<Stage, string>>;
-  completed: Stage[];
+  notes: Partial<Record<NoteId, string>>;
+  completed: NoteId[];
 }
 export const emptyNotebook = (): Notebook => ({ version: 1, notes: {}, completed: [] });
 export function validateNotebook(value: unknown): Notebook {
@@ -64,16 +71,17 @@ export function validateNotebook(value: unknown): Notebook {
   )
     throw new Error('笔记版本或内容不正确。');
   const notes: Notebook['notes'] = {};
-  for (const lesson of lessons) {
-    const text = data.notes[lesson.id];
+  const ids: NoteId[] = [...lessons.map((l) => l.id), ...assemblyTopics.map((l) => l.noteId)];
+  for (const id of ids) {
+    const text = data.notes[id];
     if (text !== undefined && (typeof text !== 'string' || text.length > 20000))
       throw new Error('单篇笔记需要是 20,000 字以内的文本。');
-    if (text !== undefined) notes[lesson.id] = text;
+    if (text !== undefined) notes[id] = text;
   }
   return {
     version: 1,
     notes,
-    completed: [...new Set(data.completed.filter((id) => lessons.some((l) => l.id === id)))],
+    completed: [...new Set(data.completed.filter((id) => ids.includes(id)))],
   };
 }
 export const STORAGE_KEY = 'compiler-notebook-v1';

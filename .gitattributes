@@ -1,0 +1,5 @@
+# Preserve compiler artifact hashes and keep the WSL reproduction script runnable.
+public/assembly/** text eol=lf
+scripts/generate-assembly.sh text eol=lf
+scripts/package-assembly.py text eol=lf
+tests/native/assembly-check.c text eol=lf
