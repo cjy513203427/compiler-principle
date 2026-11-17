@@ -2,6 +2,7 @@ import { lessons, presets, flowPresets, dataflowPresets, defaultOptions } from '
 import type { Stage, OptimizationOptions } from './compiler/model';
 import { assemblyTopics } from './content/assembly';
 import type { AssemblyNoteId } from './compiler/assembly/model';
+import { dominancePresets } from './content/dominance';
 
 export type Route = Stage | 'home' | 'notes' | 'sources' | 'assembly';
 export type NoteId = Stage | AssemblyNoteId;
@@ -26,7 +27,9 @@ export function readUrl(search: string) {
         ? flowPresets[0].code
         : route === 'dataflow'
           ? dataflowPresets[0].code
-          : presets[0].code;
+          : route === 'dominance'
+            ? dominancePresets[0].code
+            : presets[0].code;
   const step = Math.max(0, Math.min(10000, Math.floor(Number(params.get('step')) || 0)));
   const flags = params.get('opt');
   const options: OptimizationOptions =

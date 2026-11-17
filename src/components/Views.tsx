@@ -12,6 +12,7 @@ import { instructionText } from '../compiler/ir';
 import { bytecodeText } from '../compiler/vm';
 import { ControlFlowView } from './ControlFlowView';
 import { DataflowView } from './DataflowView';
+import { DominanceView } from './DominanceView';
 import type { OptimizationOptions } from '../compiler/model';
 
 const valueText = (value: Value) => String(value);
@@ -45,6 +46,8 @@ export function traceLength(result: Compilation, stage: Stage): number {
       return result.controlTrace?.length || 0;
     case 'dataflow':
       return result.dataflow?.steps.length || 0;
+    case 'dominance':
+      return result.dominance?.steps.length || 0;
   }
 }
 export function traceMessage(result: Compilation, stage: Stage, step: number): string {
@@ -67,6 +70,8 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
       return result.controlTrace?.[step]?.message || '';
     case 'dataflow':
       return result.dataflow?.steps[step]?.message || '';
+    case 'dominance':
+      return result.dominance?.steps[step]?.message || '';
   }
 }
 export function AstTree({
@@ -529,6 +534,7 @@ export function ResultView({
     );
   }
   if (stage === 'cfg') return <ControlFlowView result={result} step={step} />;
+  if (stage === 'dominance') return <DominanceView result={result} step={step} />;
   if (stage === 'dataflow')
     return <DataflowView result={result} step={step} source={source} options={options} />;
   const current = result.execution!.steps[step];

@@ -3,6 +3,7 @@ import { assemblyTopics, ASSEMBLY_SOURCES } from './content/assembly';
 import { assemblyShareUrl } from './assembly/state';
 import { defaultParameters } from './content/assembly';
 import { ASSEMBLY_TITLE, assemblyBookReferences } from './content/assembly-reading';
+import { dominancePresets, DOMINANCE_REFERENCE, LOOP_REFERENCE } from './content/dominance';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
 import { ResultView, traceLength, traceMessage } from './components/Views';
 import {
@@ -42,6 +43,7 @@ const stageNames: Record<Stage, string> = {
   vm: '虚拟机执行',
   cfg: '控制流图',
   dataflow: '数据流分析',
+  dominance: '支配关系',
 };
 function readNotebook(): Notebook {
   try {
@@ -161,7 +163,9 @@ export default function App() {
           ? flowPresets[0].code
           : next === 'dataflow'
             ? dataflowPresets[0].code
-            : source
+            : next === 'dominance'
+              ? dominancePresets[0].code
+              : source
         : source;
     if (nextSource !== source) {
       setSource(nextSource);
@@ -1048,9 +1052,20 @@ export default function App() {
                 <section>
                   <h2>哪些内容还没有覆盖</h2>
                   <p>
-                    本版专注前端与基础中间表示。NFA
-                    子集构造、FIRST/FOLLOW、LR、SSA、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。控制流与数据流实验已支持基础分支、循环、条件常量传播和活跃变量分析。
+                    本版专注前端与基础中间表示。NFA 子集构造、FIRST/FOLLOW、LR、完整 SSA
+                    转换、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，以及支配树、自然循环和
+                    φ 候选位置分析。
                   </p>
+                  <p>
+                    支配关系实验于 2026-11-17 补充核对 Cornell 与 LLVM
+                    资料；分析原始结构图，不将一次运行路径当作静态证明，也不把候选 φ 当作完整 SSA。
+                  </p>
+                  <a href={DOMINANCE_REFERENCE} target="_blank" rel="noreferrer">
+                    Cornell · 支配关系与 SSA ↗
+                  </a>
+                  <a href={LOOP_REFERENCE} target="_blank" rel="noreferrer">
+                    LLVM · 循环术语 ↗
+                  </a>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1181,11 +1196,11 @@ function Home({
             <div className="eyebrow">THE BIG PICTURE</div>
             <h2>先看清，这段旅程。</h2>
           </div>
-          <p>六个编译环节，另有控制流和数据流观察程序。</p>
+          <p>六个编译环节，再用控制流、数据流与支配关系观察程序。</p>
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => item.id !== 'cfg' && item.id !== 'dataflow')
+            .filter((item) => !['cfg', 'dataflow', 'dominance'].includes(item.id))
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1248,11 +1263,13 @@ function Home({
                           ? '后序遍历 / 临时变量'
                           : item.id === 'optimize'
                             ? '常量传播 / 语义等价'
-                            : item.id === 'dataflow'
-                              ? 'IN / OUT / 不动点 / 活跃性'
-                              : item.id === 'cfg'
-                                ? '基本块 / 分支 / 循环回边'
-                                : '操作数栈 / 程序状态'}
+                            : item.id === 'dominance'
+                              ? '支配树 / 自然循环 / φ 候选'
+                              : item.id === 'dataflow'
+                                ? 'IN / OUT / 不动点 / 活跃性'
+                                : item.id === 'cfg'
+                                  ? '基本块 / 分支 / 循环回边'
+                                  : '操作数栈 / 程序状态'}
                 </span>
                 <b>→</b>
               </div>
@@ -1331,6 +1348,17 @@ function Reading({ lesson }: { lesson: Lesson }) {
           <a href={CONTROL_FLOW_REFERENCE} target="_blank" rel="noreferrer">
             概念核对：LLVM 官方教程 · 控制流、基本块与跳转 ↗
           </a>
+        )}
+        {lesson.id === 'dominance' && (
+          <>
+            <small>补充概念核对：2026-11-17 · 原始结构图上的静态分析</small>
+            <a href={DOMINANCE_REFERENCE} target="_blank" rel="noreferrer">
+              Cornell CS 4120 · 支配关系、支配边界与 SSA ↗
+            </a>
+            <a href={LOOP_REFERENCE} target="_blank" rel="noreferrer">
+              LLVM · 自然循环与循环术语 ↗
+            </a>
+          </>
         )}
       </div>
     </article>

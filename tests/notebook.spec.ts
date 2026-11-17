@@ -73,12 +73,12 @@ test('readable font sizes hold at narrow widths and new notes coexist with old n
   await page.getByRole('button', { name: '我能解释了' }).click();
   await page.goto('/?lab=notes');
   await expect(page.getByLabel('控制流图的笔记')).toHaveValue('循环条件每轮重算。');
-  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 8');
+  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 9');
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('home computes the example and all eight labs render with no external requests', async ({
+test('home computes the example and all nine labs render with no external requests', async ({
   page,
 }) => {
   const failures: string[] = [];
@@ -92,7 +92,17 @@ test('home computes the example and all eight labs render with no external reque
   await expect(page.locator('.demo-result strong')).toHaveText('14');
   await page.getByRole('button', { name: '给加法加一对括号' }).click();
   await expect(page.locator('.demo-result strong')).toHaveText('20');
-  for (const stage of ['lex', 'parse', 'semantic', 'ir', 'optimize', 'vm', 'cfg', 'dataflow']) {
+  for (const stage of [
+    'lex',
+    'parse',
+    'semantic',
+    'ir',
+    'optimize',
+    'vm',
+    'cfg',
+    'dataflow',
+    'dominance',
+  ]) {
     await page.goto(`/?lab=${stage}`);
     await expect(page.locator('.result-content')).toBeVisible();
     await expect(page.getByRole('button', { name: '看最终结果' })).toBeVisible();

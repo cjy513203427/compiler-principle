@@ -1,4 +1,5 @@
 import type { Stage } from '../compiler/model';
+import { dominanceLesson, dominancePresets } from './dominance';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -365,6 +366,7 @@ export const lessons: Lesson[] = [
       explain: '任一前驱都可能到达；没有额外证明时必须保留两种可能，不能只取一次运行的值。',
     },
   },
+  dominanceLesson,
 ];
 export const flowPresets = [
   {
@@ -499,5 +501,6 @@ export const presets = [
   },
   ...flowPresets,
   ...dataflowPresets,
+  ...dominancePresets,
 ];
 export const defaultOptions = { fold: true, propagate: true, dead: true };

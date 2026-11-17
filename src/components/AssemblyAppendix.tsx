@@ -17,6 +17,7 @@ import type { Notebook } from '../state';
 import '../styles-assembly.css';
 import AssemblyReadingGuide from './AssemblyReadingGuide';
 import { ASSEMBLY_TITLE, assemblyBookReferences } from '../content/assembly-reading';
+import { lessons } from '../content/lessons';
 
 const wantsExperiment = (search: string) => {
   const query = new URLSearchParams(search);
@@ -1037,7 +1038,7 @@ export default function AssemblyAppendix({
         </section>
       )}
       <p className="asm-footer-note">
-        附录用于随书查阅，不计入前面 8
+        附录用于随书查阅，不计入前面 {lessons.length}
         个核心实验的进度。已有汇编基础的读者可按需跳转；模拟与真实编译输出分别标明来源。
       </p>
     </div>
