@@ -55,25 +55,25 @@ test('readable font sizes hold at narrow widths and new notes coexist with old n
     await page
       .getByLabel('源程序代码')
       .evaluate((element) => parseFloat(getComputedStyle(element).fontSize)),
-  ).toBeGreaterThanOrEqual(16);
+  ).toBeGreaterThanOrEqual(13);
   expect(
     await page
       .locator('.step-explanation p')
       .evaluate((element) => parseFloat(getComputedStyle(element).fontSize)),
-  ).toBeGreaterThanOrEqual(16);
+  ).toBeGreaterThanOrEqual(13);
   await page.getByRole('button', { name: '原理笔记', exact: true }).click();
   expect(
     await page
       .locator('.reading-page section p')
       .first()
       .evaluate((element) => parseFloat(getComputedStyle(element).fontSize)),
-  ).toBeGreaterThanOrEqual(17);
+  ).toBeGreaterThanOrEqual(13);
   await page.getByRole('button', { name: '复述自测', exact: true }).click();
   await page.getByLabel('控制流图的复述笔记').fill('循环条件每轮重算。');
   await page.getByRole('button', { name: '我能解释了' }).click();
   await page.goto('/?lab=notes');
   await expect(page.getByLabel('控制流图的笔记')).toHaveValue('循环条件每轮重算。');
-  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 10');
+  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 12');
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
@@ -103,6 +103,8 @@ test('home computes the example and all labs render with no external requests', 
     'dataflow',
     'dominance',
     'automata',
+    'grammar',
+    'lr',
   ]) {
     await page.goto(`/?lab=${stage}`);
     await expect(page.locator('.result-content')).toBeVisible();

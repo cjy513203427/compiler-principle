@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CodeBlock } from './CodeBlock';
 import type { AssemblyTopic } from '../compiler/assembly/model';
 import {
   assemblyBookReferences,
@@ -74,7 +75,7 @@ export default function AssemblyReadingGuide({
                 </span>
               </summary>
               <p>{item.reading}</p>
-              <pre>{item.form}</pre>
+              <CodeBlock code={item.form} language="asm" title="格式" />
             </details>
           ))}
         </div>
@@ -99,11 +100,11 @@ export default function AssemblyReadingGuide({
           <div className="asm-pattern-comparison">
             <div>
               <span>展开观察</span>
-              <pre>{current.before}</pre>
+              <CodeBlock code={current.before} language="asm" title="before.asm" />
             </div>
             <div>
               <span>另一种安排</span>
-              <pre>{current.after}</pre>
+              <CodeBlock code={current.after} language="asm" title="after.asm" />
             </div>
           </div>
           <p className="asm-reading-tip">{current.limit}</p>

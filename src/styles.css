@@ -16,6 +16,15 @@
   --line: #e3e8df;
   --paper: #fbfcf9;
   --mono: 'Cascadia Code', Consolas, 'SFMono-Regular', monospace;
+  /* IDE-style code surfaces (VS Code Dark+ palette). */
+  --ide-bg: #1e1e1e;
+  --ide-chrome: #252526;
+  --ide-border: #333336;
+  --ide-gutter: #858585;
+  --ide-text: #cccccc;
+  --ide-muted: #9d9d9d;
+  --ide-current: #2f3a26;
+  --ide-accent: #b5d77a;
   font-size: 14px;
   line-height: 1.7;
 }
@@ -989,9 +998,9 @@ main {
   text-overflow: ellipsis;
 }
 .editor {
-  border: 1px solid #e3e8dc;
-  border-radius: 5px;
-  background: #f9faf6;
+  border: 1px solid var(--ide-border);
+  border-radius: 6px;
+  background: var(--ide-bg);
   overflow: hidden;
   margin-top: 15px;
 }
@@ -999,11 +1008,12 @@ main {
   display: flex;
   align-items: center;
   gap: 6px;
-  border-bottom: 1px solid #e7ecdf;
+  border-bottom: 1px solid var(--ide-border);
   padding: 9px 10px;
   font-family: var(--mono);
   font-size: 12px;
-  color: #929d86;
+  color: var(--ide-muted);
+  background: var(--ide-chrome);
 }
 .file-dot {
   display: block;
@@ -1028,7 +1038,7 @@ main {
   font-family: var(--mono);
   font-size: 13px;
   line-height: 1.9;
-  color: #bac4af;
+  color: var(--ide-gutter);
   text-align: right;
   min-width: 29px;
   padding-right: 9px;
@@ -1047,13 +1057,17 @@ main {
   font-family: var(--mono);
   font-size: 14px;
   line-height: 1.9;
-  color: #4f6651;
+  color: var(--ide-text);
+  caret-color: #aeafad;
   padding: 0 8px 0 0;
   white-space: pre;
   tab-size: 2;
 }
+.editor textarea::selection {
+  background: #264f78;
+}
 .editor textarea:focus-visible {
-  outline: 1px solid #abc294;
+  outline: 1px solid var(--ide-accent);
   outline-offset: -1px;
 }
 .editor-actions {
@@ -1442,7 +1456,7 @@ main {
   stroke-width: 1;
 }
 .tree-node text {
-  font: 15px var(--mono);
+  font: 13px var(--mono);
   fill: #718661;
   pointer-events: none;
 }
@@ -1557,9 +1571,10 @@ tr.highlight-row td {
 .code-rows {
   position: relative;
   font-size: 14px;
-  background: #f8faf4;
-  border: 1px solid #e5ebdc;
-  border-radius: 5px;
+  background: var(--ide-bg);
+  border: 1px solid var(--ide-border);
+  border-radius: 6px;
+  color: var(--ide-text);
   padding: 10px 0;
   max-height: 440px;
   overflow: auto;
@@ -1575,28 +1590,29 @@ tr.highlight-row td {
   white-space: nowrap;
 }
 .code-row > span {
-  color: #b1bea4;
+  color: var(--ide-gutter);
   font-family: var(--mono);
   font-size: 12px;
   min-width: 15px;
   line-height: 2;
 }
 .code-row code {
-  color: #6a8157;
+  color: var(--ide-text);
 }
 .code-row > b {
   font-weight: 400;
-  color: #759653;
+  color: var(--ide-accent);
   margin-left: auto;
 }
 .code-row.current {
-  background: #e5efd4;
+  background: var(--ide-current);
+  box-shadow: inset 3px 0 var(--ide-accent);
 }
 .code-row.current code {
-  color: #456b30;
+  color: #ffffff;
 }
 .code-row.unrevealed {
-  color: #bcc9af;
+  color: #5a5a5a;
   min-height: 29px;
 }
 .optimization-heading {
@@ -3660,7 +3676,7 @@ tr.highlight-row td {
   pointer-events: none;
 }
 .cfg-block-name {
-  font: 600 16px var(--mono);
+  font: 600 14px var(--mono);
 }
 .cfg-block-visits {
   font-size: 12px;
@@ -3780,4 +3796,157 @@ tr.highlight-row td {
   input:not([type='checkbox']):not([type='radio']):not([type='range']) {
     font-size: 16px;
   }
+}
+/* Gentle step-by-step path shown before the summary notes. */
+.walkthrough {
+  margin-bottom: 40px;
+}
+.walkthrough-lead {
+  color: #7c8973;
+}
+.walkthrough ol {
+  list-style: none;
+  counter-reset: walk;
+  margin: 18px 0 0;
+  padding: 0;
+}
+.walkthrough li {
+  counter-increment: walk;
+  position: relative;
+  padding: 0 0 22px 40px;
+}
+.walkthrough li::before {
+  content: counter(walk);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #edf3e5;
+  border: 1px solid #c9d8b4;
+  color: var(--deep);
+  font: 600 12px/24px var(--mono);
+  text-align: center;
+}
+.walkthrough li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 30px;
+  bottom: 4px;
+  border-left: 1px dashed #c9d8b4;
+}
+.walkthrough h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3f5a36;
+  line-height: 26px;
+}
+.walkthrough li p {
+  margin: 6px 0 0;
+  line-height: 2;
+  font-size: 14px;
+  color: #5f6d5b;
+}
+.walkthrough .ide-snippet {
+  margin-top: 10px;
+}
+.walkthrough-summary {
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+/* Read-only code snippets styled like an IDE editor tab (see CodeBlock.tsx). */
+.ide-snippet {
+  margin: 0;
+  border: 1px solid var(--ide-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--ide-bg);
+  max-width: 100%;
+}
+.ide-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--ide-chrome);
+  border-bottom: 1px solid var(--ide-border);
+  font: 12px var(--mono);
+  color: var(--ide-muted);
+}
+.ide-dots {
+  display: flex;
+  gap: 5px;
+}
+.ide-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4a4a4a;
+}
+.ide-tab {
+  padding: 1px 8px;
+  border-radius: 3px;
+  background: var(--ide-bg);
+  color: var(--ide-text);
+}
+.ide-lang {
+  margin-left: auto;
+}
+.ide-snippet .ide-code {
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--ide-bg);
+  color: var(--ide-text);
+  font: 13px/1.75 var(--mono);
+  overflow: auto;
+  max-height: 520px;
+  white-space: pre;
+  tab-size: 4;
+}
+.ide-snippet .ide-code:focus-visible {
+  outline: 2px solid var(--ide-accent);
+  outline-offset: -2px;
+}
+.ide-line {
+  display: block;
+  padding: 0 14px 0 0;
+}
+.ide-gutter {
+  display: inline-block;
+  width: 3.2em;
+  padding-right: 1.2em;
+  text-align: right;
+  color: var(--ide-gutter);
+  user-select: none;
+}
+.ide-text {
+  white-space: pre;
+}
+.tok-comment {
+  color: #6a9955;
+}
+.tok-keyword {
+  color: #c586c0;
+}
+.tok-string {
+  color: #ce9178;
+}
+.tok-number {
+  color: #b5cea8;
+}
+.tok-type {
+  color: #4ec9b0;
+}
+.tok-name {
+  color: #9cdcfe;
+}
+.tok-operator {
+  color: #d4d4d4;
+}
+.tok-function {
+  color: #dcdcaa;
 }

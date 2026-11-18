@@ -117,9 +117,9 @@
 .auto-nfa-list {
   max-height: 300px;
   overflow: auto;
-  border: 1px solid var(--line);
+  border: 1px solid var(--ide-border);
   border-radius: 6px;
-  background: #fafcf6;
+  background: var(--ide-bg);
   font-family: var(--mono);
   position: relative;
 }
@@ -128,7 +128,7 @@
   grid-template-columns: 3.2em minmax(0, 1fr);
   gap: 8px;
   padding: 4px 10px;
-  border-bottom: 1px solid #eef1ea;
+  border-bottom: 1px solid #2a2a2a;
 }
 .auto-nfa-row > div {
   display: flex;
@@ -137,24 +137,25 @@
 }
 .auto-nfa-row code {
   font-size: 13px;
-  color: #4b5a47;
+  color: var(--ide-text);
 }
 .auto-nfa-state {
   font-weight: 700;
   text-align: right;
-  color: var(--deep);
+  color: #9cdcfe;
 }
 .auto-nfa-row.fresh {
-  background: #f1f6e2;
+  background: var(--ide-current);
+  box-shadow: inset 3px 0 var(--ide-accent);
 }
 .automata-view .fresh-edge {
   font-weight: 800;
-  color: #1f4b33;
+  color: var(--ide-accent);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 .auto-accept {
-  color: #8a4b12 !important;
+  color: #ce9178 !important;
   font-weight: 700;
 }
 .auto-muted {
@@ -363,15 +364,16 @@
   margin: 0;
   padding: 6px 0;
   list-style: none;
-  border: 1px solid var(--line);
+  border: 1px solid var(--ide-border);
   border-radius: 6px;
-  background: #fafcf6;
+  background: var(--ide-bg);
+  color: var(--ide-text);
   font-family: var(--mono);
   font-size: 13px;
 }
 .auto-trace li {
   padding: 2px 8px;
-  border-bottom: 1px solid #f0f2ec;
+  border-bottom: 1px solid #2a2a2a;
 }
 @media (max-width: 600px) {
   .auto-phases {

@@ -7,6 +7,13 @@ import { dominancePresets, DOMINANCE_REFERENCE, LOOP_REFERENCE } from './content
 import { automataPresets, REGEX_REFERENCE } from './content/automata';
 import { analyzeAutomata } from './compiler/automata';
 import { AutomataView } from './components/AutomataView';
+import { grammarPresets, LEFT_RECURSION_REFERENCE } from './content/grammar';
+import { analyzeGrammar } from './compiler/grammar';
+import { GrammarView } from './components/GrammarView';
+import { CodeBlock } from './components/CodeBlock';
+import { lrPresets } from './content/lr';
+import { analyzeLr } from './compiler/lr';
+import { LrView } from './components/LrView';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
 import { ResultView, traceLength, traceMessage } from './components/Views';
 import {
@@ -48,6 +55,54 @@ const stageNames: Record<Stage, string> = {
   dataflow: '数据流分析',
   dominance: '支配关系',
   automata: '正则与自动机',
+  grammar: '文法与预测分析',
+  lr: '移进与规约',
+};
+type InputKind = 'program' | 'automata' | 'grammar' | 'lr';
+// Labs 10 and 11 read their own input instead of a Mini C program.
+const kindOf = (route: Route): InputKind =>
+  route === 'automata' || route === 'grammar' || route === 'lr' ? route : 'program';
+const inputCopy = {
+  program: {
+    title: '源程序',
+    format: 'Mini C / 教学语言',
+    custom: '自定义程序',
+    file: 'experiment.mc',
+    field: '源程序代码',
+    run: '运行编译',
+    dirty: '代码已修改。运行编译后更新右侧结果。',
+    presets,
+  },
+  automata: {
+    title: '词法规则与输入',
+    format: '名称: 正则 / %% / 输入',
+    custom: '自定义规则',
+    file: 'rules.lex',
+    field: '词法规则与输入',
+    run: '生成自动机',
+    dirty: '规则或输入已修改。生成自动机后更新右侧结果。',
+    presets: automataPresets,
+  },
+  grammar: {
+    title: '文法与输入',
+    format: '产生式 / %% / 输入',
+    custom: '自定义文法',
+    file: 'grammar.ll',
+    field: '文法与输入',
+    run: '计算分析表',
+    dirty: '文法或输入已修改。计算分析表后更新右侧结果。',
+    presets: grammarPresets,
+  },
+  lr: {
+    title: '文法与输入',
+    format: '产生式 / %% / 输入',
+    custom: '自定义文法',
+    file: 'grammar.lr',
+    field: '文法与输入',
+    run: '构造 LR 表',
+    dirty: '文法或输入已修改。构造 LR 表后更新右侧结果。',
+    presets: lrPresets,
+  },
 };
 function readNotebook(): Notebook {
   try {
@@ -85,27 +140,41 @@ export default function App() {
     lessons.some((item) => item.id === id),
   );
   const result = useMemo(() => compile(source, options), [source, options]);
-  const isAutomata = lesson?.id === 'automata';
-  // The automata lab reads lexical rules, not Mini C; it never goes through compile().
+  const inputKind = kindOf(route);
+  const ownInput = inputKind !== 'program';
+  const copy = inputCopy[inputKind];
+  // Own-input labs never go through compile(); each has its own analysis.
   const automata = useMemo(
-    () => (isAutomata ? analyzeAutomata(source) : undefined),
-    [isAutomata, source],
+    () => (inputKind === 'automata' ? analyzeAutomata(source) : undefined),
+    [inputKind, source],
   );
-  const automataIssue = automata && !automata.ok ? automata.issue : undefined;
+  const grammarResult = useMemo(
+    () => (inputKind === 'grammar' ? analyzeGrammar(source) : undefined),
+    [inputKind, source],
+  );
+  const lrResult = useMemo(
+    () => (inputKind === 'lr' ? analyzeLr(source) : undefined),
+    [inputKind, source],
+  );
+  const ownOutcome = automata || grammarResult || lrResult;
+  const ownIssue = ownOutcome && !ownOutcome.ok ? ownOutcome.issue : undefined;
+  const ownFrames = ownOutcome?.ok ? ownOutcome.analysis.frames : undefined;
   const length = lesson
-    ? isAutomata
-      ? automata?.ok
-        ? automata.analysis.frames.length
-        : 0
+    ? ownInput
+      ? ownFrames?.length || 0
       : traceLength(result, lesson.id)
     : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
   const dirty = draft !== source;
-  const labPresets = isAutomata ? automataPresets : presets;
+  const labPresets = copy.presets;
   const selectedPreset = labPresets.find((p) => p.code === draft);
-  // Each kind of input keeps its own text while the learner visits the other kind.
-  const programStash = useRef(presets[0].code);
-  const rulesStash = useRef(automataPresets[0].code);
+  // Each kind of input keeps its own text while the learner visits another kind.
+  const stash = useRef<Record<InputKind, string>>({
+    program: presets[0].code,
+    automata: automataPresets[0].code,
+    grammar: grammarPresets[0].code,
+    lr: lrPresets[0].code,
+  });
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)');
     const update = () => setNarrow(media.matches);
@@ -179,12 +248,9 @@ export default function App() {
   }, [notice]);
   function navigate(next: Route) {
     let base = source;
-    if (route === 'automata' && next !== 'automata') {
-      rulesStash.current = source;
-      base = programStash.current;
-    } else if (route !== 'automata' && next === 'automata') {
-      programStash.current = source;
-      base = rulesStash.current;
+    if (kindOf(route) !== kindOf(next)) {
+      stash.current[kindOf(route)] = source;
+      base = stash.current[kindOf(next)];
     }
     const nextSource =
       base === presets[0].code
@@ -507,8 +573,8 @@ export default function App() {
                   <div className="experiment-layout">
                     <section className="input-panel" aria-label="程序输入">
                       <div className="panel-title">
-                        <h2>{isAutomata ? '词法规则与输入' : '源程序'}</h2>
-                        <span>{isAutomata ? '名称: 正则 / %% / 输入' : 'Mini C / 教学语言'}</span>
+                        <h2>{copy.title}</h2>
+                        <span>{copy.format}</span>
                       </div>
                       <label className="field-label" htmlFor="preset">
                         选择一个观察角度
@@ -522,7 +588,7 @@ export default function App() {
                         }}
                       >
                         <option value="custom" disabled>
-                          {isAutomata ? '自定义规则' : '自定义程序'}
+                          {copy.custom}
                         </option>
                         {labPresets.map((item) => (
                           <option key={item.id} value={item.id}>
@@ -532,7 +598,7 @@ export default function App() {
                       </select>
                       <div className="editor">
                         <div className="editor-toolbar">
-                          <span className="file-dot" /> {isAutomata ? 'rules.lex' : 'experiment.mc'}{' '}
+                          <span className="file-dot" /> {copy.file}{' '}
                           <span>{dirty ? '待运行' : '已编译'}</span>
                         </div>
                         <div className="editor-body">
@@ -543,7 +609,7 @@ export default function App() {
                           </div>
                           <textarea
                             id="source-code"
-                            aria-label={isAutomata ? '词法规则与输入' : '源程序代码'}
+                            aria-label={copy.field}
                             spellCheck={false}
                             maxLength={MAX_SOURCE}
                             value={draft}
@@ -562,13 +628,13 @@ export default function App() {
                       </div>
                       <div className="editor-actions">
                         <button className="button primary" onClick={() => applySource(draft)}>
-                          {isAutomata ? '生成自动机' : '运行编译'} <span aria-hidden="true">↵</span>
+                          {copy.run} <span aria-hidden="true">↵</span>
                         </button>
                         <button
                           className="text-button"
                           onClick={() => {
                             applySource(labPresets[0].code);
-                            if (!isAutomata) setOptions(defaultOptions);
+                            if (!ownInput) setOptions(defaultOptions);
                           }}
                         >
                           恢复示例
@@ -579,9 +645,7 @@ export default function App() {
                       </p>
                       {dirty && (
                         <p className="dirty-note" role="status">
-                          {isAutomata
-                            ? '规则或输入已修改。生成自动机后更新右侧结果。'
-                            : '代码已修改。运行编译后更新右侧结果。'}
+                          {copy.dirty}
                         </p>
                       )}
                       <div className="prediction">
@@ -624,7 +688,17 @@ export default function App() {
                           </small>
                         </fieldset>
                       )}
-                      {isAutomata ? (
+                      {inputKind === 'grammar' || inputKind === 'lr' ? (
+                        <details className="language-help">
+                          <summary>文法怎么写？</summary>
+                          <p>
+                            %% 上方每行一条“左边 {'->'} 右边”，候选之间用 |，空串写 ε；以 | 开头的行接着上一行。第一条产生式的左边是开始符号。出现在左边的名字是非终结符，其余符号都是终结符（Token）。
+                          </p>
+                          <p>
+                            %% 下方是要解析的输入，空格可省略。和终结符同名的单词、符号直接对应；文法里有 Num 时，数字记作 Num；有 Id 时，其余单词记作 Id。只支持纯产生式，不支持 * + ? 写法。
+                          </p>
+                        </details>
+                      ) : inputKind === 'automata' ? (
                         <details className="language-help">
                           <summary>规则怎么写？</summary>
                           <p>
@@ -659,26 +733,26 @@ export default function App() {
                           {lesson.title} <small>{lesson.english}</small>
                         </h2>
                         <span
-                          className={`result-badge ${(isAutomata ? automataIssue : result.diagnostic?.stage === lesson.id) ? 'error' : ''}`}
+                          className={`result-badge ${(ownInput ? ownIssue : result.diagnostic?.stage === lesson.id) ? 'error' : ''}`}
                         >
-                          {(isAutomata ? automataIssue : result.diagnostic?.stage === lesson.id)
+                          {(ownInput ? ownIssue : result.diagnostic?.stage === lesson.id)
                             ? '发现问题'
                             : length
                               ? '可回放'
                               : '等待修复'}
                         </span>
                       </div>
-                      {automataIssue && (
+                      {ownIssue && (
                         <div className="diagnostic" role="alert">
-                          <strong>正则与自动机 · 规则未通过</strong>
-                          <p>{automataIssue.message}</p>
+                          <strong>{stageNames[lesson.id]} · 输入未通过</strong>
+                          <p>{ownIssue.message}</p>
                           <small>
-                            第 {source.slice(0, automataIssue.start).split('\n').length} 行 · 偏移{' '}
-                            {automataIssue.start}
+                            第 {source.slice(0, ownIssue.start).split('\n').length} 行 · 偏移{' '}
+                            {ownIssue.start}
                           </small>
                         </div>
                       )}
-                      {!isAutomata && result.diagnostic && (
+                      {!ownInput && result.diagnostic && (
                         <div className="diagnostic" role="alert">
                           <strong>
                             {stageNames[result.diagnostic.stage]} ·{' '}
@@ -698,9 +772,25 @@ export default function App() {
                         </div>
                       )}
                       <div className="result-content">
-                        {isAutomata ? (
+                        {inputKind === 'automata' ? (
                           automata?.ok && (
                             <AutomataView key={source} analysis={automata.analysis} step={currentStep} />
+                          )
+                        ) : inputKind === 'lr' ? (
+                          lrResult?.ok && (
+                            <LrView key={source} analysis={lrResult.analysis} step={currentStep} />
+                          )
+                        ) : inputKind === 'grammar' ? (
+                          grammarResult?.ok && (
+                            <GrammarView
+                              key={source}
+                              analysis={grammarResult.analysis}
+                              step={currentStep}
+                              onApply={(code) => {
+                                applySource(code);
+                                setNotice('已换成改写后的文法，回放从头开始。');
+                              }}
+                            />
                           )
                         ) : (
                           <ResultView
@@ -720,8 +810,8 @@ export default function App() {
                               {String(currentStep).padStart(2, '0')}
                             </span>
                             <p>
-                              {isAutomata && automata?.ok
-                                ? automata.analysis.frames[currentStep]?.message
+                              {ownFrames
+                                ? ownFrames[currentStep]?.message
                                 : traceMessage(result, lesson.id, currentStep)}
                             </p>
                           </div>
@@ -810,10 +900,10 @@ export default function App() {
                       )}
                     </section>
                   </div>
-                  {!isAutomata && (
+                  {!ownInput && (
                   <div className="pipeline-strip">
                     <span>同一段程序的旅程</span>
-                    {lessons.filter((item) => item.id !== 'automata').map((item) => (
+                    {lessons.filter((item) => kindOf(item.id) === 'program').map((item) => (
                       <button
                         key={item.id}
                         className={route === item.id ? 'active' : ''}
@@ -1086,6 +1176,9 @@ export default function App() {
                     Russ Cox · Regular Expression Matching Can Be Simple And Fast ↗
                   </a>
                   <p>
+                    同日单页重读第 03 讲，补充“文法与预测分析”：产生式写法、左递归及改写、FIRST / FOLLOW 的不动点计算与 LL(1) 分析表，均按原书的讲法独立实现。第 03 讲后半的 LR 直观介绍，补充为“移进与规约”实验：LR(0) 项目集与 SLR(1) 表，原书示例的左递归文法可直接解析。
+                  </p>
+                  <p>
                     第 18 讲可作为字节码主题的延伸阅读，本次未核对。虚拟机实验基于第 06 讲 P-code
                     的概念，自定义指令不代表 CPython 的行为。
                   </p>
@@ -1128,9 +1221,9 @@ export default function App() {
                 <section>
                   <h2>哪些内容还没有覆盖</h2>
                   <p>
-                    本版专注前端与基础中间表示。DFA 最小化、FIRST/FOLLOW、LR、完整 SSA
+                    本版专注前端与基础中间表示。DFA 最小化、完整 LR(1) / LALR、完整 SSA
                     转换、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，支配树、自然循环和
-                    φ 候选位置分析，以及正则 → NFA → DFA 的词法自动机。
+                    φ 候选位置分析，正则 → NFA → DFA 的词法自动机，FIRST / FOLLOW 与 LL(1) 预测分析，以及 SLR(1) 的移进 / 规约。
                   </p>
                   <p>
                     支配关系实验于 2026-11-17 补充核对 Cornell 与 LLVM
@@ -1272,11 +1365,11 @@ function Home({
             <div className="eyebrow">THE BIG PICTURE</div>
             <h2>先看清，这段旅程。</h2>
           </div>
-          <p>六个编译环节，再用控制流、数据流与支配关系观察程序，最后看词法规则怎样自动变成自动机。</p>
+          <p>六个编译环节，再用控制流、数据流与支配关系观察程序；最后三站回到前端，看词法规则和语法规则怎样变成程序能直接用的表。</p>
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => !['cfg', 'dataflow', 'dominance', 'automata'].includes(item.id))
+            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance'].includes(item.id))
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1339,7 +1432,11 @@ function Home({
                           ? '后序遍历 / 临时变量'
                           : item.id === 'optimize'
                             ? '常量传播 / 语义等价'
-                            : item.id === 'automata'
+                            : item.id === 'lr'
+                              ? '移进 / 规约 / SLR 表'
+                              : item.id === 'grammar'
+                              ? 'FIRST / FOLLOW / LL(1) 表'
+                              : item.id === 'automata'
                               ? 'NFA / 子集构造 / 最长匹配'
                               : item.id === 'dominance'
                               ? '支配树 / 自然循环 / φ 候选'
@@ -1388,9 +1485,34 @@ function Reading({ lesson }: { lesson: Lesson }) {
         <span className={`lesson-icon ${lesson.color}`}>{lesson.icon}</span>
         <div>
           <small>{lesson.english}</small>
-          <h2>{lesson.title}，需要记住的三件事</h2>
+          <h2>
+            {lesson.title}，{lesson.walkthrough ? '一步一步读懂' : '需要记住的三件事'}
+          </h2>
         </div>
       </div>
+      {lesson.walkthrough && (
+        <section className="walkthrough" aria-label="一步一步读懂">
+          <p className="walkthrough-lead">
+            从你已经做过的实验出发，每一步只多走一点。读完再看下面的三条小结。
+          </p>
+          <ol>
+            {lesson.walkthrough.map((item) => (
+              <li key={item.title}>
+                <h4>{item.title}</h4>
+                <p>{item.body}</p>
+                {item.example && (
+                  <CodeBlock
+                    code={item.example}
+                    language={item.exampleLanguage || (lesson.id === 'automata' ? 'regex' : 'grammar')}
+                    title="示例"
+                  />
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {lesson.walkthrough && <h3 className="walkthrough-summary">小结：需要记住的三件事</h3>}
       {lesson.note.map((note, index) => (
         <section key={note.title}>
           <div className="reading-number">0{index + 1}</div>
@@ -1412,8 +1534,13 @@ function Reading({ lesson }: { lesson: Lesson }) {
           {chapters.find((c) => c.number === lesson.chapter)!.title} ↗
         </a>
         <small>
-          来源核对：{lesson.id === 'automata' ? '2026-11-18' : '2026-11-16'} · 本页说明与图形独立编写
+          来源核对：{['automata', 'grammar', 'lr'].includes(lesson.id) ? '2026-11-18' : '2026-11-16'} · 本页说明与图形独立编写
         </small>
+        {lesson.id === 'grammar' && (
+          <a href={LEFT_RECURSION_REFERENCE} target="_blank" rel="noreferrer">
+            原书参考资料：Wikipedia · 左递归及其消除 ↗
+          </a>
+        )}
         {lesson.id === 'automata' && (
           <>
             <small>子集构造：原书推荐龙书第 2 版 3.7.1 节（纸质书，未在线核对）</small>

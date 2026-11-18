@@ -14,6 +14,7 @@ import { assemblyShareUrl, readAssemblyUrl, validateParameters } from '../assemb
 import { assemblyTopics, ASSEMBLY_SOURCES, instructionCards } from '../content/assembly';
 import fixture from '../content/assembly-fixture.json';
 import type { Notebook } from '../state';
+import { CodeBlock } from './CodeBlock';
 import '../styles-assembly.css';
 import AssemblyReadingGuide from './AssemblyReadingGuide';
 import { ASSEMBLY_TITLE, assemblyBookReferences } from '../content/assembly-reading';
@@ -956,18 +957,24 @@ export default function AssemblyAppendix({
           </p>
           <details>
             <summary>查看这次实际编译的源码</summary>
-            <pre>{fixture.source}</pre>
+            <CodeBlock code={fixture.source} language="c" title="compare.c" />
           </details>
-          <pre className="asm-real-output" aria-label="真实编译器汇编输出">
-            {fixture.outputs[optimization]}
-          </pre>
+          <CodeBlock
+            className="asm-real-output"
+            code={fixture.outputs[optimization]}
+            language="asm"
+            title={`gcc-${optimization}.s`}
+            label="真实编译器汇编输出"
+          />
           <details>
             <summary>在自己的环境重新生成</summary>
-            <pre>
-              {
+            <CodeBlock
+              language="shell"
+              title="terminal"
+              code={
                 'gcc -m64 -S -masm=intel -O0 -fno-asynchronous-unwind-tables -fno-stack-protector compare.c -o gcc-O0.s\ngcc -m64 -S -masm=intel -O2 -fno-asynchronous-unwind-tables -fno-stack-protector compare.c -o gcc-O2.s'
               }
-            </pre>
+            />
             <p>
               Linux GCC 默认是 System V；源码中的 ms_abi 是为这次对照显式添加的。完整重现脚本见仓库
               scripts/generate-assembly.sh；原生 Windows 工具链的指令选择和附加元数据可能不同。

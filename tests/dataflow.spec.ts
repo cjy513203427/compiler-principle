@@ -55,7 +55,7 @@ test('raw-block inspection, live-variable view, quiz and new notebook entry are 
   await page.getByRole('button', { name: '我能解释了' }).click();
   await page.goto('/?lab=notes');
   await expect(page.getByLabel('数据流分析的笔记')).toHaveValue('相同常量保留，不同常量合并为 ⊤。');
-  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 10');
+  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 12');
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

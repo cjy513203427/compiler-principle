@@ -1,6 +1,8 @@
 import type { Stage } from '../compiler/model';
 import { dominanceLesson, dominancePresets } from './dominance';
 import { automataLesson } from './automata';
+import { grammarLesson } from './grammar';
+import { lrLesson } from './lr';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -50,6 +52,13 @@ export interface Lesson {
   minutes: number;
   icon: string;
   color: string;
+  /** Optional gentle path from what the reader already knows; shown before the summary notes. */
+  walkthrough?: {
+    title: string;
+    body: string;
+    example?: string;
+    exampleLanguage?: import('../components/highlight').SnippetLanguage;
+  }[];
   note: { title: string; body: string }[];
   misconception: string;
   limit: string;
@@ -370,6 +379,8 @@ export const lessons: Lesson[] = [
   },
   dominanceLesson,
   automataLesson,
+  grammarLesson,
+  lrLesson,
 ];
 export const flowPresets = [
   {

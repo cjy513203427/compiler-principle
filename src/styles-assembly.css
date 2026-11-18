@@ -114,7 +114,7 @@
 }
 .asm-book-instructions pre,
 .asm-pattern-detail pre {
-  font: 16px/1.8 var(--mono);
+  font: 14px/1.8 var(--mono);
   background: #f5f7f0;
   border: 1px solid var(--line);
   border-radius: 5px;
@@ -366,8 +366,9 @@
   max-height: 380px;
   min-height: 240px;
   padding: 12px 0;
-  background: #f7f9f3;
-  border-block: 1px solid var(--line);
+  background: var(--ide-bg);
+  color: var(--ide-text);
+  border-block: 1px solid var(--ide-border);
 }
 .asm-source-line,
 .asm-line {
@@ -385,31 +386,33 @@
   flex-shrink: 0;
   text-align: right;
   font: 12px var(--mono);
-  color: #8a9484;
+  color: var(--ide-gutter);
   user-select: none;
 }
 .asm-source-line code,
 .asm-line code {
   white-space: pre;
-  font: 16px/1.7 var(--mono);
+  font: 14px/1.7 var(--mono);
 }
 .asm-line button {
   padding: 0;
   text-align: left;
+  color: inherit;
 }
 .asm-line.label {
-  color: #627659;
+  color: #dcdcaa;
 }
 .asm-line.label button:disabled {
   opacity: 1;
 }
 .asm-source-line.current,
 .asm-line.current {
-  background: #e0edc8;
-  box-shadow: inset 3px 0 #65864e;
+  background: var(--ide-current);
+  box-shadow: inset 3px 0 var(--ide-accent);
+  color: #ffffff;
 }
 .asm-line > b {
-  color: #557536;
+  color: var(--ide-accent);
 }
 .asm-panel .figure-caption {
   padding: 16px 20px;
@@ -468,7 +471,7 @@
 }
 .asm-flags strong {
   display: block;
-  font: 17px var(--mono);
+  font: 14px var(--mono);
 }
 .asm-flags span {
   font-size: 12px;
@@ -691,13 +694,16 @@
   color: #6b765f;
 }
 .asm-real pre {
-  font: 16px/1.8 var(--mono);
+  font: 14px/1.8 var(--mono);
   overflow: auto;
   padding: 20px;
   background: #f5f7f0;
   border: 1px solid var(--line);
   border-radius: 6px;
   max-width: 100%;
+}
+.asm-real .ide-snippet {
+  margin: 12px 0;
 }
 .asm-real-output {
   max-height: 600px;

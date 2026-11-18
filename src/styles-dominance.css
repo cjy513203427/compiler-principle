@@ -158,7 +158,7 @@
 }
 .dom-loop-panel dd {
   margin: 3px 0 0;
-  font: 16px/1.7 var(--mono);
+  font: 14px/1.7 var(--mono);
   overflow-wrap: anywhere;
 }
 .dom-loop-edges p {
@@ -261,7 +261,7 @@
   opacity: 0.5;
 }
 .dom-block text {
-  font: 16px var(--mono);
+  font: 14px var(--mono);
   fill: #344d39;
 }
 .dom-block text.dom-node-name {

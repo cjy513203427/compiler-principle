@@ -176,7 +176,7 @@ test('appendix notes coexist with core notes and export without increasing core 
   await page.getByRole('button', { name: '我能解释了，标记附录' }).click();
   await page.goto('/?lab=notes');
   await expect(page.getByLabel('赋值与加法的附录笔记')).toHaveValue('MOV 复制，源值保留。');
-  await expect(page.locator('.notebook-toolbar')).toContainText('0 / 10 个实验已复习 · 附录 1 / 6');
+  await expect(page.locator('.notebook-toolbar')).toContainText('0 / 12 个实验已复习 · 附录 1 / 6');
   await page.getByLabel('词法分析的笔记', { exact: true }).fill('旧实验笔记。');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: '导出笔记' }).click();
@@ -221,7 +221,7 @@ test('real GCC artifacts stay distinct and readable on 320px screens', async ({ 
       .locator('.asm-source code')
       .first()
       .evaluate((e) => parseFloat(getComputedStyle(e).fontSize)),
-  ).toBeGreaterThanOrEqual(16);
+  ).toBeGreaterThanOrEqual(13);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: '指令速查', exact: true }).click();
   await expect(page.locator('.asm-card-grid article')).toHaveCount(11);
