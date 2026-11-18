@@ -4,6 +4,9 @@ import { assemblyShareUrl } from './assembly/state';
 import { defaultParameters } from './content/assembly';
 import { ASSEMBLY_TITLE, assemblyBookReferences } from './content/assembly-reading';
 import { dominancePresets, DOMINANCE_REFERENCE, LOOP_REFERENCE } from './content/dominance';
+import { automataPresets, REGEX_REFERENCE } from './content/automata';
+import { analyzeAutomata } from './compiler/automata';
+import { AutomataView } from './components/AutomataView';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
 import { ResultView, traceLength, traceMessage } from './components/Views';
 import {
@@ -44,6 +47,7 @@ const stageNames: Record<Stage, string> = {
   cfg: '控制流图',
   dataflow: '数据流分析',
   dominance: '支配关系',
+  automata: '正则与自动机',
 };
 function readNotebook(): Notebook {
   try {
@@ -81,10 +85,27 @@ export default function App() {
     lessons.some((item) => item.id === id),
   );
   const result = useMemo(() => compile(source, options), [source, options]);
-  const length = lesson ? traceLength(result, lesson.id) : 0;
+  const isAutomata = lesson?.id === 'automata';
+  // The automata lab reads lexical rules, not Mini C; it never goes through compile().
+  const automata = useMemo(
+    () => (isAutomata ? analyzeAutomata(source) : undefined),
+    [isAutomata, source],
+  );
+  const automataIssue = automata && !automata.ok ? automata.issue : undefined;
+  const length = lesson
+    ? isAutomata
+      ? automata?.ok
+        ? automata.analysis.frames.length
+        : 0
+      : traceLength(result, lesson.id)
+    : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
   const dirty = draft !== source;
-  const selectedPreset = presets.find((p) => p.code === draft);
+  const labPresets = isAutomata ? automataPresets : presets;
+  const selectedPreset = labPresets.find((p) => p.code === draft);
+  // Each kind of input keeps its own text while the learner visits the other kind.
+  const programStash = useRef(presets[0].code);
+  const rulesStash = useRef(automataPresets[0].code);
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)');
     const update = () => setNarrow(media.matches);
@@ -157,16 +178,24 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [notice]);
   function navigate(next: Route) {
+    let base = source;
+    if (route === 'automata' && next !== 'automata') {
+      rulesStash.current = source;
+      base = programStash.current;
+    } else if (route !== 'automata' && next === 'automata') {
+      programStash.current = source;
+      base = rulesStash.current;
+    }
     const nextSource =
-      source === presets[0].code
+      base === presets[0].code
         ? next === 'cfg'
           ? flowPresets[0].code
           : next === 'dataflow'
             ? dataflowPresets[0].code
             : next === 'dominance'
               ? dominancePresets[0].code
-              : source
-        : source;
+              : base
+        : base;
     if (nextSource !== source) {
       setSource(nextSource);
       setDraft(nextSource);
@@ -478,8 +507,8 @@ export default function App() {
                   <div className="experiment-layout">
                     <section className="input-panel" aria-label="程序输入">
                       <div className="panel-title">
-                        <h2>源程序</h2>
-                        <span>Mini C / 教学语言</span>
+                        <h2>{isAutomata ? '词法规则与输入' : '源程序'}</h2>
+                        <span>{isAutomata ? '名称: 正则 / %% / 输入' : 'Mini C / 教学语言'}</span>
                       </div>
                       <label className="field-label" htmlFor="preset">
                         选择一个观察角度
@@ -488,14 +517,14 @@ export default function App() {
                         id="preset"
                         value={selectedPreset?.id || 'custom'}
                         onChange={(event) => {
-                          const preset = presets.find((item) => item.id === event.target.value);
+                          const preset = labPresets.find((item) => item.id === event.target.value);
                           if (preset) applySource(preset.code);
                         }}
                       >
                         <option value="custom" disabled>
-                          自定义程序
+                          {isAutomata ? '自定义规则' : '自定义程序'}
                         </option>
-                        {presets.map((item) => (
+                        {labPresets.map((item) => (
                           <option key={item.id} value={item.id}>
                             {item.label}
                           </option>
@@ -503,7 +532,7 @@ export default function App() {
                       </select>
                       <div className="editor">
                         <div className="editor-toolbar">
-                          <span className="file-dot" /> experiment.mc{' '}
+                          <span className="file-dot" /> {isAutomata ? 'rules.lex' : 'experiment.mc'}{' '}
                           <span>{dirty ? '待运行' : '已编译'}</span>
                         </div>
                         <div className="editor-body">
@@ -514,7 +543,7 @@ export default function App() {
                           </div>
                           <textarea
                             id="source-code"
-                            aria-label="源程序代码"
+                            aria-label={isAutomata ? '词法规则与输入' : '源程序代码'}
                             spellCheck={false}
                             maxLength={MAX_SOURCE}
                             value={draft}
@@ -533,13 +562,13 @@ export default function App() {
                       </div>
                       <div className="editor-actions">
                         <button className="button primary" onClick={() => applySource(draft)}>
-                          运行编译 <span aria-hidden="true">↵</span>
+                          {isAutomata ? '生成自动机' : '运行编译'} <span aria-hidden="true">↵</span>
                         </button>
                         <button
                           className="text-button"
                           onClick={() => {
-                            applySource(presets[0].code);
-                            setOptions(defaultOptions);
+                            applySource(labPresets[0].code);
+                            if (!isAutomata) setOptions(defaultOptions);
                           }}
                         >
                           恢复示例
@@ -550,7 +579,9 @@ export default function App() {
                       </p>
                       {dirty && (
                         <p className="dirty-note" role="status">
-                          代码已修改。运行编译后更新右侧结果。
+                          {isAutomata
+                            ? '规则或输入已修改。生成自动机后更新右侧结果。'
+                            : '代码已修改。运行编译后更新右侧结果。'}
                         </p>
                       )}
                       <div className="prediction">
@@ -593,6 +624,20 @@ export default function App() {
                           </small>
                         </fieldset>
                       )}
+                      {isAutomata ? (
+                        <details className="language-help">
+                          <summary>规则怎么写？</summary>
+                          <p>
+                            %% 上方每行一条“名称: 正则”，越靠前优先级越高；# 开头为注释。名为 skip
+                            的规则匹配后丢弃。%% 下方全部内容都是待扫描的输入。
+                          </p>
+                          <p>
+                            支持字符、[a-z] 字符集与 [^…] 取反、.（除换行）、\d \w \s、\n \t、| * + ?
+                            和括号。正则里的空格会被忽略，字面空格写成反斜杠加空格或 [ ]；{'( ) [ ] | * + ? . \\ { }'}
+                            需要转义。不支持 {'{m,n}'}、锚点和捕获组。
+                          </p>
+                        </details>
+                      ) : (
                       <details className="language-help">
                         <summary>这门小语言支持什么？</summary>
                         <p>
@@ -606,6 +651,7 @@ export default function App() {
                           break / continue、逻辑短路与函数。每次最多回放 2000 条字节码。
                         </p>
                       </details>
+                      )}
                     </section>
                     <section className="output-panel" aria-label={`${lesson.title}实验结果`}>
                       <div className="panel-title">
@@ -613,16 +659,26 @@ export default function App() {
                           {lesson.title} <small>{lesson.english}</small>
                         </h2>
                         <span
-                          className={`result-badge ${result.diagnostic?.stage === lesson.id ? 'error' : ''}`}
+                          className={`result-badge ${(isAutomata ? automataIssue : result.diagnostic?.stage === lesson.id) ? 'error' : ''}`}
                         >
-                          {result.diagnostic?.stage === lesson.id
+                          {(isAutomata ? automataIssue : result.diagnostic?.stage === lesson.id)
                             ? '发现问题'
                             : length
                               ? '可回放'
                               : '等待修复'}
                         </span>
                       </div>
-                      {result.diagnostic && (
+                      {automataIssue && (
+                        <div className="diagnostic" role="alert">
+                          <strong>正则与自动机 · 规则未通过</strong>
+                          <p>{automataIssue.message}</p>
+                          <small>
+                            第 {source.slice(0, automataIssue.start).split('\n').length} 行 · 偏移{' '}
+                            {automataIssue.start}
+                          </small>
+                        </div>
+                      )}
+                      {!isAutomata && result.diagnostic && (
                         <div className="diagnostic" role="alert">
                           <strong>
                             {stageNames[result.diagnostic.stage]} ·{' '}
@@ -642,14 +698,20 @@ export default function App() {
                         </div>
                       )}
                       <div className="result-content">
-                        <ResultView
-                          key={`${lesson.id}:${source}`}
-                          stage={lesson.id}
-                          result={result}
-                          source={source}
-                          step={currentStep}
-                          options={options}
-                        />
+                        {isAutomata ? (
+                          automata?.ok && (
+                            <AutomataView key={source} analysis={automata.analysis} step={currentStep} />
+                          )
+                        ) : (
+                          <ResultView
+                            key={`${lesson.id}:${source}`}
+                            stage={lesson.id}
+                            result={result}
+                            source={source}
+                            step={currentStep}
+                            options={options}
+                          />
+                        )}
                       </div>
                       {length > 0 && (
                         <div className="trace-player">
@@ -657,7 +719,11 @@ export default function App() {
                             <span className="step-number">
                               {String(currentStep).padStart(2, '0')}
                             </span>
-                            <p>{traceMessage(result, lesson.id, currentStep)}</p>
+                            <p>
+                              {isAutomata && automata?.ok
+                                ? automata.analysis.frames[currentStep]?.message
+                                : traceMessage(result, lesson.id, currentStep)}
+                            </p>
                           </div>
                           <input
                             aria-label="当前步骤"
@@ -744,9 +810,10 @@ export default function App() {
                       )}
                     </section>
                   </div>
+                  {!isAutomata && (
                   <div className="pipeline-strip">
                     <span>同一段程序的旅程</span>
-                    {lessons.map((item) => (
+                    {lessons.filter((item) => item.id !== 'automata').map((item) => (
                       <button
                         key={item.id}
                         className={route === item.id ? 'active' : ''}
@@ -758,6 +825,7 @@ export default function App() {
                       </button>
                     ))}
                   </div>
+                  )}
                   <div className="learning-tip">
                     <span>✳</span>
                     <p>
@@ -1010,6 +1078,14 @@ export default function App() {
                     讲。原书用于主题选择与概念核对；界面文字、图形和编译器代码为本项目自行编写，没有镜像正文或图片。
                   </p>
                   <p>
+                    2026-11-18 通过缓存脚本单页重读第 02 讲，补充正则 → NFA → DFA 实验：构造规则沿用原书图
+                    7–11 的思路（连接时合并状态），回溯对照参照原书 matchWithNFA 的过程。原书未展开的子集构造，按其推荐的龙书第 2 版
+                    3.7.1 节思路实现，并核对 Russ Cox 关于 Thompson NFA、回溯与 DFA 状态膨胀的文章。
+                  </p>
+                  <a href={REGEX_REFERENCE} target="_blank" rel="noreferrer">
+                    Russ Cox · Regular Expression Matching Can Be Simple And Fast ↗
+                  </a>
+                  <p>
                     第 18 讲可作为字节码主题的延伸阅读，本次未核对。虚拟机实验基于第 06 讲 P-code
                     的概念，自定义指令不代表 CPython 的行为。
                   </p>
@@ -1052,9 +1128,9 @@ export default function App() {
                 <section>
                   <h2>哪些内容还没有覆盖</h2>
                   <p>
-                    本版专注前端与基础中间表示。NFA 子集构造、FIRST/FOLLOW、LR、完整 SSA
-                    转换、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，以及支配树、自然循环和
-                    φ 候选位置分析。
+                    本版专注前端与基础中间表示。DFA 最小化、FIRST/FOLLOW、LR、完整 SSA
+                    转换、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，支配树、自然循环和
+                    φ 候选位置分析，以及正则 → NFA → DFA 的词法自动机。
                   </p>
                   <p>
                     支配关系实验于 2026-11-17 补充核对 Cornell 与 LLVM
@@ -1196,11 +1272,11 @@ function Home({
             <div className="eyebrow">THE BIG PICTURE</div>
             <h2>先看清，这段旅程。</h2>
           </div>
-          <p>六个编译环节，再用控制流、数据流与支配关系观察程序。</p>
+          <p>六个编译环节，再用控制流、数据流与支配关系观察程序，最后看词法规则怎样自动变成自动机。</p>
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => !['cfg', 'dataflow', 'dominance'].includes(item.id))
+            .filter((item) => !['cfg', 'dataflow', 'dominance', 'automata'].includes(item.id))
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1263,7 +1339,9 @@ function Home({
                           ? '后序遍历 / 临时变量'
                           : item.id === 'optimize'
                             ? '常量传播 / 语义等价'
-                            : item.id === 'dominance'
+                            : item.id === 'automata'
+                              ? 'NFA / 子集构造 / 最长匹配'
+                              : item.id === 'dominance'
                               ? '支配树 / 自然循环 / φ 候选'
                               : item.id === 'dataflow'
                                 ? 'IN / OUT / 不动点 / 活跃性'
@@ -1333,7 +1411,17 @@ function Reading({ lesson }: { lesson: Lesson }) {
         <a href={chapterUrl(lesson.chapter)} target="_blank" rel="noreferrer">
           {chapters.find((c) => c.number === lesson.chapter)!.title} ↗
         </a>
-        <small>来源核对：2026-11-16 · 本页说明与图形独立编写</small>
+        <small>
+          来源核对：{lesson.id === 'automata' ? '2026-11-18' : '2026-11-16'} · 本页说明与图形独立编写
+        </small>
+        {lesson.id === 'automata' && (
+          <>
+            <small>子集构造：原书推荐龙书第 2 版 3.7.1 节（纸质书，未在线核对）</small>
+            <a href={REGEX_REFERENCE} target="_blank" rel="noreferrer">
+              概念核对：Russ Cox · Thompson NFA、回溯与 DFA ↗
+            </a>
+          </>
+        )}
         {lesson.id === 'dataflow' && (
           <>
             <a href={DATAFLOW_REFERENCE} target="_blank" rel="noreferrer">

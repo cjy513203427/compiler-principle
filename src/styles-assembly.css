@@ -21,7 +21,7 @@
   margin: 34px 0;
 }
 .asm-book-section > h2 {
-  font-size: 23px;
+  font-size: 20px;
   margin-bottom: 18px;
 }
 .asm-book-links {
@@ -37,23 +37,23 @@
   border-radius: 8px;
 }
 .asm-book-links article > span {
-  font-size: 13px;
+  font-size: 12px;
   color: #738164;
 }
 .asm-book-links h3 {
-  font-size: 19px;
+  font-size: 16px;
   margin: 8px 0 12px;
 }
 .asm-book-links p {
   margin-bottom: 14px;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-book-links a {
-  font-size: 15px;
+  font-size: 13px;
 }
 .asm-book-section > .figure-caption {
   margin-top: 14px;
-  font-size: 14px;
+  font-size: 13px;
 }
 .asm-convention-list {
   border: 1px solid var(--line);
@@ -67,11 +67,11 @@
   border-top: 1px solid var(--line);
 }
 .asm-convention-list h3 {
-  font-size: 18px;
+  font-size: 15px;
   margin-bottom: 10px;
 }
 .asm-convention-list p {
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-convention-list p + p {
   margin-top: 8px;
@@ -82,7 +82,7 @@
   padding: 12px 18px;
   margin: 18px 0;
   background: #f1f4e9;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-book-instructions {
   display: grid;
@@ -99,17 +99,17 @@
   cursor: pointer;
 }
 .asm-book-instructions summary strong {
-  font-size: 17px;
+  font-size: 14px;
 }
 .asm-book-instructions summary span {
   display: block;
   padding-left: 20px;
   margin-top: 3px;
-  font-size: 14px;
+  font-size: 13px;
   color: #748168;
 }
 .asm-book-instructions p {
-  font-size: 16px;
+  font-size: 14px;
   margin: 14px 0;
 }
 .asm-book-instructions pre,
@@ -134,7 +134,7 @@
   padding: 10px 14px;
   background: white;
   border-radius: 6px;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-pattern-choices button[aria-pressed='true'] {
   border-color: #8ba562;
@@ -148,11 +148,11 @@
   min-width: 0;
 }
 .asm-pattern-detail h3 {
-  font-size: 21px;
+  font-size: 18px;
   margin: 8px 0 14px;
 }
 .asm-pattern-detail p {
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-pattern-comparison {
   display: grid;
@@ -164,7 +164,7 @@
   min-width: 0;
 }
 .asm-pattern-comparison > div > span {
-  font-size: 13px;
+  font-size: 12px;
   color: #6b795e;
 }
 .asm-independent-outline {
@@ -175,15 +175,15 @@
 }
 .asm-independent-outline summary {
   cursor: pointer;
-  font-size: 17px;
+  font-size: 14px;
 }
 .asm-independent-outline p {
   margin-top: 14px;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-independent-outline li {
   margin: 10px 0;
-  font-size: 16px;
+  font-size: 14px;
 }
 @media (max-width: 600px) {
   .asm-reading-purpose,
@@ -220,7 +220,7 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   background: white;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-topics button span {
   font: 13px var(--mono);
@@ -248,14 +248,14 @@
   padding: 14px 18px;
   background: #f3f1e7;
   border-left: 3px solid #b29b64;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-boundary strong {
   flex-shrink: 0;
 }
 .asm-primer {
   margin: -8px 0 22px;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-primer summary {
   cursor: pointer;
@@ -287,7 +287,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-field input,
 .asm-field select {
@@ -297,7 +297,7 @@
   border-radius: 5px;
   background: #fcfdf9;
   padding: 9px 10px;
-  font-size: 16px;
+  font-size: 14px;
   color: #263b30;
 }
 .asm-input-actions {
@@ -308,7 +308,7 @@
   margin-top: 20px;
 }
 .asm-input-actions > span {
-  font-size: 14px;
+  font-size: 13px;
   color: #64715f;
 }
 .asm-presets {
@@ -325,13 +325,13 @@
   background: #f0f4e9;
   border: 1px solid #dce4d4;
   border-radius: 30px;
-  font-size: 14px;
+  font-size: 13px;
 }
 .asm-prediction {
   margin-top: 20px;
   padding-top: 14px;
   border-top: 1px dashed var(--line);
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-code-grid {
   display: grid;
@@ -353,11 +353,11 @@
 }
 .asm-panel h3,
 .asm-state-panel h3 {
-  font-size: 18px;
+  font-size: 15px;
 }
 .asm-panel .panel-title > span,
 .asm-state-panel .panel-title > span {
-  font-size: 13px;
+  font-size: 12px;
 }
 .asm-source,
 .asm-code {
@@ -413,7 +413,7 @@
 }
 .asm-panel .figure-caption {
   padding: 16px 20px;
-  font-size: 14px;
+  font-size: 13px;
 }
 .asm-registers {
   display: grid;
@@ -433,7 +433,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-registers strong span {
   font-size: 12px;
@@ -442,7 +442,7 @@
 }
 .asm-registers code {
   display: block;
-  font-size: 17px;
+  font-size: 14px;
   margin-top: 6px;
   overflow-wrap: anywhere;
 }
@@ -481,7 +481,7 @@
   margin: 0 20px 20px;
   padding-top: 14px;
   border-top: 1px dashed var(--line);
-  font-size: 15px;
+  font-size: 13px;
 }
 .asm-array,
 .asm-stack,
@@ -492,7 +492,7 @@
 .asm-array h4,
 .asm-stack h4 {
   margin: 0 0 14px;
-  font-size: 17px;
+  font-size: 14px;
 }
 .asm-array > div {
   display: grid;
@@ -502,7 +502,7 @@
   padding: 10px 14px;
   margin-bottom: 6px;
   border-radius: 5px;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-array small {
   grid-column: 1/-1;
@@ -519,11 +519,11 @@
   padding: 6px 10px;
   border: 1px solid var(--line);
   border-radius: 4px;
-  font-size: 17px;
+  font-size: 14px;
 }
 .asm-byte-view > span,
 .asm-byte-view p {
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-frames {
   display: flex;
@@ -535,7 +535,7 @@
   background: #edf3e2;
   padding: 6px 14px;
   border-radius: 30px;
-  font-size: 15px;
+  font-size: 13px;
 }
 .asm-stack-rows {
   overflow: auto;
@@ -548,10 +548,10 @@
   border-bottom: 1px solid var(--line);
   padding: 8px 10px;
   min-width: 405px;
-  font-size: 14px;
+  font-size: 13px;
 }
 .asm-stack-rows code {
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-stack-rows b {
   font-weight: normal;
@@ -569,7 +569,7 @@
   border-top: 1px solid var(--line);
 }
 .asm-result span {
-  font-size: 14px;
+  font-size: 13px;
 }
 .asm-result strong {
   font: 27px var(--mono);
@@ -577,7 +577,7 @@
   max-width: 100%;
 }
 .asm-result p {
-  font-size: 14px;
+  font-size: 13px;
   color: #64745a;
 }
 .asm-result.finished {
@@ -600,20 +600,20 @@
   background: #f0f3e8;
 }
 .asm-instruction-card > span {
-  font-size: 13px;
+  font-size: 12px;
   color: #6b795e;
 }
 .asm-instruction-card h3 {
   margin: 6px 0 12px;
-  font-size: 20px;
+  font-size: 17px;
 }
 .asm-instruction-card code {
-  font-size: 16px;
+  font-size: 14px;
   overflow-wrap: anywhere;
 }
 .asm-instruction-card p {
   margin-top: 10px;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-card-grid {
   display: grid;
@@ -628,21 +628,21 @@
   min-width: 0;
 }
 .asm-card-grid h3 {
-  font-size: 22px;
+  font-size: 19px;
   margin-bottom: 14px;
 }
 .asm-card-grid h3 small {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: normal;
   margin-left: 14px;
 }
 .asm-card-grid code {
-  font-size: 16px;
+  font-size: 14px;
   overflow-wrap: anywhere;
 }
 .asm-card-grid p {
   margin-top: 12px;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-card-grid .reading-source {
   grid-column: 1/-1;
@@ -661,7 +661,7 @@
   gap: 16px;
 }
 .asm-real h2 {
-  font-size: 22px;
+  font-size: 19px;
 }
 .asm-real select {
   padding: 6px 12px;
@@ -675,7 +675,7 @@
 .asm-real dl {
   background: #f7f9f2;
   padding: 16px 20px;
-  font-size: 15px;
+  font-size: 13px;
 }
 .asm-real dl > div {
   display: grid;
@@ -710,21 +710,21 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px 24px;
-  font-size: 15px;
+  font-size: 13px;
 }
 .asm-static-note {
   border-left: 3px solid #d0b980;
   padding-left: 16px;
-  font-size: 16px;
+  font-size: 14px;
 }
 .asm-status {
   padding: 12px;
   background: #eaf3dd;
   margin-bottom: 16px;
-  font-size: 15px;
+  font-size: 13px;
 }
 .asm-footer-note {
-  font-size: 14px;
+  font-size: 13px;
   color: #718066;
   border-top: 1px solid var(--line);
   padding-top: 20px;
@@ -753,7 +753,7 @@
   .asm-topics button {
     gap: 8px;
     padding: 12px 8px;
-    font-size: 15px;
+    font-size: 13px;
   }
   .asm-topics button span {
     font-size: 12px;
@@ -822,6 +822,6 @@
     gap: 10px;
   }
   .asm-result strong {
-    font-size: 23px;
+    font-size: 20px;
   }
 }

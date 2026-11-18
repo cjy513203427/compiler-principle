@@ -24,7 +24,7 @@
   font: 24px var(--mono);
 }
 .dataflow-domain span {
-  font-size: 13px;
+  font-size: 12px;
   color: #788b66;
 }
 .dataflow-domain i {
@@ -39,13 +39,13 @@
   flex-wrap: wrap;
 }
 .dataflow-heading h3 {
-  font-size: 20px;
+  font-size: 17px;
   margin-top: 5px;
   font-weight: 550;
 }
 .dataflow-heading > div > span {
   color: #81966d;
-  font-size: 13px;
+  font-size: 12px;
 }
 .dataflow-heading > label {
   display: flex;
@@ -62,13 +62,13 @@
   border-radius: 4px;
   min-width: 110px;
   max-width: 210px;
-  font-size: 14px;
+  font-size: 13px;
 }
 .dataflow-static-note {
   margin: 15px 0 20px;
   padding-left: 11px;
   border-left: 2px solid #b9cc9f;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.95;
   color: #7b8d6b;
 }
@@ -81,7 +81,7 @@
   background: #f8faf4;
   border: 1px solid #e1e8d8;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 12px;
   color: #8b9980;
 }
 .dataflow-predecessors details.enabled {
@@ -99,7 +99,7 @@
   overflow-wrap: anywhere;
   line-height: 1.9;
   padding: 12px 0 3px;
-  font-size: 14px;
+  font-size: 13px;
 }
 .dataflow-table-heading {
   display: flex;
@@ -108,7 +108,7 @@
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 12px;
-  font-size: 14px;
+  font-size: 13px;
 }
 .dataflow-table-heading label {
   display: flex;
@@ -124,12 +124,12 @@
   margin-bottom: 22px;
 }
 .dataflow-facts table {
-  font-size: 15px;
+  font-size: 13px;
 }
 .dataflow-facts th {
   position: sticky;
   top: 0;
-  font-size: 13px;
+  font-size: 12px;
   background: #f5f8ee;
   padding: 10px;
 }
@@ -154,7 +154,7 @@
 .dataflow-instructions summary,
 .dataflow-liveness summary {
   cursor: pointer;
-  font-size: 15px;
+  font-size: 13px;
   color: #63814e;
   margin-bottom: 12px;
 }
@@ -165,7 +165,7 @@
 }
 .dataflow-edges > span {
   display: block;
-  font-size: 13px;
+  font-size: 12px;
   color: #7f916e;
   margin-bottom: 10px;
 }
@@ -196,7 +196,7 @@
   margin-bottom: 24px;
 }
 .dataflow-liveness p {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.95;
   color: #7b8e6a;
   margin: 12px 0;
@@ -212,7 +212,7 @@
 .dataflow-formula code {
   display: block;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 2;
   color: #6b8755;
 }
@@ -221,7 +221,7 @@
 }
 .dataflow-liveness table {
   table-layout: fixed;
-  font-size: 14px;
+  font-size: 13px;
 }
 .dataflow-liveness th:first-child {
   width: 70px;
@@ -232,7 +232,7 @@
 }
 .dataflow-liveness td code {
   overflow-wrap: anywhere;
-  font-size: 13px;
+  font-size: 12px;
 }
 .dataflow-outcome {
   background: #eff5e6;
@@ -242,19 +242,19 @@
 }
 .dataflow-outcome strong {
   display: block;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 550;
   color: #58773e;
 }
 .dataflow-outcome p {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.95;
   color: #7a9165;
   margin: 8px 0 12px;
   overflow-wrap: anywhere;
 }
 .dataflow-outcome a {
-  font-size: 14px;
+  font-size: 13px;
   color: #628345;
 }
 @media (max-width: 520px) {
@@ -266,10 +266,10 @@
     font-size: 12px;
   }
   .dataflow-domain b {
-    font-size: 23px;
+    font-size: 20px;
   }
   .dataflow-heading h3 {
-    font-size: 18px;
+    font-size: 15px;
   }
   .dataflow-heading > label {
     width: 100%;
@@ -287,7 +287,7 @@
   }
   .dataflow-facts td {
     padding: 9px 6px;
-    font-size: 14px;
+    font-size: 13px;
   }
   .dataflow-facts td:first-child {
     max-width: 105px;

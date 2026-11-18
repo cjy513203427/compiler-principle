@@ -1,5 +1,6 @@
 import type { Stage } from '../compiler/model';
 import { dominanceLesson, dominancePresets } from './dominance';
+import { automataLesson } from './automata';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -84,7 +85,8 @@ export const lessons: Lesson[] = [
       },
     ],
     misconception: '到达接受状态不代表立即发射 Token；后面的字符可能让当前词继续增长。',
-    limit: '手写确定性扫描器，仅支持本实验语言；未实现正则表达式 → NFA → DFA 的自动构造。',
+    limit:
+      '手写确定性扫描器，仅支持本实验语言；由词法规则自动构造 NFA / DFA 的过程见实验 10「正则与自动机」。',
     challenge: '不看说明，解释 integer 为什么不是 int + eger。再说明关键字表在什么时候参与判断。',
     answer:
       '先按标识符规则读取完整的 integer，再查关键字表。最长匹配得到的词素不是 int，因此类别是 identifier。',
@@ -367,6 +369,7 @@ export const lessons: Lesson[] = [
     },
   },
   dominanceLesson,
+  automataLesson,
 ];
 export const flowPresets = [
   {

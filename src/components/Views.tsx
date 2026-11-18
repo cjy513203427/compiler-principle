@@ -48,6 +48,9 @@ export function traceLength(result: Compilation, stage: Stage): number {
       return result.dataflow?.steps.length || 0;
     case 'dominance':
       return result.dominance?.steps.length || 0;
+    case 'automata':
+      // Uses its own rule input; see analyzeAutomata.
+      return 0;
   }
 }
 export function traceMessage(result: Compilation, stage: Stage, step: number): string {
@@ -72,6 +75,8 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
       return result.dataflow?.steps[step]?.message || '';
     case 'dominance':
       return result.dominance?.steps[step]?.message || '';
+    case 'automata':
+      return '';
   }
 }
 export function AstTree({

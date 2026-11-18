@@ -73,12 +73,12 @@ test('readable font sizes hold at narrow widths and new notes coexist with old n
   await page.getByRole('button', { name: '我能解释了' }).click();
   await page.goto('/?lab=notes');
   await expect(page.getByLabel('控制流图的笔记')).toHaveValue('循环条件每轮重算。');
-  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 9');
+  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 10');
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('home computes the example and all nine labs render with no external requests', async ({
+test('home computes the example and all labs render with no external requests', async ({
   page,
 }) => {
   const failures: string[] = [];
@@ -102,6 +102,7 @@ test('home computes the example and all nine labs render with no external reques
     'cfg',
     'dataflow',
     'dominance',
+    'automata',
   ]) {
     await page.goto(`/?lab=${stage}`);
     await expect(page.locator('.result-content')).toBeVisible();

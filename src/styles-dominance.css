@@ -1,6 +1,6 @@
 .dominance-view {
   min-width: 0;
-  font-size: 16px;
+  font-size: 14px;
 }
 .dom-status {
   display: flex;
@@ -14,7 +14,7 @@
   border-radius: 8px;
 }
 .dom-status span {
-  font-size: 13px;
+  font-size: 12px;
   color: #6e7d61;
 }
 .dom-scope {
@@ -22,7 +22,7 @@
   border-left: 3px solid #b3bf90;
   background: #f5f7ee;
   margin: 16px 0;
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.8;
 }
 .dom-formula {
@@ -32,7 +32,7 @@
   padding: 14px 0;
 }
 .dom-formula code {
-  font-size: 16px;
+  font-size: 14px;
   overflow-wrap: anywhere;
 }
 .dom-derivation {
@@ -42,7 +42,7 @@
   border-radius: 8px;
 }
 .dominance-view h3 {
-  font-size: 18px;
+  font-size: 15px;
   margin-bottom: 12px;
 }
 .dom-derivation p {
@@ -50,10 +50,10 @@
   overflow-wrap: anywhere;
 }
 .dom-derivation code {
-  font-size: 16px;
+  font-size: 14px;
 }
 .dom-derivation > span {
-  font-size: 14px;
+  font-size: 13px;
   color: #748165;
 }
 .dom-modes {
@@ -67,7 +67,7 @@
   border: 1px solid var(--line);
   border-radius: 5px;
   background: white;
-  font-size: 15px;
+  font-size: 13px;
 }
 .dom-modes button[aria-pressed='true'] {
   background: #e6efda;
@@ -93,7 +93,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 15px;
+  font-size: 13px;
   margin: 10px 0;
 }
 .dominance-view select {
@@ -102,18 +102,18 @@
   background: #fbfcf7;
   border: 1px solid #d1dcc4;
   border-radius: 5px;
-  font-size: 16px;
+  font-size: 14px;
   color: #2c4432;
   min-width: 0;
 }
 .dom-query-result {
   margin: 14px 0;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 600;
 }
 .dom-bypass {
   display: block;
-  font-size: 16px;
+  font-size: 14px;
   background: #f1f5e9;
   padding: 12px;
   border-radius: 4px;
@@ -122,7 +122,7 @@
 .dom-query .figure-caption,
 .dom-tree .figure-caption {
   margin-top: 12px;
-  font-size: 14px;
+  font-size: 13px;
 }
 .dom-tree > button {
   display: flex;
@@ -139,10 +139,10 @@
   background: #edf3e3;
 }
 .dom-tree > button code {
-  font-size: 17px;
+  font-size: 14px;
 }
 .dom-tree > button span {
-  font-size: 13px;
+  font-size: 12px;
   color: #738165;
 }
 .dom-loop-panel dl {
@@ -153,7 +153,7 @@
   border-bottom: 1px solid var(--line);
 }
 .dom-loop-panel dt {
-  font-size: 13px;
+  font-size: 12px;
   color: #718265;
 }
 .dom-loop-panel dd {
@@ -165,7 +165,7 @@
   margin: 12px 0;
 }
 .dom-loop-edges code {
-  font-size: 16px;
+  font-size: 14px;
 }
 .dom-frontier-result {
   padding: 12px;
@@ -180,7 +180,7 @@
   margin-block: 12px;
 }
 .dom-frontier-panel code {
-  font-size: 16px;
+  font-size: 14px;
   overflow-wrap: anywhere;
 }
 .dom-phi-site {
@@ -195,7 +195,7 @@
   display: block;
 }
 .dom-phi-site span {
-  font-size: 14px;
+  font-size: 13px;
   margin-top: 4px;
   color: #6c7b60;
 }
@@ -206,10 +206,10 @@
   margin-top: 22px;
 }
 .dom-graph-caption strong {
-  font-size: 16px;
+  font-size: 14px;
 }
 .dom-graph-caption span {
-  font-size: 13px;
+  font-size: 12px;
   color: #748268;
 }
 .dom-graph-scroll {
@@ -265,7 +265,7 @@
   fill: #344d39;
 }
 .dom-block text.dom-node-name {
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 600;
 }
 .dom-all-sets {
@@ -273,10 +273,10 @@
 }
 .dom-all-sets table {
   min-width: 560px;
-  font-size: 15px;
+  font-size: 13px;
 }
 .dom-all-sets code {
-  font-size: 16px;
+  font-size: 14px;
 }
 .dom-instructions {
   border: 1px solid var(--line);
@@ -285,7 +285,7 @@
 }
 .dom-instructions summary {
   cursor: pointer;
-  font-size: 16px;
+  font-size: 14px;
 }
 .dom-instructions .code-rows {
   margin-top: 14px;
@@ -302,12 +302,12 @@
   display: block;
 }
 .dom-execution-reference code {
-  font-size: 21px;
+  font-size: 18px;
   margin: 8px 0;
   overflow-wrap: anywhere;
 }
 .dom-execution-reference p {
-  font-size: 14px;
+  font-size: 13px;
   color: #6e7c61;
 }
 @media (max-width: 600px) {
