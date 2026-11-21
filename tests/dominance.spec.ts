@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { lessons } from '../src/content/lessons';
 
 test('dominance solves intersections, exposes a bypass witness and ignores this run’s branch choice', async ({
   page,
@@ -107,7 +108,7 @@ test('dominance notes, self-check and share restore the new stage without losing
   await expect(page.getByLabel('支配关系的笔记', { exact: true })).toHaveValue(
     '必经关系考虑所有入口路径。',
   );
-  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 13');
+  await expect(page.locator('.notebook-toolbar')).toContainText(`1 / ${lessons.length}`);
   await page
     .getByLabel('导入笔记文件')
     .setInputFiles({
@@ -121,7 +122,7 @@ test('dominance notes, self-check and share restore the new stage without losing
   await expect(page.getByLabel('支配关系的笔记', { exact: true })).toHaveValue(
     '必经关系考虑所有入口路径。',
   );
-  await expect(page.locator('.notebook-toolbar')).toContainText('2 / 13');
+  await expect(page.locator('.notebook-toolbar')).toContainText(`2 / ${lessons.length}`);
   await page.goto(shared);
   await expect(page.getByRole('slider', { name: '当前步骤' })).toHaveValue('1');
   expect(shared).not.toContain('必经关系');

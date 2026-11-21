@@ -1,0 +1,30 @@
+.min-view { min-width: 0; }
+.min-counts { display: flex; flex-wrap: wrap; gap: 10px 20px; padding: 16px; background: #eef3e6; border: 1px solid #d6e0c7; border-radius: 8px; font-size: 14px; }
+.min-counts b { font-size: 20px; color: var(--deep); }
+.min-counts small { width: 100%; color: #647458; font-size: 13px; }
+.min-card { min-width: 0; padding: 18px; margin: 16px 0; background: white; border: 1px solid var(--line); border-radius: 8px; }
+.min-card h3 { margin: 0 0 12px; font-size: 15px; }
+.min-card p { margin: 10px 0; font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.min-card code { overflow-wrap: anywhere; }
+.min-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 16px 0; }
+.min-group { min-width: 0; padding: 12px; background: #f6f8f0; border-left: 3px solid #87a363; border-radius: 4px; }
+.min-group strong { display: block; margin-bottom: 8px; font-size: 13px; }
+.min-group code { display: block; font-size: 13px; line-height: 1.8; }
+.min-evidence, .min-query-result { padding: 12px; background: #eef4e5; border-radius: 5px; }
+.min-selects { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.min-selects label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.min-selects select { min-width: 0; width: 100%; padding: 10px; font-size: 14px; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); }
+.min-transitions summary { cursor: pointer; padding: 10px 0; font-size: 13px; }
+.min-equivalence { background: #edf3e7; }
+.min-equivalence strong { font-size: 14px; }
+.min-scan-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.min-scan-comparison .min-card { margin-top: 0; padding: 12px; }
+.min-card .figure-caption, .min-view > .figure-caption { font-size: 13px; line-height: 1.8; color: #65765b; }
+.min-error, .min-notice { color: #855c36; }
+.min-notice { font-size: 13px; line-height: 1.8; }
+@media (max-width: 760px) {
+  .min-card { padding: 14px; }
+  .min-selects, .min-scan-comparison { grid-template-columns: minmax(0, 1fr); }
+  .min-selects select { min-height: 44px; font-size: 16px; }
+  .min-groups { grid-template-columns: minmax(0, 1fr); }
+}

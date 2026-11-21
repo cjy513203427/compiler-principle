@@ -15,6 +15,10 @@ import { lrPresets } from './content/lr';
 import { analyzeLr } from './compiler/lr';
 import { LrView } from './components/LrView';
 import { ssaPresets, SSA_REFERENCE, PHI_REFERENCE } from './content/ssa';
+import { minimizationPresets, MINIMIZATION_REFERENCE } from './content/minimize';
+import { analyzeMinimization } from './compiler/minimize';
+import { MinimizationView } from './components/MinimizationView';
+import { LearningRoutes, LessonConnections } from './components/LearningRoutes';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
 import { ResultView, traceLength, traceMessage } from './components/Views';
 import {
@@ -59,11 +63,12 @@ const stageNames: Record<Stage, string> = {
   grammar: '文法与预测分析',
   lr: '移进与规约',
   ssa: '静态单赋值',
+  minimize: 'DFA 最小化',
 };
-type InputKind = 'program' | 'automata' | 'grammar' | 'lr';
-// Labs 10 and 11 read their own input instead of a Mini C program.
+type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize';
+// Rules and grammar labs keep their own input instead of a Mini C program.
 const kindOf = (route: Route): InputKind =>
-  route === 'automata' || route === 'grammar' || route === 'lr' ? route : 'program';
+  route === 'automata' || route === 'grammar' || route === 'lr' || route === 'minimize' ? route : 'program';
 const inputCopy = {
   program: {
     title: '源程序',
@@ -84,6 +89,16 @@ const inputCopy = {
     run: '生成自动机',
     dirty: '规则或输入已修改。生成自动机后更新右侧结果。',
     presets: automataPresets,
+  },
+  minimize: {
+    title: '词法规则与输入',
+    format: '名称: 正则 / %% / 输入',
+    custom: '自定义规则',
+    file: 'rules.min.lex',
+    field: '词法规则与输入',
+    run: '最小化 DFA',
+    dirty: '规则或输入已修改。最小化 DFA 后更新右侧结果。',
+    presets: minimizationPresets,
   },
   grammar: {
     title: '文法与输入',
@@ -158,7 +173,11 @@ export default function App() {
     () => (inputKind === 'lr' ? analyzeLr(source) : undefined),
     [inputKind, source],
   );
-  const ownOutcome = automata || grammarResult || lrResult;
+  const minimization = useMemo(
+    () => (inputKind === 'minimize' ? analyzeMinimization(source) : undefined),
+    [inputKind, source],
+  );
+  const ownOutcome = automata || grammarResult || lrResult || minimization;
   const ownIssue = ownOutcome && !ownOutcome.ok ? ownOutcome.issue : undefined;
   const ownFrames = ownOutcome?.ok ? ownOutcome.analysis.frames : undefined;
   const length = lesson
@@ -172,12 +191,13 @@ export default function App() {
     ? [...ssaPresets, ...copy.presets.filter((item) => !ssaPresets.some((own) => own.code === item.code))]
     : copy.presets;
   const selectedPreset = labPresets.find((p) => p.code === draft);
-  // Each kind of input keeps its own text while the learner visits another kind.
-  const stash = useRef<Record<InputKind, string>>({
-    program: presets[0].code,
-    automata: automataPresets[0].code,
-    grammar: grammarPresets[0].code,
-    lr: lrPresets[0].code,
+  // Keep applied input and pending edits separate across in-app navigation.
+  const stash = useRef<Record<InputKind, { source: string; draft: string }>>({
+    program: { source: presets[0].code, draft: presets[0].code },
+    automata: { source: automataPresets[0].code, draft: automataPresets[0].code },
+    grammar: { source: grammarPresets[0].code, draft: grammarPresets[0].code },
+    lr: { source: lrPresets[0].code, draft: lrPresets[0].code },
+    minimize: { source: minimizationPresets[0].code, draft: minimizationPresets[0].code },
   });
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)');
@@ -252,12 +272,15 @@ export default function App() {
   }, [notice]);
   function navigate(next: Route) {
     let base = source;
+    let pendingDraft = draft;
     if (kindOf(route) !== kindOf(next)) {
-      stash.current[kindOf(route)] = source;
-      base = stash.current[kindOf(next)];
+      stash.current[kindOf(route)] = { source, draft };
+      const restored = stash.current[kindOf(next)];
+      base = restored.source;
+      pendingDraft = restored.draft;
     }
     const nextSource =
-      base === presets[0].code
+      base === presets[0].code && pendingDraft === base
         ? next === 'cfg'
           ? flowPresets[0].code
           : next === 'dataflow'
@@ -268,10 +291,8 @@ export default function App() {
                 ? dominancePresets[0].code
                 : base
         : base;
-    if (nextSource !== source) {
-      setSource(nextSource);
-      setDraft(nextSource);
-    }
+    setSource(nextSource);
+    setDraft(nextSource === base ? pendingDraft : nextSource);
     const nextOptions =
       next === 'vm' && route !== 'optimize'
         ? { fold: false, propagate: false, dead: false }
@@ -704,7 +725,7 @@ export default function App() {
                             %% 下方是要解析的输入，空格可省略。和终结符同名的单词、符号直接对应；文法里有 Num 时，数字记作 Num；有 Id 时，其余单词记作 Id。只支持纯产生式，不支持 * + ? 写法。
                           </p>
                         </details>
-                      ) : inputKind === 'automata' ? (
+                      ) : inputKind === 'automata' || inputKind === 'minimize' ? (
                         <details className="language-help">
                           <summary>规则怎么写？</summary>
                           <p>
@@ -778,7 +799,11 @@ export default function App() {
                         </div>
                       )}
                       <div className="result-content">
-                        {inputKind === 'automata' ? (
+                        {inputKind === 'minimize' ? (
+                          minimization?.ok && (
+                            <MinimizationView key={source} analysis={minimization.analysis} step={currentStep} />
+                          )
+                        ) : inputKind === 'automata' ? (
                           automata?.ok && (
                             <AutomataView key={source} analysis={automata.analysis} step={currentStep} />
                           )
@@ -934,7 +959,7 @@ export default function App() {
                   </div>
                 </>
               )}
-              {panel === 'reading' && <Reading lesson={lesson} />}
+              {panel === 'reading' && <Reading lesson={lesson} navigate={navigate} />}
               {panel === 'recall' && (
                 <Recall
                   key={lesson.id}
@@ -1227,9 +1252,9 @@ export default function App() {
                 <section>
                   <h2>哪些内容还没有覆盖</h2>
                   <p>
-                    本版专注前端与基础中间表示。DFA 最小化、完整 LR(1) / LALR、内存 SSA、SSA
+                    本版专注前端与基础中间表示。完整 LR(1) / LALR、内存 SSA、SSA
                     消除、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，支配树、自然循环、
-                    标量 SSA 构造与校验，正则 → NFA → DFA 的词法自动机，FIRST / FOLLOW 与 LL(1) 预测分析，以及 SLR(1) 的移进 / 规约。
+                    标量 SSA 构造与校验，正则 → NFA → DFA 与 DFA 最小化，FIRST / FOLLOW 与 LL(1) 预测分析，以及 SLR(1) 的移进 / 规约。
                   </p>
                   <p>
                     支配关系实验于 2026-11-17 补充核对 Cornell 与 LLVM
@@ -1243,6 +1268,8 @@ export default function App() {
                   </a>
                   <p>第 13 个实验于 2026-11-21 核对 Cornell 的 SSA 构造与活跃性说明，以及 LLVM φ 的前驱边语义。采用独立的教学表示与解释器，保留现有优化器。</p>
                   <a href={PHI_REFERENCE} target="_blank" rel="noreferrer">LLVM · φ 指令的输入与语义 ↗</a>
+                  <p>第 14 个实验于 2026-11-21 核对 Cornell 的 DFA 最小化与词法动作说明，采用分割细化、最短区分后缀和独立状态积等价校验；未重新请求原书。</p>
+                  <a href={MINIMIZATION_REFERENCE} target="_blank" rel="noreferrer">Cornell · DFA 最小化与词法扫描 ↗</a>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1373,7 +1400,7 @@ function Home({
             <div className="eyebrow">THE BIG PICTURE</div>
             <h2>先看清，这段旅程。</h2>
           </div>
-          <p>六个编译环节，再用控制流、数据流与支配关系观察程序；最后三站回到前端，看词法规则和语法规则怎样变成程序能直接用的表。</p>
+          <p>先沿六个编译环节跑通一段程序，再按主题深入：从词法规则到 DFA 最小化、从文法到分析表，或从控制流到数据流、支配关系与 SSA。</p>
         </div>
         <div className="journey">
           {lessons
@@ -1413,6 +1440,7 @@ function Home({
             {completed.length} / {lessons.length} 已复习
           </span>
         </div>
+        <LearningRoutes onNavigate={navigate} completed={completed} />
         <div className="lesson-grid">
           {lessons.map((item) => (
             <button className="lesson-card" key={item.id} onClick={() => navigate(item.id)}>
@@ -1444,6 +1472,8 @@ function Home({
                               ? '移进 / 规约 / SLR 表'
                               : item.id === 'grammar'
                               ? 'FIRST / FOLLOW / LL(1) 表'
+                              : item.id === 'minimize'
+                              ? '分割细化 / 区分后缀 / 扫描对照'
                               : item.id === 'automata'
                               ? 'NFA / 子集构造 / 最长匹配'
                               : item.id === 'ssa'
@@ -1488,7 +1518,7 @@ function Home({
     </>
   );
 }
-function Reading({ lesson }: { lesson: Lesson }) {
+function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage) => void }) {
   return (
     <article className="reading-page">
       <div className="reading-lead">
@@ -1538,13 +1568,14 @@ function Reading({ lesson }: { lesson: Lesson }) {
         <h3>这个实验的边界</h3>
         <p>{lesson.limit}</p>
       </section>
+      <LessonConnections stage={lesson.id} onNavigate={navigate} />
       <div className="reading-source">
         <span>对应原书 / 第 {lesson.chapter} 讲</span>
         <a href={chapterUrl(lesson.chapter)} target="_blank" rel="noreferrer">
           {chapters.find((c) => c.number === lesson.chapter)!.title} ↗
         </a>
         <small>
-          来源核对：{['automata', 'grammar', 'lr'].includes(lesson.id) ? '2026-11-18' : '2026-11-16'} · 本页说明与图形独立编写
+          来源核对：{['automata', 'grammar', 'lr', 'minimize'].includes(lesson.id) ? '2026-11-18' : '2026-11-16'} · 本页说明与图形独立编写
         </small>
         {lesson.id === 'grammar' && (
           <a href={LEFT_RECURSION_REFERENCE} target="_blank" rel="noreferrer">
@@ -1590,6 +1621,12 @@ function Reading({ lesson }: { lesson: Lesson }) {
             <small>补充概念核对：2026-11-21 · 标量 SSA 与 φ 的前驱边语义</small>
             <a href={SSA_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · SSA 构造、支配边界与活跃性 ↗</a>
             <a href={PHI_REFERENCE} target="_blank" rel="noreferrer">LLVM Language Reference · φ 输入与前驱边 ↗</a>
+          </>
+        )}
+        {lesson.id === 'minimize' && (
+          <>
+            <small>补充概念核对：2026-11-21 · 输出规则、状态等价与区分后缀</small>
+            <a href={MINIMIZATION_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · DFA 最小化与词法动作 ↗</a>
           </>
         )}
       </div>

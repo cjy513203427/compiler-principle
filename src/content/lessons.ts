@@ -4,6 +4,7 @@ import { automataLesson } from './automata';
 import { grammarLesson } from './grammar';
 import { lrLesson } from './lr';
 import { ssaLesson, ssaPresets } from './ssa';
+import { minimizationLesson } from './minimize';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -383,6 +384,7 @@ export const lessons: Lesson[] = [
   grammarLesson,
   lrLesson,
   ssaLesson,
+  minimizationLesson,
 ];
 export const flowPresets = [
   {

@@ -1,0 +1,44 @@
+.study-routes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0 30px;
+}
+.study-route {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f4f7ee;
+}
+.study-route h3 { margin: 0 0 10px; font-size: 16px; }
+.study-route p { margin: 0 0 14px; font-size: 13px; line-height: 1.8; color: #64745b; }
+.study-route ol { padding: 0; margin: 0; list-style: none; }
+.study-route button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px;
+  text-align: left;
+  font-size: 14px;
+  border-radius: 5px;
+}
+.study-route button:hover { background: #e7eedb; }
+.study-route button > span { font: 12px var(--mono); color: #7c8c70; }
+.study-route small { margin-left: auto; font-size: 12px; color: #5d764b; }
+.route-progress { display: block; margin-top: 14px; font-size: 12px; color: #6c7d60; }
+.lesson-connections { padding: 18px; margin: 24px 0; background: #f3f6ec; border: 1px solid var(--line); border-radius: 7px; }
+.lesson-connections > p { margin: 0 0 12px; font-size: 13px; color: #657459; }
+.lesson-connections > div { display: flex; gap: 12px; align-items: baseline; margin-top: 10px; }
+.lesson-connections strong { flex: 0 0 auto; font-size: 13px; }
+.lesson-connections > div > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.lesson-connections button { min-height: 44px; padding: 8px 12px; background: white; border: 1px solid #dce5d2; border-radius: 5px; font-size: 13px; text-align: left; }
+.lesson-connections button:hover { background: #eaf0df; }
+@media (max-width: 760px) {
+  .study-routes { grid-template-columns: minmax(0, 1fr); }
+  .study-route { padding: 16px; }
+  .lesson-connections { padding: 14px; }
+  .lesson-connections > div { flex-direction: column; gap: 8px; }
+}

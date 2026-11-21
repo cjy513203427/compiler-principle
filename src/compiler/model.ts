@@ -11,7 +11,8 @@ export type Stage =
   | 'automata'
   | 'grammar'
   | 'lr'
-  | 'ssa';
+  | 'ssa'
+  | 'minimize';
 export type Value = number | boolean;
 export type DataType = 'int' | 'bool';
 export type TokenKind = 'keyword' | 'identifier' | 'number' | 'operator' | 'punctuation' | 'eof';

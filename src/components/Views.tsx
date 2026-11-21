@@ -52,6 +52,7 @@ export function traceLength(result: Compilation, stage: Stage): number {
     case 'ssa':
       return result.ssa?.steps.length || 0;
     case 'automata':
+    case 'minimize':
     case 'grammar':
     case 'lr':
       // These labs read their own input (rules / grammar); see analyzeAutomata and analyzeGrammar.
@@ -83,6 +84,7 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
     case 'ssa':
       return result.ssa?.steps[step]?.message || '';
     case 'automata':
+    case 'minimize':
     case 'grammar':
     case 'lr':
       return '';

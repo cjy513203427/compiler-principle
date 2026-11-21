@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { lessons } from '../src/content/lessons';
 
 test('CFG replays actual branches, loops and scoped state without stale frames', async ({
   page,
@@ -73,7 +74,7 @@ test('readable font sizes hold at narrow widths and new notes coexist with old n
   await page.getByRole('button', { name: '我能解释了' }).click();
   await page.goto('/?lab=notes');
   await expect(page.getByLabel('控制流图的笔记')).toHaveValue('循环条件每轮重算。');
-  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 13');
+  await expect(page.locator('.notebook-toolbar')).toContainText(`1 / ${lessons.length}`);
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
@@ -92,20 +93,7 @@ test('home computes the example and all labs render with no external requests', 
   await expect(page.locator('.demo-result strong')).toHaveText('14');
   await page.getByRole('button', { name: '给加法加一对括号' }).click();
   await expect(page.locator('.demo-result strong')).toHaveText('20');
-  for (const stage of [
-    'lex',
-    'parse',
-    'semantic',
-    'ir',
-    'optimize',
-    'vm',
-    'cfg',
-    'dataflow',
-    'dominance',
-    'automata',
-    'grammar',
-    'lr',
-  ]) {
+  for (const stage of lessons.map((lesson) => lesson.id)) {
     await page.goto(`/?lab=${stage}`);
     await expect(page.locator('.result-content')).toBeVisible();
     await expect(page.getByRole('button', { name: '看最终结果' })).toBeVisible();

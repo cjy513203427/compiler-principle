@@ -7,6 +7,7 @@ import { automataPresets } from './content/automata';
 import { grammarPresets } from './content/grammar';
 import { lrPresets } from './content/lr';
 import { ssaPresets } from './content/ssa';
+import { minimizationPresets } from './content/minimize';
 
 export type Route = Stage | 'home' | 'notes' | 'sources' | 'assembly';
 export type NoteId = Stage | AssemblyNoteId;
@@ -35,13 +36,15 @@ export function readUrl(search: string) {
             ? ssaPresets[0].code
             : route === 'dominance'
               ? dominancePresets[0].code
-              : route === 'automata'
-                ? automataPresets[0].code
-                : route === 'grammar'
-                  ? grammarPresets[0].code
-                  : route === 'lr'
-                    ? lrPresets[0].code
-                    : presets[0].code;
+              : route === 'minimize'
+                ? minimizationPresets[0].code
+                : route === 'automata'
+                  ? automataPresets[0].code
+                  : route === 'grammar'
+                    ? grammarPresets[0].code
+                    : route === 'lr'
+                      ? lrPresets[0].code
+                      : presets[0].code;
   const step = Math.max(0, Math.min(10000, Math.floor(Number(params.get('step')) || 0)));
   const flags = params.get('opt');
   const options: OptimizationOptions =
