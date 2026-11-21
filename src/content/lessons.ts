@@ -5,6 +5,7 @@ import { grammarLesson } from './grammar';
 import { lrLesson } from './lr';
 import { ssaLesson, ssaPresets } from './ssa';
 import { minimizationLesson } from './minimize';
+import { outSsaLesson, outSsaPresets } from './outssa';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -385,6 +386,7 @@ export const lessons: Lesson[] = [
   lrLesson,
   ssaLesson,
   minimizationLesson,
+  outSsaLesson,
 ];
 export const flowPresets = [
   {
@@ -521,5 +523,6 @@ export const presets = [
   ...dataflowPresets,
   ...dominancePresets,
   ...ssaPresets,
+  ...outSsaPresets,
 ];
 export const defaultOptions = { fold: true, propagate: true, dead: true };

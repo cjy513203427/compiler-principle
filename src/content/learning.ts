@@ -23,8 +23,8 @@ export const learningRoutes: LearningRoute[] = [
   {
     id: 'middle',
     title: '控制流与程序表示',
-    description: '熟悉中间代码与虚拟机后，依次观察分支、数据流、支配关系和 SSA。',
-    stages: ['cfg', 'dataflow', 'dominance', 'ssa'],
+    description: '熟悉中间代码与虚拟机后，依次观察分支、数据流、支配关系、SSA，再消除 φ 回到普通 IR。',
+    stages: ['cfg', 'dataflow', 'dominance', 'ssa', 'outssa'],
   },
 ];
 
@@ -42,6 +42,7 @@ export const lessonConnections: Record<Stage, { before: Stage[]; after: Stage[] 
   automata: { before: ['lex'], after: ['minimize'] },
   grammar: { before: ['parse'], after: ['lr'] },
   lr: { before: ['grammar'], after: ['semantic'] },
-  ssa: { before: ['dominance', 'dataflow'], after: ['optimize'] },
+  ssa: { before: ['dominance', 'dataflow'], after: ['outssa', 'optimize'] },
   minimize: { before: ['automata'], after: ['grammar'] },
+  outssa: { before: ['ssa', 'cfg'], after: ['vm', 'optimize'] },
 };

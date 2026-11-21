@@ -19,6 +19,7 @@ import { minimizationPresets, MINIMIZATION_REFERENCE } from './content/minimize'
 import { analyzeMinimization } from './compiler/minimize';
 import { MinimizationView } from './components/MinimizationView';
 import { LearningRoutes, LessonConnections } from './components/LearningRoutes';
+import { outSsaPresets, OUT_SSA_REFERENCE, SSA_DECONSTRUCTION_REFERENCE } from './content/outssa';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
 import { ResultView, traceLength, traceMessage } from './components/Views';
 import {
@@ -64,6 +65,7 @@ const stageNames: Record<Stage, string> = {
   lr: '移进与规约',
   ssa: '静态单赋值',
   minimize: 'DFA 最小化',
+  outssa: 'SSA 消除',
 };
 type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize';
 // Rules and grammar labs keep their own input instead of a Mini C program.
@@ -156,7 +158,8 @@ export default function App() {
   const mainCompleted = notebook.completed.filter((id): id is Stage =>
     lessons.some((item) => item.id === id),
   );
-  const result = useMemo(() => compile(source, options), [source, options]);
+  const needsOutSSA = route === 'outssa';
+  const result = useMemo(() => compile(source, options, { outOfSSA: needsOutSSA }), [source, options, needsOutSSA]);
   const inputKind = kindOf(route);
   const ownInput = inputKind !== 'program';
   const copy = inputCopy[inputKind];
@@ -187,8 +190,9 @@ export default function App() {
     : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
   const dirty = draft !== source;
-  const labPresets = route === 'ssa'
-    ? [...ssaPresets, ...copy.presets.filter((item) => !ssaPresets.some((own) => own.code === item.code))]
+  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'outssa' ? outSsaPresets : undefined;
+  const labPresets = preferredPresets
+    ? [...preferredPresets, ...copy.presets.filter((item) => !preferredPresets.some((own) => own.code === item.code))]
     : copy.presets;
   const selectedPreset = labPresets.find((p) => p.code === draft);
   // Keep applied input and pending edits separate across in-app navigation.
@@ -285,11 +289,13 @@ export default function App() {
           ? flowPresets[0].code
           : next === 'dataflow'
             ? dataflowPresets[0].code
-            : next === 'ssa'
-              ? ssaPresets[0].code
-              : next === 'dominance'
-                ? dominancePresets[0].code
-                : base
+            : next === 'outssa'
+              ? outSsaPresets[0].code
+              : next === 'ssa'
+                ? ssaPresets[0].code
+                : next === 'dominance'
+                  ? dominancePresets[0].code
+                  : base
         : base;
     setSource(nextSource);
     setDraft(nextSource === base ? pendingDraft : nextSource);
@@ -1252,9 +1258,9 @@ export default function App() {
                 <section>
                   <h2>哪些内容还没有覆盖</h2>
                   <p>
-                    本版专注前端与基础中间表示。完整 LR(1) / LALR、内存 SSA、SSA
-                    消除、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，支配树、自然循环、
-                    标量 SSA 构造与校验，正则 → NFA → DFA 与 DFA 最小化，FIRST / FOLLOW 与 LL(1) 预测分析，以及 SLR(1) 的移进 / 规约。
+                    本版专注前端与基础中间表示。完整 LR(1) / LALR、内存 SSA、
+                    寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，支配树、自然循环、
+                    标量 SSA 构造、校验与基础 SSA 消除，正则 → NFA → DFA 与 DFA 最小化，FIRST / FOLLOW 与 LL(1) 预测分析，以及 SLR(1) 的移进 / 规约。
                   </p>
                   <p>
                     支配关系实验于 2026-11-17 补充核对 Cornell 与 LLVM
@@ -1270,6 +1276,8 @@ export default function App() {
                   <a href={PHI_REFERENCE} target="_blank" rel="noreferrer">LLVM · φ 指令的输入与语义 ↗</a>
                   <p>第 14 个实验于 2026-11-21 核对 Cornell 的 DFA 最小化与词法动作说明，采用分割细化、最短区分后缀和独立状态积等价校验；未重新请求原书。</p>
                   <a href={MINIMIZATION_REFERENCE} target="_blank" rel="noreferrer">Cornell · DFA 最小化与词法扫描 ↗</a>
+                  <p>第 15 个实验于 2026-11-21 核对 Cornell 的 Out of SSA 与 CMU 的 SSA Deconstruction 讲义，补充边复制、关键边拆分、复制环调度和接回原 VM 的执行对照。</p>
+                  <a href={SSA_DECONSTRUCTION_REFERENCE} target="_blank" rel="noreferrer">CMU · SSA 消除与并行复制 ↗</a>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1404,7 +1412,7 @@ function Home({
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa'].includes(item.id))
+            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'outssa'].includes(item.id))
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1476,6 +1484,8 @@ function Home({
                               ? '分割细化 / 区分后缀 / 扫描对照'
                               : item.id === 'automata'
                               ? 'NFA / 子集构造 / 最长匹配'
+                              : item.id === 'outssa'
+                              ? '边复制 / 关键边拆分 / 原 VM 执行'
                               : item.id === 'ssa'
                               ? 'φ 裁剪 / 版本重命名 / 行为核对'
                               : item.id === 'dominance'
@@ -1627,6 +1637,13 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
           <>
             <small>补充概念核对：2026-11-21 · 输出规则、状态等价与区分后缀</small>
             <a href={MINIMIZATION_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · DFA 最小化与词法动作 ↗</a>
+          </>
+        )}
+        {lesson.id === 'outssa' && (
+          <>
+            <small>补充概念核对：2026-11-21 · φ 消除、关键边与并行复制</small>
+            <a href={OUT_SSA_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · Converting from SSA ↗</a>
+            <a href={SSA_DECONSTRUCTION_REFERENCE} target="_blank" rel="noreferrer">CMU 15-411 · SSA Deconstruction ↗</a>
           </>
         )}
       </div>

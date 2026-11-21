@@ -7,11 +7,12 @@ import { buildCFG, traceCFG } from './cfg';
 import { analyzeConstants, analyzeLiveness } from './dataflow';
 import { analyzeDominance } from './dominance';
 import { buildSSA } from './ssa';
+import { lowerSSA } from './outssa';
 import { CompileError, type Diagnostic, type OptimizationOptions } from './model';
 export * from './model';
 export { tokenize, parse, analyze, generateIR, optimize, generateBytecode, execute };
 
-export function compile(source: string, options: OptimizationOptions) {
+export function compile(source: string, options: OptimizationOptions, settings: { outOfSSA?: boolean } = {}) {
   let lex: ReturnType<typeof tokenize> | undefined;
   let syntax: ReturnType<typeof parse> | undefined;
   let semantic: ReturnType<typeof analyze> | undefined;
@@ -28,6 +29,7 @@ export function compile(source: string, options: OptimizationOptions) {
   let liveness: ReturnType<typeof analyzeLiveness> | undefined;
   let dominance: ReturnType<typeof analyzeDominance> | undefined;
   let ssa: ReturnType<typeof buildSSA> | undefined;
+  let outssa: ReturnType<typeof lowerSSA> | undefined;
   try {
     lex = tokenize(source);
     syntax = parse(lex.tokens);
@@ -43,6 +45,7 @@ export function compile(source: string, options: OptimizationOptions) {
     cfg = buildCFG(ir);
     dominance = analyzeDominance(cfg);
     ssa = buildSSA(dominance, liveness);
+    if (settings.outOfSSA) outssa = lowerSSA(ssa, dominance);
     controlTrace = traceCFG(cfg, baselineBytecode, baseline);
     if (execution.error)
       diagnostic = { stage: 'vm', message: execution.error.message, start: 0, end: 0 };
@@ -75,6 +78,7 @@ export function compile(source: string, options: OptimizationOptions) {
     liveness,
     dominance,
     ssa,
+    outssa,
     hasControlFlow: ir ? hasControlFlow(ir) : false,
   };
 }

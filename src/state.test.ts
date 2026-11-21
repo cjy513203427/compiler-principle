@@ -2,6 +2,16 @@ import { it, expect } from 'vitest';
 import { readUrl, shareUrl, validateNotebook } from './state';
 import { ssaPresets } from './content/ssa';
 import { minimizationPresets } from './content/minimize';
+import { outSsaPresets } from './content/outssa';
+it('restores out-of-SSA experiments and retains their notes alongside older topics', () => {
+  expect(readUrl('?lab=outssa').source).toBe(outSsaPresets[0].code);
+  const shared = shareUrl('http://localhost:5173', 'outssa', outSsaPresets[2].code, 4,
+    { fold: false, propagate: true, dead: false });
+  expect(readUrl(new URL(shared).search)).toMatchObject({ route: 'outssa', source: outSsaPresets[2].code, step: 4 });
+  expect(readUrl('?lab=outssa&code=' + 'a'.repeat(2001)).source).toBe(outSsaPresets[0].code);
+  expect(validateNotebook({ version: 1, notes: { ssa: '构造', outssa: '消除' }, completed: ['ssa', 'outssa'] }))
+    .toEqual({ version: 1, notes: { ssa: '构造', outssa: '消除' }, completed: ['ssa', 'outssa'] });
+});
 it('restores minimization state and validates new and old notebook entries', () => {
   expect(readUrl('?lab=minimize').source).toBe(minimizationPresets[0].code);
   const url = shareUrl('http://localhost:5173', 'minimize', minimizationPresets[2].code, 2,
