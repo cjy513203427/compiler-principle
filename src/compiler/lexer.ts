@@ -3,7 +3,7 @@ import { CompileError, type Token, type ScanStep } from './model';
 const keywords = new Set(['int', 'bool', 'print', 'true', 'false', 'if', 'else', 'while']);
 const letter = (c: string) => /[a-zA-Z_]/.test(c);
 const digit = (c: string) => /[0-9]/.test(c);
-export function tokenize(source: string): { tokens: Token[]; steps: ScanStep[] } {
+export function tokenize(source: string, settings: { functions?: boolean } = {}): { tokens: Token[]; steps: ScanStep[] } {
   if (source.length > 2000)
     throw new CompileError({
       stage: 'lex',
@@ -38,7 +38,7 @@ export function tokenize(source: string): { tokens: Token[]; steps: ScanStep[] }
       while (i < source.length && (letter(source[i]) || digit(source[i]))) {
         const position = i++;
         const end = i === source.length || !(letter(source[i]) || digit(source[i]));
-        if (end) emit(keywords.has(source.slice(start, i)) ? 'keyword' : 'identifier', start);
+        if (end) emit(keywords.has(source.slice(start, i)) || (settings.functions && source.slice(start, i) === 'return') ? 'keyword' : 'identifier', start);
         addStep(
           position,
           'identifier',
@@ -65,7 +65,7 @@ export function tokenize(source: string): { tokens: Token[]; steps: ScanStep[] }
       i++;
       emit('operator', start);
       addStep(i - 1, 'symbol', `最长匹配：生成 ${source.slice(start, i)} 运算符。`);
-    } else if ('+-*/=<>;(){}'.includes(c)) {
+    } else if ('+-*/=<>;(){}'.includes(c) || (settings.functions && c === ',')) {
       i++;
       emit('+-*/=<>'.includes(c) ? 'operator' : 'punctuation', start);
       addStep(start, 'symbol', `识别单字符符号 ${c}。`);

@@ -11,7 +11,7 @@ test('learning routes and reading connections link topics with keyboard and narr
   const routes = page.getByLabel('建议学习路线');
   await expect(routes).toContainText('先跑通编译流程');
   await expect(routes).toContainText('词法与文法进阶');
-  await expect(routes).toContainText('控制流与程序表示');
+  await expect(routes).toContainText('程序表示与调用');
   await routes.getByRole('button', { name: '打开实验 14 DFA 最小化' }).focus();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/lab=minimize/);

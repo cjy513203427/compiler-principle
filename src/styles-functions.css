@@ -1,0 +1,34 @@
+.functions-view { min-width: 0; }
+.call-counts { display: flex; flex-wrap: wrap; gap: 10px 20px; padding: 14px; border: 1px solid #cddbc5; border-radius: 8px; background: #eef4e8; font-size: 13px; }
+.call-card { min-width: 0; margin: 16px 0; padding: 18px; background: white; border: 1px solid var(--line); border-radius: 8px; }
+.call-card h3 { margin: 0 0 12px; font-size: 15px; }
+.call-card p { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.call-card label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.call-card select { width: 100%; min-width: 0; min-height: 44px; padding: 10px; font-size: 14px; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); }
+.call-chain { max-height: 280px; margin: 14px 0; padding: 0; list-style: none; overflow-y: auto; }
+.call-chain li + li { margin-top: 6px; }
+.call-chain button { width: 100%; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; min-height: 48px; padding: 12px; border: 1px solid var(--line); border-radius: 5px; background: #f6f8f3; text-align: left; font: inherit; font-size: 13px; cursor: pointer; overflow-wrap: anywhere; }
+.call-chain button.selected { background: #e9f1e0; border-color: #70845f; }
+.call-chain span { color: #52654a; }
+.call-frame-detail { padding-top: 14px; border-top: 1px solid var(--line); }
+.call-operand { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; padding: 12px; background: #f2f4ed; font-size: 13px; }
+.call-operand code, .call-location code { white-space: pre-wrap; overflow-wrap: anywhere; }
+.call-card caption { padding: 12px 0; color: #617157; text-align: left; font-size: 13px; }
+.call-card th, .call-card td { padding: 10px; font-size: 13px; }
+.call-code { position: relative; max-height: 340px; overflow: auto; border-radius: 5px; background: var(--ide-bg); color: var(--ide-text); }
+.call-code th { background: var(--ide-bg); color: var(--ide-text); }
+.call-code th, .call-code td { border-color: var(--ide-border); color: var(--ide-text); }
+.call-code code { color: inherit; }
+.call-code .current { background: #2c4235; color: #f2f6ed; font-weight: 600; }
+.call-events { padding-left: 22px; font-size: 13px; line-height: 1.9; }
+.call-events li { padding: 5px 0; overflow-wrap: anywhere; }
+.call-events code { margin-left: 12px; }
+.call-output { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; padding: 16px; border-radius: 5px; background: #24372d; color: #edf4e7; font-size: 14px; }
+.call-output code { overflow-wrap: anywhere; }
+.call-outcome { padding: 14px; background: #edf4e4; border-radius: 5px; font-size: 14px; line-height: 1.8; }
+.call-outcome.error { background: #fcf0ea; color: #8a3e22; }
+.call-outcome.limit { background: #faf2dd; color: #775e26; }
+@media (max-width: 760px) {
+  .call-card { padding: 14px; }
+  .call-card select { font-size: 16px; }
+}

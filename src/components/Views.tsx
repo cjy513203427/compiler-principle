@@ -58,6 +58,7 @@ export function traceLength(result: Compilation, stage: Stage): number {
     case 'minimize':
     case 'grammar':
     case 'lr':
+    case 'functions':
       // These labs read their own input (rules / grammar); see analyzeAutomata and analyzeGrammar.
       return 0;
   }
@@ -92,6 +93,7 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
     case 'minimize':
     case 'grammar':
     case 'lr':
+    case 'functions':
       return '';
   }
 }

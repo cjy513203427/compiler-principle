@@ -13,7 +13,8 @@ export type Stage =
   | 'lr'
   | 'ssa'
   | 'minimize'
-  | 'outssa';
+  | 'outssa'
+  | 'functions';
 export type Value = number | boolean;
 export type DataType = 'int' | 'bool';
 export type TokenKind = 'keyword' | 'identifier' | 'number' | 'operator' | 'punctuation' | 'eof';

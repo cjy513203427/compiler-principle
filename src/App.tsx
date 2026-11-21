@@ -20,6 +20,9 @@ import { analyzeMinimization } from './compiler/minimize';
 import { MinimizationView } from './components/MinimizationView';
 import { LearningRoutes, LessonConnections } from './components/LearningRoutes';
 import { outSsaPresets, OUT_SSA_REFERENCE, SSA_DECONSTRUCTION_REFERENCE } from './content/outssa';
+import { functionPresets, CALL_STACK_REFERENCE, CALL_FRAMES_REFERENCE } from './content/functions';
+import { analyzeFunctions } from './compiler/functions';
+import { FunctionsView } from './components/FunctionsView';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
 import { ResultView, traceLength, traceMessage } from './components/Views';
 import {
@@ -66,11 +69,12 @@ const stageNames: Record<Stage, string> = {
   ssa: '静态单赋值',
   minimize: 'DFA 最小化',
   outssa: 'SSA 消除',
+  functions: '函数与调用栈',
 };
-type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize';
+type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize' | 'functions';
 // Rules and grammar labs keep their own input instead of a Mini C program.
 const kindOf = (route: Route): InputKind =>
-  route === 'automata' || route === 'grammar' || route === 'lr' || route === 'minimize' ? route : 'program';
+  route === 'automata' || route === 'grammar' || route === 'lr' || route === 'minimize' || route === 'functions' ? route : 'program';
 const inputCopy = {
   program: {
     title: '源程序',
@@ -81,6 +85,11 @@ const inputCopy = {
     run: '运行编译',
     dirty: '代码已修改。运行编译后更新右侧结果。',
     presets,
+  },
+  functions: {
+    title: '函数程序', format: 'Mini C / 函数方言', custom: '自定义函数程序', file: 'functions.mc',
+    field: '函数程序代码', run: '编译并执行函数', dirty: '函数程序已修改。编译并执行后更新右侧结果。',
+    presets: functionPresets,
   },
   automata: {
     title: '词法规则与输入',
@@ -159,8 +168,9 @@ export default function App() {
     lessons.some((item) => item.id === id),
   );
   const needsOutSSA = route === 'outssa';
-  const result = useMemo(() => compile(source, options, { outOfSSA: needsOutSSA }), [source, options, needsOutSSA]);
   const inputKind = kindOf(route);
+  const programSource = inputKind === 'program' ? source : '';
+  const result = useMemo(() => compile(programSource, options, { outOfSSA: needsOutSSA }), [programSource, options, needsOutSSA]);
   const ownInput = inputKind !== 'program';
   const copy = inputCopy[inputKind];
   // Own-input labs never go through compile(); each has its own analysis.
@@ -180,7 +190,11 @@ export default function App() {
     () => (inputKind === 'minimize' ? analyzeMinimization(source) : undefined),
     [inputKind, source],
   );
-  const ownOutcome = automata || grammarResult || lrResult || minimization;
+  const functions = useMemo(
+    () => (inputKind === 'functions' ? analyzeFunctions(source) : undefined),
+    [inputKind, source],
+  );
+  const ownOutcome = automata || grammarResult || lrResult || minimization || functions;
   const ownIssue = ownOutcome && !ownOutcome.ok ? ownOutcome.issue : undefined;
   const ownFrames = ownOutcome?.ok ? ownOutcome.analysis.frames : undefined;
   const length = lesson
@@ -202,6 +216,7 @@ export default function App() {
     grammar: { source: grammarPresets[0].code, draft: grammarPresets[0].code },
     lr: { source: lrPresets[0].code, draft: lrPresets[0].code },
     minimize: { source: minimizationPresets[0].code, draft: minimizationPresets[0].code },
+    functions: { source: functionPresets[0].code, draft: functionPresets[0].code },
   });
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)');
@@ -744,6 +759,12 @@ export default function App() {
                             需要转义。不支持 {'{m,n}'}、锚点和捕获组。
                           </p>
                         </details>
+                      ) : inputKind === 'functions' ? (
+                        <details className="language-help">
+                          <summary>函数方言怎么写？</summary>
+                          <p>顶层定义形如 int add(int a, int b) {'{ return a + b; }'}，用 add(3, 4) 调用。形参与返回值使用 int / bool；支持递归、相互递归、块作用域、if / else、while 和 print。</p>
+                          <p>实参从左到右求值，按值传递。函数必须明确覆盖所有返回路径，while 不算保证返回。顶层语句是独立入口，变量不是全局变量；函数不能读取调用者的局部变量。最多 32 帧（含入口）和 2000 条执行指令。</p>
+                        </details>
                       ) : (
                       <details className="language-help">
                         <summary>这门小语言支持什么？</summary>
@@ -805,7 +826,9 @@ export default function App() {
                         </div>
                       )}
                       <div className="result-content">
-                        {inputKind === 'minimize' ? (
+                        {inputKind === 'functions' ? (
+                          functions?.ok && <FunctionsView key={source} analysis={functions.analysis} source={source} step={currentStep} />
+                        ) : inputKind === 'minimize' ? (
                           minimization?.ok && (
                             <MinimizationView key={source} analysis={minimization.analysis} step={currentStep} />
                           )
@@ -1278,6 +1301,9 @@ export default function App() {
                   <a href={MINIMIZATION_REFERENCE} target="_blank" rel="noreferrer">Cornell · DFA 最小化与词法扫描 ↗</a>
                   <p>第 15 个实验于 2026-11-21 核对 Cornell 的 Out of SSA 与 CMU 的 SSA Deconstruction 讲义，补充边复制、关键边拆分、复制环调度和接回原 VM 的执行对照。</p>
                   <a href={SSA_DECONSTRUCTION_REFERENCE} target="_blank" rel="noreferrer">CMU · SSA 消除与并行复制 ↗</a>
+                  <p>第 16 个实验于 2026-11-21 核对 Cornell 调用约定讲义与《Crafting Interpreters》作者的调用帧实现。专用函数方言支持参数、返回、递归与独立栈帧，未把函数调用接入现有 CFG、SSA 或优化器。</p>
+                  <a href={CALL_STACK_REFERENCE} target="_blank" rel="noreferrer">Cornell · 调用约定、返回地址与栈帧 ↗</a>
+                  <a href={CALL_FRAMES_REFERENCE} target="_blank" rel="noreferrer">Crafting Interpreters · Calls and Functions ↗</a>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1484,6 +1510,8 @@ function Home({
                               ? '分割细化 / 区分后缀 / 扫描对照'
                               : item.id === 'automata'
                               ? 'NFA / 子集构造 / 最长匹配'
+                              : item.id === 'functions'
+                              ? 'CALL / RETURN / 独立栈帧 / 递归'
                               : item.id === 'outssa'
                               ? '边复制 / 关键边拆分 / 原 VM 执行'
                               : item.id === 'ssa'
@@ -1644,6 +1672,13 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
             <small>补充概念核对：2026-11-21 · φ 消除、关键边与并行复制</small>
             <a href={OUT_SSA_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · Converting from SSA ↗</a>
             <a href={SSA_DECONSTRUCTION_REFERENCE} target="_blank" rel="noreferrer">CMU 15-411 · SSA Deconstruction ↗</a>
+          </>
+        )}
+        {lesson.id === 'functions' && (
+          <>
+            <small>补充概念核对：2026-11-21 · 调用约定、返回地址与活动记录；第 06 讲作为字节码概念入口</small>
+            <a href={CALL_STACK_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 3410 · Calling Conventions ↗</a>
+            <a href={CALL_FRAMES_REFERENCE} target="_blank" rel="noreferrer">Crafting Interpreters · Calls and Functions ↗</a>
           </>
         )}
       </div>

@@ -9,6 +9,7 @@ import { lrPresets } from './content/lr';
 import { ssaPresets } from './content/ssa';
 import { minimizationPresets } from './content/minimize';
 import { outSsaPresets } from './content/outssa';
+import { functionPresets } from './content/functions';
 
 export type Route = Stage | 'home' | 'notes' | 'sources' | 'assembly';
 export type NoteId = Stage | AssemblyNoteId;
@@ -29,7 +30,9 @@ export function readUrl(search: string) {
   const source =
     raw !== null && raw.length <= MAX_SOURCE
       ? raw
-      : route === 'cfg'
+      : route === 'functions'
+        ? functionPresets[0].code
+        : route === 'cfg'
         ? flowPresets[0].code
         : route === 'dataflow'
           ? dataflowPresets[0].code

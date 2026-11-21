@@ -3,6 +3,16 @@ import { readUrl, shareUrl, validateNotebook } from './state';
 import { ssaPresets } from './content/ssa';
 import { minimizationPresets } from './content/minimize';
 import { outSsaPresets } from './content/outssa';
+import { functionPresets } from './content/functions';
+it('restores bounded function inputs and retains function notes with older notebook entries', () => {
+  expect(readUrl('?lab=functions').source).toBe(functionPresets[0].code);
+  const shared = shareUrl('http://localhost:5173', 'functions', functionPresets[1].code, 12,
+    { fold: false, propagate: false, dead: false });
+  expect(readUrl(new URL(shared).search)).toMatchObject({ route: 'functions', source: functionPresets[1].code, step: 12 });
+  expect(readUrl('?lab=functions&code=' + 'a'.repeat(2001)).source).toBe(functionPresets[0].code);
+  expect(validateNotebook({ version: 1, notes: { lex: '旧', functions: '调用' }, completed: ['lex', 'functions'] }))
+    .toEqual({ version: 1, notes: { lex: '旧', functions: '调用' }, completed: ['lex', 'functions'] });
+});
 it('restores out-of-SSA experiments and retains their notes alongside older topics', () => {
   expect(readUrl('?lab=outssa').source).toBe(outSsaPresets[0].code);
   const shared = shareUrl('http://localhost:5173', 'outssa', outSsaPresets[2].code, 4,

@@ -6,6 +6,7 @@ import { lrLesson } from './lr';
 import { ssaLesson, ssaPresets } from './ssa';
 import { minimizationLesson } from './minimize';
 import { outSsaLesson, outSsaPresets } from './outssa';
+import { functionsLesson } from './functions';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -387,6 +388,7 @@ export const lessons: Lesson[] = [
   ssaLesson,
   minimizationLesson,
   outSsaLesson,
+  functionsLesson,
 ];
 export const flowPresets = [
   {
