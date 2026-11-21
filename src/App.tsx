@@ -14,6 +14,7 @@ import { CodeBlock } from './components/CodeBlock';
 import { lrPresets } from './content/lr';
 import { analyzeLr } from './compiler/lr';
 import { LrView } from './components/LrView';
+import { ssaPresets, SSA_REFERENCE, PHI_REFERENCE } from './content/ssa';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
 import { ResultView, traceLength, traceMessage } from './components/Views';
 import {
@@ -57,6 +58,7 @@ const stageNames: Record<Stage, string> = {
   automata: '正则与自动机',
   grammar: '文法与预测分析',
   lr: '移进与规约',
+  ssa: '静态单赋值',
 };
 type InputKind = 'program' | 'automata' | 'grammar' | 'lr';
 // Labs 10 and 11 read their own input instead of a Mini C program.
@@ -166,7 +168,9 @@ export default function App() {
     : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
   const dirty = draft !== source;
-  const labPresets = copy.presets;
+  const labPresets = route === 'ssa'
+    ? [...ssaPresets, ...copy.presets.filter((item) => !ssaPresets.some((own) => own.code === item.code))]
+    : copy.presets;
   const selectedPreset = labPresets.find((p) => p.code === draft);
   // Each kind of input keeps its own text while the learner visits another kind.
   const stash = useRef<Record<InputKind, string>>({
@@ -258,9 +262,11 @@ export default function App() {
           ? flowPresets[0].code
           : next === 'dataflow'
             ? dataflowPresets[0].code
-            : next === 'dominance'
-              ? dominancePresets[0].code
-              : base
+            : next === 'ssa'
+              ? ssaPresets[0].code
+              : next === 'dominance'
+                ? dominancePresets[0].code
+                : base
         : base;
     if (nextSource !== source) {
       setSource(nextSource);
@@ -1191,7 +1197,7 @@ export default function App() {
                   <p>
                     控制流图实验于 2026-11-16 核对 LLVM
                     官方教程中的基本块、分支汇合与循环回边概念。本项目采用 bool
-                    条件和可变局部变量，未实现教程中的 SSA / φ。
+                    条件和可变局部变量；标量 SSA 与 φ 在第 13 个实验中单独构造与执行。
                   </p>
                   <a href={CONTROL_FLOW_REFERENCE} target="_blank" rel="noreferrer">
                     LLVM 官方教程 · 控制流与基本块 ↗
@@ -1221,9 +1227,9 @@ export default function App() {
                 <section>
                   <h2>哪些内容还没有覆盖</h2>
                   <p>
-                    本版专注前端与基础中间表示。DFA 最小化、完整 LR(1) / LALR、完整 SSA
-                    转换、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，支配树、自然循环和
-                    φ 候选位置分析，正则 → NFA → DFA 的词法自动机，FIRST / FOLLOW 与 LL(1) 预测分析，以及 SLR(1) 的移进 / 规约。
+                    本版专注前端与基础中间表示。DFA 最小化、完整 LR(1) / LALR、内存 SSA、SSA
+                    消除、寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，支配树、自然循环、
+                    标量 SSA 构造与校验，正则 → NFA → DFA 的词法自动机，FIRST / FOLLOW 与 LL(1) 预测分析，以及 SLR(1) 的移进 / 规约。
                   </p>
                   <p>
                     支配关系实验于 2026-11-17 补充核对 Cornell 与 LLVM
@@ -1235,6 +1241,8 @@ export default function App() {
                   <a href={LOOP_REFERENCE} target="_blank" rel="noreferrer">
                     LLVM · 循环术语 ↗
                   </a>
+                  <p>第 13 个实验于 2026-11-21 核对 Cornell 的 SSA 构造与活跃性说明，以及 LLVM φ 的前驱边语义。采用独立的教学表示与解释器，保留现有优化器。</p>
+                  <a href={PHI_REFERENCE} target="_blank" rel="noreferrer">LLVM · φ 指令的输入与语义 ↗</a>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1369,7 +1377,7 @@ function Home({
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance'].includes(item.id))
+            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa'].includes(item.id))
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1438,6 +1446,8 @@ function Home({
                               ? 'FIRST / FOLLOW / LL(1) 表'
                               : item.id === 'automata'
                               ? 'NFA / 子集构造 / 最长匹配'
+                              : item.id === 'ssa'
+                              ? 'φ 裁剪 / 版本重命名 / 行为核对'
                               : item.id === 'dominance'
                               ? '支配树 / 自然循环 / φ 候选'
                               : item.id === 'dataflow'
@@ -1573,6 +1583,13 @@ function Reading({ lesson }: { lesson: Lesson }) {
             <a href={LOOP_REFERENCE} target="_blank" rel="noreferrer">
               LLVM · 自然循环与循环术语 ↗
             </a>
+          </>
+        )}
+        {lesson.id === 'ssa' && (
+          <>
+            <small>补充概念核对：2026-11-21 · 标量 SSA 与 φ 的前驱边语义</small>
+            <a href={SSA_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · SSA 构造、支配边界与活跃性 ↗</a>
+            <a href={PHI_REFERENCE} target="_blank" rel="noreferrer">LLVM Language Reference · φ 输入与前驱边 ↗</a>
           </>
         )}
       </div>

@@ -310,7 +310,7 @@ export function DominanceView({ result, step }: { result: Compilation; step: num
           )}
           <p className="dom-scope">
             这里只求迭代支配边界，没有活跃性裁剪，候选可能多余。完整 SSA 仍需沿支配树重命名、补齐 φ
-            输入与校验；本页不会将候选当成可执行指令。
+            输入与校验；可继续到实验 13「静态单赋值」观察这些步骤与执行。本页只展示候选。
           </p>
         </section>
       )}

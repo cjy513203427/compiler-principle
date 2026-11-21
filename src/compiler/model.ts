@@ -10,7 +10,8 @@ export type Stage =
   | 'dominance'
   | 'automata'
   | 'grammar'
-  | 'lr';
+  | 'lr'
+  | 'ssa';
 export type Value = number | boolean;
 export type DataType = 'int' | 'bool';
 export type TokenKind = 'keyword' | 'identifier' | 'number' | 'operator' | 'punctuation' | 'eof';

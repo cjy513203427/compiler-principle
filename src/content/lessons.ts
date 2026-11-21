@@ -3,6 +3,7 @@ import { dominanceLesson, dominancePresets } from './dominance';
 import { automataLesson } from './automata';
 import { grammarLesson } from './grammar';
 import { lrLesson } from './lr';
+import { ssaLesson, ssaPresets } from './ssa';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -381,6 +382,7 @@ export const lessons: Lesson[] = [
   automataLesson,
   grammarLesson,
   lrLesson,
+  ssaLesson,
 ];
 export const flowPresets = [
   {
@@ -516,5 +518,6 @@ export const presets = [
   ...flowPresets,
   ...dataflowPresets,
   ...dominancePresets,
+  ...ssaPresets,
 ];
 export const defaultOptions = { fold: true, propagate: true, dead: true };

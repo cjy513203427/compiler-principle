@@ -6,6 +6,7 @@ import { generateBytecode, execute } from './vm';
 import { buildCFG, traceCFG } from './cfg';
 import { analyzeConstants, analyzeLiveness } from './dataflow';
 import { analyzeDominance } from './dominance';
+import { buildSSA } from './ssa';
 import { CompileError, type Diagnostic, type OptimizationOptions } from './model';
 export * from './model';
 export { tokenize, parse, analyze, generateIR, optimize, generateBytecode, execute };
@@ -26,6 +27,7 @@ export function compile(source: string, options: OptimizationOptions) {
   let dataflow: ReturnType<typeof analyzeConstants> | undefined;
   let liveness: ReturnType<typeof analyzeLiveness> | undefined;
   let dominance: ReturnType<typeof analyzeDominance> | undefined;
+  let ssa: ReturnType<typeof buildSSA> | undefined;
   try {
     lex = tokenize(source);
     syntax = parse(lex.tokens);
@@ -40,6 +42,7 @@ export function compile(source: string, options: OptimizationOptions) {
     baseline = execute(baselineBytecode);
     cfg = buildCFG(ir);
     dominance = analyzeDominance(cfg);
+    ssa = buildSSA(dominance, liveness);
     controlTrace = traceCFG(cfg, baselineBytecode, baseline);
     if (execution.error)
       diagnostic = { stage: 'vm', message: execution.error.message, start: 0, end: 0 };
@@ -71,6 +74,7 @@ export function compile(source: string, options: OptimizationOptions) {
     dataflow,
     liveness,
     dominance,
+    ssa,
     hasControlFlow: ir ? hasControlFlow(ir) : false,
   };
 }

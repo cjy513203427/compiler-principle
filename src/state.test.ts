@@ -1,5 +1,14 @@
 import { it, expect } from 'vitest';
 import { readUrl, shareUrl, validateNotebook } from './state';
+import { ssaPresets } from './content/ssa';
+it('restores SSA inputs and retains both old and new local notes', () => {
+  expect(readUrl('?lab=ssa').source).toBe(ssaPresets[0].code);
+  const shared = shareUrl('http://localhost:5173', 'ssa', ssaPresets[1].code, 8,
+    { fold: false, propagate: false, dead: false });
+  expect(readUrl(new URL(shared).search)).toMatchObject({ route: 'ssa', step: 8, source: ssaPresets[1].code });
+  expect(validateNotebook({ version: 1, notes: { lex: '旧笔记', ssa: '新笔记' }, completed: ['lex', 'ssa'] }))
+    .toEqual({ version: 1, notes: { lex: '旧笔记', ssa: '新笔记' }, completed: ['lex', 'ssa'] });
+});
 it('round-trips the current executable state without encoding private notes', () => {
   const options = { fold: true, propagate: false, dead: true };
   const code = 'int integer = 5;\nprint(integer); // & ?';

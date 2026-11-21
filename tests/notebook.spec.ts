@@ -73,7 +73,7 @@ test('readable font sizes hold at narrow widths and new notes coexist with old n
   await page.getByRole('button', { name: '我能解释了' }).click();
   await page.goto('/?lab=notes');
   await expect(page.getByLabel('控制流图的笔记')).toHaveValue('循环条件每轮重算。');
-  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 12');
+  await expect(page.locator('.notebook-toolbar')).toContainText('1 / 13');
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

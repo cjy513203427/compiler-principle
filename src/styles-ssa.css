@@ -1,0 +1,25 @@
+.ssa-view { min-width: 0; }
+.ssa-view h3 { font-size: 15px; margin: 0 0 12px; }
+.ssa-status { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 14px 16px; background: #edf3f7; border: 1px solid #cbdce7; border-radius: 8px; font-size: 13px; }
+.ssa-status span { color: #506874; }
+.ssa-event, .ssa-placement, .ssa-inspect, .ssa-output, .ssa-equivalence { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 18px; margin: 16px 0; background: white; }
+.ssa-event p, .ssa-equivalence p { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; margin: 8px 0; }
+.ssa-stacks { margin-top: 14px; max-height: 280px; overflow: auto; }
+.ssa-stacks summary, .ssa-all-blocks summary { cursor: pointer; padding: 8px 0; font-size: 13px; }
+.ssa-stacks p { margin: 4px 0; font-size: 13px; }
+.ssa-selections { background: #f0f5e8; padding: 12px; border-left: 3px solid #7e9c59; margin: 12px 0; font-size: 13px; }
+.ssa-view code { overflow-wrap: anywhere; }
+.ssa-inspect label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.ssa-inspect select { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); font-size: 14px; }
+.ssa-code-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+.ssa-code-comparison > * { min-width: 0; }
+.ssa-all-blocks { margin-top: 12px; }
+.ssa-output { display: flex; flex-direction: column; gap: 12px; background: #24372d; color: #ecf2e6; font-size: 14px; }
+.ssa-output code { white-space: pre-wrap; }
+.ssa-equivalence { background: #f1f5eb; }
+.ssa-equivalence span { font-size: 13px; line-height: 1.7; color: #5c6b57; }
+@media (max-width: 760px) {
+  .ssa-code-comparison { grid-template-columns: minmax(0, 1fr); }
+  .ssa-event, .ssa-placement, .ssa-inspect, .ssa-equivalence { padding: 14px; }
+  .ssa-inspect select { font-size: 16px; min-height: 44px; }
+}

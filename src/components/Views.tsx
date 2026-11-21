@@ -13,6 +13,7 @@ import { bytecodeText } from '../compiler/vm';
 import { ControlFlowView } from './ControlFlowView';
 import { DataflowView } from './DataflowView';
 import { DominanceView } from './DominanceView';
+import { SsaView } from './SsaView';
 import type { OptimizationOptions } from '../compiler/model';
 
 const valueText = (value: Value) => String(value);
@@ -48,6 +49,8 @@ export function traceLength(result: Compilation, stage: Stage): number {
       return result.dataflow?.steps.length || 0;
     case 'dominance':
       return result.dominance?.steps.length || 0;
+    case 'ssa':
+      return result.ssa?.steps.length || 0;
     case 'automata':
     case 'grammar':
     case 'lr':
@@ -77,6 +80,8 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
       return result.dataflow?.steps[step]?.message || '';
     case 'dominance':
       return result.dominance?.steps[step]?.message || '';
+    case 'ssa':
+      return result.ssa?.steps[step]?.message || '';
     case 'automata':
     case 'grammar':
     case 'lr':
@@ -544,6 +549,7 @@ export function ResultView({
   }
   if (stage === 'cfg') return <ControlFlowView result={result} step={step} />;
   if (stage === 'dominance') return <DominanceView result={result} step={step} />;
+  if (stage === 'ssa') return <SsaView result={result} step={step} />;
   if (stage === 'dataflow')
     return <DataflowView result={result} step={step} source={source} options={options} />;
   const current = result.execution!.steps[step];

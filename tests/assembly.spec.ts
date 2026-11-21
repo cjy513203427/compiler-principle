@@ -176,7 +176,7 @@ test('appendix notes coexist with core notes and export without increasing core 
   await page.getByRole('button', { name: '我能解释了，标记附录' }).click();
   await page.goto('/?lab=notes');
   await expect(page.getByLabel('赋值与加法的附录笔记')).toHaveValue('MOV 复制，源值保留。');
-  await expect(page.locator('.notebook-toolbar')).toContainText('0 / 12 个实验已复习 · 附录 1 / 6');
+  await expect(page.locator('.notebook-toolbar')).toContainText('0 / 13 个实验已复习 · 附录 1 / 6');
   await page.getByLabel('词法分析的笔记', { exact: true }).fill('旧实验笔记。');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: '导出笔记' }).click();
