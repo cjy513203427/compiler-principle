@@ -23,8 +23,8 @@ export const learningRoutes: LearningRoute[] = [
   {
     id: 'middle',
     title: '程序表示与调用',
-    description: '从分支和数据流走到 SSA，再消除 φ 回到普通 IR；用活跃性把值分到有限寄存器，最后进入专用函数方言，观察调用栈。',
-    stages: ['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'regalloc', 'functions'],
+    description: '从分支和数据流走到 SSA，再消除 φ 回到普通 IR；用活跃性把值分到有限寄存器，再重排指令、做窥孔优化；最后进入专用函数方言，观察调用栈。',
+    stages: ['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'regalloc', 'schedule', 'functions'],
   },
 ];
 
@@ -46,5 +46,6 @@ export const lessonConnections: Record<Stage, { before: Stage[]; after: Stage[] 
   minimize: { before: ['automata'], after: ['grammar'] },
   outssa: { before: ['ssa', 'cfg'], after: ['regalloc', 'vm'] },
   functions: { before: ['vm', 'semantic'], after: ['cfg'] },
-  regalloc: { before: ['dataflow', 'outssa'], after: ['functions', 'vm'] },
+  regalloc: { before: ['dataflow', 'outssa'], after: ['schedule', 'functions'] },
+  schedule: { before: ['regalloc', 'dataflow'], after: ['functions', 'optimize'] },
 };

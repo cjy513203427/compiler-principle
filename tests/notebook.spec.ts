@@ -82,6 +82,8 @@ test('readable font sizes hold at narrow widths and new notes coexist with old n
 test('home computes the example and all labs render with no external requests', async ({
   page,
 }) => {
+  // Visits every lab in one test; the budget grows with the number of labs.
+  test.setTimeout(10_000 + lessons.length * 4_000);
   const failures: string[] = [];
   const external: string[] = [];
   page.on('pageerror', (error) => failures.push(error.message));

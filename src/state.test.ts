@@ -5,6 +5,16 @@ import { minimizationPresets } from './content/minimize';
 import { outSsaPresets } from './content/outssa';
 import { functionPresets } from './content/functions';
 import { regallocPresets } from './content/regalloc';
+import { schedulePresets } from './content/schedule';
+it('restores scheduling inputs with the shared register settings', () => {
+  expect(readUrl('?lab=schedule').source).toBe(schedulePresets[0].code);
+  const shared = shareUrl('http://localhost:5173', 'schedule', schedulePresets[1].code, 3,
+    { fold: true, propagate: true, dead: true }, { count: 2, algorithm: 'color' });
+  expect(new URL(shared).searchParams.get('regs')).toBe('2');
+  expect(readUrl(new URL(shared).search)).toMatchObject({ route: 'schedule', source: schedulePresets[1].code, step: 3,
+    registers: { count: 2, algorithm: 'color' } });
+  expect(validateNotebook({ version: 1, notes: { schedule: '伪依赖' }, completed: ['schedule'] }).completed).toEqual(['schedule']);
+});
 it('restores register allocation settings from bounded URLs and keeps notes local', () => {
   expect(readUrl('?lab=regalloc')).toMatchObject({ source: regallocPresets[0].code, registers: { count: 3, algorithm: 'color' } });
   const shared = shareUrl('http://localhost:5173', 'regalloc', regallocPresets[2].code, 7,

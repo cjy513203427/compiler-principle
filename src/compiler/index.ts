@@ -9,11 +9,12 @@ import { analyzeDominance } from './dominance';
 import { buildSSA } from './ssa';
 import { lowerSSA } from './outssa';
 import { allocateRegisters, sweepRegisters, type RegisterSettings } from './regalloc';
+import { scheduleAllocation, sweepSchedules } from './schedule';
 import { CompileError, type Diagnostic, type OptimizationOptions } from './model';
 export * from './model';
 export { tokenize, parse, analyze, generateIR, optimize, generateBytecode, execute };
 
-export function compile(source: string, options: OptimizationOptions, settings: { outOfSSA?: boolean; registers?: RegisterSettings } = {}) {
+export function compile(source: string, options: OptimizationOptions, settings: { outOfSSA?: boolean; registers?: RegisterSettings; schedule?: boolean } = {}) {
   let lex: ReturnType<typeof tokenize> | undefined;
   let syntax: ReturnType<typeof parse> | undefined;
   let semantic: ReturnType<typeof analyze> | undefined;
@@ -33,6 +34,8 @@ export function compile(source: string, options: OptimizationOptions, settings: 
   let outssa: ReturnType<typeof lowerSSA> | undefined;
   let regalloc: ReturnType<typeof allocateRegisters> | undefined;
   let registerSweep: ReturnType<typeof sweepRegisters> | undefined;
+  let schedule: ReturnType<typeof scheduleAllocation> | undefined;
+  let scheduleSweep: ReturnType<typeof sweepSchedules> | undefined;
   try {
     lex = tokenize(source);
     syntax = parse(lex.tokens);
@@ -52,7 +55,10 @@ export function compile(source: string, options: OptimizationOptions, settings: 
     if (settings.registers) {
       // Allocate the unoptimized IR so every temporary and its pressure stays visible.
       regalloc = allocateRegisters(ir, dominance, settings.registers);
-      registerSweep = sweepRegisters(ir, dominance, baseline);
+      if (settings.schedule) {
+        schedule = scheduleAllocation(regalloc);
+        scheduleSweep = sweepSchedules(ir, dominance, settings.registers.algorithm, baseline);
+      } else registerSweep = sweepRegisters(ir, dominance, baseline);
     }
     controlTrace = traceCFG(cfg, baselineBytecode, baseline);
     if (execution.error)
@@ -89,6 +95,8 @@ export function compile(source: string, options: OptimizationOptions, settings: 
     outssa,
     regalloc,
     registerSweep,
+    schedule,
+    scheduleSweep,
     hasControlFlow: ir ? hasControlFlow(ir) : false,
   };
 }

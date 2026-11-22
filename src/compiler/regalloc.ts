@@ -318,15 +318,33 @@ export interface RegisterStep {
   output: Value[];
   written?: string;
   memory?: 'load' | 'store';
+  /** Issue cycle and stall count, only with a latency model. */
+  cycle?: number;
+  stall?: number;
 }
 export interface RegisterExecution extends Pick<Execution, 'output' | 'halted' | 'limited' | 'error'> {
   steps: RegisterStep[];
   executed: number;
   loads: number;
   stores: number;
+  cycles?: number;
+  stalls?: number;
 }
+const operandRegisters = (...operands: RegOperand[]) =>
+  operands.flatMap((operand) => operand.kind === 'register' ? [operand.index] : []);
+export function registerReads(instruction: RegisterInstruction): number[] {
+  switch (instruction.op) {
+    case 'move': case 'print': return operandRegisters(instruction.value);
+    case 'binary': return [...new Set(operandRegisters(instruction.left, instruction.right))];
+    case 'branch': return operandRegisters(instruction.condition);
+    case 'store': return [instruction.value];
+    default: return [];
+  }
+}
+export const registerWrite = (instruction: RegisterInstruction): number | undefined =>
+  instruction.op === 'move' || instruction.op === 'binary' || instruction.op === 'load' ? instruction.dest : undefined;
 export function executeRegisters(code: RegisterInstruction[], count: number, slotCount: number,
-  settings: { record?: boolean; budget?: number } = {}): RegisterExecution {
+  settings: { record?: boolean; budget?: number; latency?: (instruction: RegisterInstruction) => number } = {}): RegisterExecution {
   const record = settings.record ?? true;
   const registers: (Value | undefined)[] = Array(count).fill(undefined);
   const slots: (Value | undefined)[] = Array(slotCount).fill(undefined);
@@ -348,8 +366,31 @@ export function executeRegisters(code: RegisterInstruction[], count: number, slo
   };
   let pc = 0, executed = 0, loads = 0, stores = 0;
   const limit = Math.max(1, Math.min(MAX_VM_STEPS, Math.floor(settings.budget ?? MAX_VM_STEPS) || MAX_VM_STEPS));
+  // Timing model: single issue, in order; a result is readable `latency` cycles after issue,
+  // and writes to one register complete in program order.
+  const latency = settings.latency;
+  const registerReady: number[] = Array(count).fill(0);
+  const slotReady: number[] = Array(slotCount).fill(0);
+  let nextIssue = 0, stalls = 0;
+  const issue = (instruction: RegisterInstruction) => {
+    if (!latency || instruction.op === 'label') return undefined;
+    const delay = latency(instruction);
+    let at = nextIssue;
+    for (const register of registerReads(instruction)) at = Math.max(at, registerReady[register]);
+    if (instruction.op === 'load') at = Math.max(at, slotReady[instruction.slot]);
+    const dest = registerWrite(instruction);
+    if (dest !== undefined) at = Math.max(at, registerReady[dest] - delay + 1);
+    if (instruction.op === 'store') at = Math.max(at, slotReady[instruction.slot] - delay + 1);
+    const stall = at - nextIssue;
+    stalls += stall;
+    nextIssue = at + 1;
+    if (dest !== undefined) registerReady[dest] = at + delay;
+    if (instruction.op === 'store') slotReady[instruction.slot] = at + delay;
+    return { cycle: at, stall };
+  };
   const finish = (extra: Partial<RegisterExecution>): RegisterExecution =>
-    ({ steps, output, halted: false, limited: false, executed, loads, stores, ...extra });
+    ({ steps, output, halted: false, limited: false, executed, loads, stores,
+      ...(latency ? { cycles: nextIssue, stalls } : {}), ...extra });
   while (pc < code.length) {
     if (executed >= limit) {
       if (record) steps.at(-1)!.message += ` 已达到 ${limit} 条指令的回放上限，执行被暂停；这不等于证明程序不会终止。`;
@@ -358,6 +399,7 @@ export function executeRegisters(code: RegisterInstruction[], count: number, slo
     const instruction = code[pc];
     let nextPc = pc + 1, message = '', written: string | undefined, memory: RegisterStep['memory'];
     executed++;
+    const timing = issue(instruction);
     try {
       switch (instruction.op) {
         case 'label': message = `到达标签 ${instruction.name}。`; break;
@@ -396,7 +438,7 @@ export function executeRegisters(code: RegisterInstruction[], count: number, slo
         }
       }
       if (record) steps.push({ pc, nextPc, message: `执行 ${registerInstructionText(instruction)}：${message}`,
-        registers: [...registers], slots: [...slots], output: [...output], written, memory });
+        registers: [...registers], slots: [...slots], output: [...output], written, memory, ...timing });
       pc = nextPc;
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);

@@ -8,6 +8,7 @@ import { minimizationLesson } from './minimize';
 import { outSsaLesson, outSsaPresets } from './outssa';
 import { functionsLesson } from './functions';
 import { regallocLesson, regallocPresets } from './regalloc';
+import { scheduleLesson, schedulePresets } from './schedule';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -396,6 +397,7 @@ export const lessons: Lesson[] = [
   outSsaLesson,
   functionsLesson,
   regallocLesson,
+  scheduleLesson,
 ];
 export const flowPresets = [
   {
@@ -534,5 +536,6 @@ export const presets = [
   ...ssaPresets,
   ...outSsaPresets,
   ...regallocPresets,
+  ...schedulePresets,
 ];
 export const defaultOptions = { fold: true, propagate: true, dead: true };

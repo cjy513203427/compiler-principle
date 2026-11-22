@@ -5,7 +5,7 @@ test('register allocation steps through coloring, spills and the register machin
   await page.goto('/?lab=regalloc');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('K 个寄存器');
   await expect(page.getByLabel('选择一个观察角度')).toHaveValue('ra-loop');
-  await expect(page.getByLabel('寄存器个数')).toHaveValue('3');
+  await expect(page.getByLabel('寄存器个数', { exact: true })).toHaveValue('3');
   await expect(page.getByLabel('本步寄存器分配')).toContainText('live-out');
   await page.getByRole('button', { name: '下一步', exact: true }).click();
   await expect(page.getByRole('region', { name: '干涉图' })).toBeVisible();
@@ -40,7 +40,7 @@ test('register allocation steps through coloring, spills and the register machin
 
 test('live-range holes, copies and traps keep explicit outcomes', async ({ page }) => {
   await page.goto('/?lab=regalloc&regs=2&alloc=linear');
-  await expect(page.getByLabel('寄存器个数')).toHaveValue('2');
+  await expect(page.getByLabel('寄存器个数', { exact: true })).toHaveValue('2');
   await page.getByLabel('选择一个观察角度').selectOption('ra-holes');
   await page.getByRole('button', { name: '看最终结果' }).click();
   await expect(page.getByLabel('寄存器分配结果')).toContainText('v0_t（溢出变量）');

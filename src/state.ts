@@ -11,6 +11,7 @@ import { minimizationPresets } from './content/minimize';
 import { outSsaPresets } from './content/outssa';
 import { functionPresets } from './content/functions';
 import { regallocPresets } from './content/regalloc';
+import { schedulePresets } from './content/schedule';
 import { normalizeRegisterSettings, type RegisterSettings } from './compiler/regalloc';
 
 export type Route = Stage | 'home' | 'notes' | 'sources' | 'assembly';
@@ -36,6 +37,8 @@ export function readUrl(search: string) {
         ? functionPresets[0].code
         : route === 'regalloc'
         ? regallocPresets[0].code
+        : route === 'schedule'
+        ? schedulePresets[0].code
         : route === 'cfg'
         ? flowPresets[0].code
         : route === 'dataflow'
@@ -81,7 +84,7 @@ export function shareUrl(
   url.searchParams.set('code', source);
   url.searchParams.set('step', String(step));
   url.searchParams.set('opt', `${+options.fold}${+options.propagate}${+options.dead}`);
-  if (route === 'regalloc' && registers) {
+  if ((route === 'regalloc' || route === 'schedule') && registers) {
     url.searchParams.set('regs', String(registers.count));
     url.searchParams.set('alloc', registers.algorithm);
   }

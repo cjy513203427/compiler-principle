@@ -24,6 +24,7 @@ import { functionPresets, CALL_STACK_REFERENCE, CALL_FRAMES_REFERENCE } from './
 import { analyzeFunctions } from './compiler/functions';
 import { FunctionsView } from './components/FunctionsView';
 import { regallocPresets, REGALLOC_REFERENCE } from './content/regalloc';
+import { schedulePresets } from './content/schedule';
 import { RegisterSettingsFieldset } from './components/RegallocView';
 import type { RegisterSettings } from './compiler/regalloc';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
@@ -74,6 +75,7 @@ const stageNames: Record<Stage, string> = {
   outssa: 'SSA 消除',
   functions: '函数与调用栈',
   regalloc: '寄存器分配',
+  schedule: '指令排序与窥孔优化',
 };
 type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize' | 'functions';
 // Rules and grammar labs keep their own input instead of a Mini C program.
@@ -175,10 +177,12 @@ export default function App() {
   const needsOutSSA = route === 'outssa';
   const inputKind = kindOf(route);
   const programSource = inputKind === 'program' ? source : '';
-  const allocationSettings = route === 'regalloc' ? registers : undefined;
+  const usesRegisters = route === 'regalloc' || route === 'schedule';
+  const allocationSettings = usesRegisters ? registers : undefined;
+  const needsSchedule = route === 'schedule';
   const result = useMemo(
-    () => compile(programSource, options, { outOfSSA: needsOutSSA, registers: allocationSettings }),
-    [programSource, options, needsOutSSA, allocationSettings],
+    () => compile(programSource, options, { outOfSSA: needsOutSSA, registers: allocationSettings, schedule: needsSchedule }),
+    [programSource, options, needsOutSSA, allocationSettings, needsSchedule],
   );
   const ownInput = inputKind !== 'program';
   const copy = inputCopy[inputKind];
@@ -213,7 +217,7 @@ export default function App() {
     : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
   const dirty = draft !== source;
-  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : undefined;
+  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : route === 'schedule' ? schedulePresets : undefined;
   const labPresets = preferredPresets
     ? [...preferredPresets, ...copy.presets.filter((item) => !preferredPresets.some((own) => own.code === item.code))]
     : copy.presets;
@@ -316,6 +320,8 @@ export default function App() {
             ? dataflowPresets[0].code
             : next === 'regalloc'
               ? regallocPresets[0].code
+              : next === 'schedule'
+              ? schedulePresets[0].code
               : next === 'outssa'
               ? outSsaPresets[0].code
               : next === 'ssa'
@@ -753,7 +759,7 @@ export default function App() {
                           </small>
                         </fieldset>
                       )}
-                      {lesson.id === 'regalloc' && (
+                      {usesRegisters && (
                         <RegisterSettingsFieldset settings={registers} onChange={changeRegisters} />
                       )}
                       {inputKind === 'grammar' || inputKind === 'lr' ? (
@@ -874,7 +880,7 @@ export default function App() {
                           )
                         ) : (
                           <ResultView
-                            key={`${lesson.id}:${source}:${lesson.id === 'regalloc' ? `${registers.count}${registers.algorithm}` : ''}`}
+                            key={`${lesson.id}:${source}:${usesRegisters ? `${registers.count}${registers.algorithm}` : ''}`}
                             stage={lesson.id}
                             result={result}
                             source={source}
@@ -1326,6 +1332,7 @@ export default function App() {
                   <a href={CALL_FRAMES_REFERENCE} target="_blank" rel="noreferrer">Crafting Interpreters · Calls and Functions ↗</a>
                   <p>第 17 个实验于 2026-11-22 从本地缓存重读原书第 08 讲的寄存器分配一节（无限虚拟寄存器、溢出到栈、图染色与线性扫描），并核对 Cornell CS 4120 的寄存器分配讲义。按循环深度加权的溢出代价是本项目选定的启发式，讲义未给出。</p>
                   <a href={REGALLOC_REFERENCE} target="_blank" rel="noreferrer">Cornell · Register Allocation ↗</a>
+                  <p>第 18 个实验于 2026-11-22 从本地缓存重读原书第 08 讲的指令排序（流水线、依赖、List Scheduling）与窥孔优化一节。教学延迟、关键路径优先级和精确异常约定是本项目自定的模型，未另找外部资料核对；不代表任何真实 CPU。</p>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1460,7 +1467,7 @@ function Home({
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'regalloc'].includes(item.id))
+            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'regalloc', 'schedule'].includes(item.id))
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1532,6 +1539,8 @@ function Home({
                               ? '分割细化 / 区分后缀 / 扫描对照'
                               : item.id === 'automata'
                               ? 'NFA / 子集构造 / 最长匹配'
+                              : item.id === 'schedule'
+                              ? '依赖图 / 列表调度 / 窥孔窗口'
                               : item.id === 'regalloc'
                               ? '干涉图 / 线性扫描 / 溢出到栈'
                               : item.id === 'functions'
@@ -1703,6 +1712,9 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
             <small>补充概念核对：2026-11-22 · 干涉图、Kempe 简化与乐观着色、线性扫描、溢出重写</small>
             <a href={REGALLOC_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · Register Allocation ↗</a>
           </>
+        )}
+        {lesson.id === 'schedule' && (
+          <small>概念来源：2026-11-22 从本地缓存重读原书第 08 讲的指令排序与窥孔优化两节；延迟数值、关键路径优先级与精确异常约定是本项目的教学模型，未另找外部资料核对。</small>
         )}
         {lesson.id === 'functions' && (
           <>
