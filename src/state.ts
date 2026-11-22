@@ -10,6 +10,8 @@ import { ssaPresets } from './content/ssa';
 import { minimizationPresets } from './content/minimize';
 import { outSsaPresets } from './content/outssa';
 import { functionPresets } from './content/functions';
+import { regallocPresets } from './content/regalloc';
+import { normalizeRegisterSettings, type RegisterSettings } from './compiler/regalloc';
 
 export type Route = Stage | 'home' | 'notes' | 'sources' | 'assembly';
 export type NoteId = Stage | AssemblyNoteId;
@@ -32,6 +34,8 @@ export function readUrl(search: string) {
       ? raw
       : route === 'functions'
         ? functionPresets[0].code
+        : route === 'regalloc'
+        ? regallocPresets[0].code
         : route === 'cfg'
         ? flowPresets[0].code
         : route === 'dataflow'
@@ -59,7 +63,8 @@ export function readUrl(search: string) {
       : route === 'vm'
         ? { fold: false, propagate: false, dead: false }
         : defaultOptions;
-  return { route, source, step, options };
+  const registers = normalizeRegisterSettings(params.get('regs') ?? undefined, params.get('alloc'));
+  return { route, source, step, options, registers };
 }
 export function shareUrl(
   base: string,
@@ -67,6 +72,7 @@ export function shareUrl(
   source: string,
   step: number,
   options: OptimizationOptions,
+  registers?: RegisterSettings,
 ) {
   const url = new URL(base);
   url.search = '';
@@ -75,6 +81,10 @@ export function shareUrl(
   url.searchParams.set('code', source);
   url.searchParams.set('step', String(step));
   url.searchParams.set('opt', `${+options.fold}${+options.propagate}${+options.dead}`);
+  if (route === 'regalloc' && registers) {
+    url.searchParams.set('regs', String(registers.count));
+    url.searchParams.set('alloc', registers.algorithm);
+  }
   return url.href;
 }
 export interface Notebook {

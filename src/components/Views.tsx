@@ -15,6 +15,7 @@ import { DataflowView } from './DataflowView';
 import { DominanceView } from './DominanceView';
 import { SsaView } from './SsaView';
 import { OutSsaView } from './OutSsaView';
+import { RegallocView } from './RegallocView';
 import type { OptimizationOptions } from '../compiler/model';
 
 const valueText = (value: Value) => String(value);
@@ -54,6 +55,8 @@ export function traceLength(result: Compilation, stage: Stage): number {
       return result.ssa?.steps.length || 0;
     case 'outssa':
       return result.outssa?.frames.length || 0;
+    case 'regalloc':
+      return result.regalloc?.frames.length || 0;
     case 'automata':
     case 'minimize':
     case 'grammar':
@@ -89,6 +92,8 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
       return result.ssa?.steps[step]?.message || '';
     case 'outssa':
       return result.outssa?.frames[step]?.message || '';
+    case 'regalloc':
+      return result.regalloc?.frames[step]?.message || '';
     case 'automata':
     case 'minimize':
     case 'grammar':
@@ -560,6 +565,7 @@ export function ResultView({
   if (stage === 'dominance') return <DominanceView result={result} step={step} />;
   if (stage === 'ssa') return <SsaView result={result} step={step} />;
   if (stage === 'outssa') return <OutSsaView result={result} step={step} />;
+  if (stage === 'regalloc') return <RegallocView result={result} step={step} />;
   if (stage === 'dataflow')
     return <DataflowView result={result} step={step} source={source} options={options} />;
   const current = result.execution!.steps[step];

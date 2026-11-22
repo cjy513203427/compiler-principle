@@ -7,6 +7,7 @@ import { ssaLesson, ssaPresets } from './ssa';
 import { minimizationLesson } from './minimize';
 import { outSsaLesson, outSsaPresets } from './outssa';
 import { functionsLesson } from './functions';
+import { regallocLesson, regallocPresets } from './regalloc';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -35,6 +36,11 @@ export const chapters = [
     number: '07',
     title: '代码优化：跟编译器做朋友，让你的代码飞起来',
     file: '07 代码优化：跟编译器做朋友，让你的代码飞起来.md',
+  },
+  {
+    number: '08',
+    title: '代码生成：如何实现机器相关的优化？',
+    file: '08 代码生成：如何实现机器相关的优化？.md',
   },
   {
     number: '18',
@@ -389,6 +395,7 @@ export const lessons: Lesson[] = [
   minimizationLesson,
   outSsaLesson,
   functionsLesson,
+  regallocLesson,
 ];
 export const flowPresets = [
   {
@@ -526,5 +533,6 @@ export const presets = [
   ...dominancePresets,
   ...ssaPresets,
   ...outSsaPresets,
+  ...regallocPresets,
 ];
 export const defaultOptions = { fold: true, propagate: true, dead: true };

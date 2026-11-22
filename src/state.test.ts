@@ -4,6 +4,18 @@ import { ssaPresets } from './content/ssa';
 import { minimizationPresets } from './content/minimize';
 import { outSsaPresets } from './content/outssa';
 import { functionPresets } from './content/functions';
+import { regallocPresets } from './content/regalloc';
+it('restores register allocation settings from bounded URLs and keeps notes local', () => {
+  expect(readUrl('?lab=regalloc')).toMatchObject({ source: regallocPresets[0].code, registers: { count: 3, algorithm: 'color' } });
+  const shared = shareUrl('http://localhost:5173', 'regalloc', regallocPresets[2].code, 7,
+    { fold: true, propagate: true, dead: true }, { count: 2, algorithm: 'linear' });
+  expect(readUrl(new URL(shared).search)).toMatchObject({ route: 'regalloc', source: regallocPresets[2].code, step: 7,
+    registers: { count: 2, algorithm: 'linear' } });
+  expect(readUrl('?lab=regalloc&regs=99&alloc=%3Cscript%3E').registers).toEqual({ count: 3, algorithm: 'color' });
+  expect(readUrl('?lab=regalloc&code=' + 'a'.repeat(2001)).source).toBe(regallocPresets[0].code);
+  expect(validateNotebook({ version: 1, notes: { dataflow: '活跃', regalloc: '溢出' }, completed: ['dataflow', 'regalloc'] }))
+    .toEqual({ version: 1, notes: { dataflow: '活跃', regalloc: '溢出' }, completed: ['dataflow', 'regalloc'] });
+});
 it('restores bounded function inputs and retains function notes with older notebook entries', () => {
   expect(readUrl('?lab=functions').source).toBe(functionPresets[0].code);
   const shared = shareUrl('http://localhost:5173', 'functions', functionPresets[1].code, 12,
@@ -43,7 +55,9 @@ it('round-trips the current executable state without encoding private notes', ()
   const options = { fold: true, propagate: false, dead: true };
   const code = 'int integer = 5;\nprint(integer); // & ?';
   const url = shareUrl('http://localhost:5173/?old=1#fragment', 'vm', code, 12, options);
-  expect(readUrl(new URL(url).search)).toEqual({ route: 'vm', source: code, step: 12, options });
+  expect(readUrl(new URL(url).search)).toEqual({ route: 'vm', source: code, step: 12, options,
+    registers: { count: 3, algorithm: 'color' } });
+  expect(url).not.toContain('regs=');
   expect(url).not.toContain('notes');
   expect(new URL(url).hash).toBe('');
 });

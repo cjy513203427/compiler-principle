@@ -8,11 +8,12 @@ import { analyzeConstants, analyzeLiveness } from './dataflow';
 import { analyzeDominance } from './dominance';
 import { buildSSA } from './ssa';
 import { lowerSSA } from './outssa';
+import { allocateRegisters, sweepRegisters, type RegisterSettings } from './regalloc';
 import { CompileError, type Diagnostic, type OptimizationOptions } from './model';
 export * from './model';
 export { tokenize, parse, analyze, generateIR, optimize, generateBytecode, execute };
 
-export function compile(source: string, options: OptimizationOptions, settings: { outOfSSA?: boolean } = {}) {
+export function compile(source: string, options: OptimizationOptions, settings: { outOfSSA?: boolean; registers?: RegisterSettings } = {}) {
   let lex: ReturnType<typeof tokenize> | undefined;
   let syntax: ReturnType<typeof parse> | undefined;
   let semantic: ReturnType<typeof analyze> | undefined;
@@ -30,6 +31,8 @@ export function compile(source: string, options: OptimizationOptions, settings: 
   let dominance: ReturnType<typeof analyzeDominance> | undefined;
   let ssa: ReturnType<typeof buildSSA> | undefined;
   let outssa: ReturnType<typeof lowerSSA> | undefined;
+  let regalloc: ReturnType<typeof allocateRegisters> | undefined;
+  let registerSweep: ReturnType<typeof sweepRegisters> | undefined;
   try {
     lex = tokenize(source);
     syntax = parse(lex.tokens);
@@ -46,6 +49,11 @@ export function compile(source: string, options: OptimizationOptions, settings: 
     dominance = analyzeDominance(cfg);
     ssa = buildSSA(dominance, liveness);
     if (settings.outOfSSA) outssa = lowerSSA(ssa, dominance);
+    if (settings.registers) {
+      // Allocate the unoptimized IR so every temporary and its pressure stays visible.
+      regalloc = allocateRegisters(ir, dominance, settings.registers);
+      registerSweep = sweepRegisters(ir, dominance, baseline);
+    }
     controlTrace = traceCFG(cfg, baselineBytecode, baseline);
     if (execution.error)
       diagnostic = { stage: 'vm', message: execution.error.message, start: 0, end: 0 };
@@ -79,6 +87,8 @@ export function compile(source: string, options: OptimizationOptions, settings: 
     dominance,
     ssa,
     outssa,
+    regalloc,
+    registerSweep,
     hasControlFlow: ir ? hasControlFlow(ir) : false,
   };
 }

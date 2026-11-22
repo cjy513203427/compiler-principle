@@ -23,6 +23,9 @@ import { outSsaPresets, OUT_SSA_REFERENCE, SSA_DECONSTRUCTION_REFERENCE } from '
 import { functionPresets, CALL_STACK_REFERENCE, CALL_FRAMES_REFERENCE } from './content/functions';
 import { analyzeFunctions } from './compiler/functions';
 import { FunctionsView } from './components/FunctionsView';
+import { regallocPresets, REGALLOC_REFERENCE } from './content/regalloc';
+import { RegisterSettingsFieldset } from './components/RegallocView';
+import type { RegisterSettings } from './compiler/regalloc';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
 import { ResultView, traceLength, traceMessage } from './components/Views';
 import {
@@ -70,6 +73,7 @@ const stageNames: Record<Stage, string> = {
   minimize: 'DFA 最小化',
   outssa: 'SSA 消除',
   functions: '函数与调用栈',
+  regalloc: '寄存器分配',
 };
 type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize' | 'functions';
 // Rules and grammar labs keep their own input instead of a Mini C program.
@@ -150,6 +154,7 @@ export default function App() {
   const [draft, setDraft] = useState(initial.source);
   const [step, setStep] = useState(initial.step);
   const [options, setOptions] = useState<OptimizationOptions>(initial.options);
+  const [registers, setRegisters] = useState<RegisterSettings>(initial.registers);
   const [notebook, setNotebook] = useState<Notebook>(readNotebook);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -170,7 +175,11 @@ export default function App() {
   const needsOutSSA = route === 'outssa';
   const inputKind = kindOf(route);
   const programSource = inputKind === 'program' ? source : '';
-  const result = useMemo(() => compile(programSource, options, { outOfSSA: needsOutSSA }), [programSource, options, needsOutSSA]);
+  const allocationSettings = route === 'regalloc' ? registers : undefined;
+  const result = useMemo(
+    () => compile(programSource, options, { outOfSSA: needsOutSSA, registers: allocationSettings }),
+    [programSource, options, needsOutSSA, allocationSettings],
+  );
   const ownInput = inputKind !== 'program';
   const copy = inputCopy[inputKind];
   // Own-input labs never go through compile(); each has its own analysis.
@@ -204,7 +213,7 @@ export default function App() {
     : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
   const dirty = draft !== source;
-  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'outssa' ? outSsaPresets : undefined;
+  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : undefined;
   const labPresets = preferredPresets
     ? [...preferredPresets, ...copy.presets.filter((item) => !preferredPresets.some((own) => own.code === item.code))]
     : copy.presets;
@@ -252,6 +261,7 @@ export default function App() {
       setDraft(restored.source);
       setStep(restored.step);
       setOptions(restored.options);
+      setRegisters(restored.registers);
       setPlaying(false);
       setPanel('lab');
       setMenuOpen(false);
@@ -304,7 +314,9 @@ export default function App() {
           ? flowPresets[0].code
           : next === 'dataflow'
             ? dataflowPresets[0].code
-            : next === 'outssa'
+            : next === 'regalloc'
+              ? regallocPresets[0].code
+              : next === 'outssa'
               ? outSsaPresets[0].code
               : next === 'ssa'
                 ? ssaPresets[0].code
@@ -330,7 +342,7 @@ export default function App() {
       '',
       next === 'assembly'
         ? new URL('?lab=assembly', window.location.href).href
-        : shareUrl(window.location.href, next, nextSource, 0, nextOptions),
+        : shareUrl(window.location.href, next, nextSource, 0, nextOptions, registers),
     );
     window.scrollTo({ top: 0, behavior: 'instant' });
     window.setTimeout(() => heading.current?.focus({ preventScroll: true }), 0);
@@ -342,13 +354,18 @@ export default function App() {
     setPlaying(false);
     setShareFallback('');
   }
+  function changeRegisters(next: RegisterSettings) {
+    setRegisters(next);
+    setPlaying(false);
+    setStep(0);
+  }
   function changeOptions(key: keyof OptimizationOptions) {
     setOptions((previous) => ({ ...previous, [key]: !previous[key] }));
     setPlaying(false);
     setStep(0);
   }
   async function copyShare() {
-    const url = shareUrl(window.location.href, route, source, currentStep, options);
+    const url = shareUrl(window.location.href, route, source, currentStep, options, registers);
     window.history.replaceState(null, '', url);
     try {
       await navigator.clipboard.writeText(url);
@@ -736,6 +753,9 @@ export default function App() {
                           </small>
                         </fieldset>
                       )}
+                      {lesson.id === 'regalloc' && (
+                        <RegisterSettingsFieldset settings={registers} onChange={changeRegisters} />
+                      )}
                       {inputKind === 'grammar' || inputKind === 'lr' ? (
                         <details className="language-help">
                           <summary>文法怎么写？</summary>
@@ -854,7 +874,7 @@ export default function App() {
                           )
                         ) : (
                           <ResultView
-                            key={`${lesson.id}:${source}`}
+                            key={`${lesson.id}:${source}:${lesson.id === 'regalloc' ? `${registers.count}${registers.algorithm}` : ''}`}
                             stage={lesson.id}
                             result={result}
                             source={source}
@@ -1281,9 +1301,9 @@ export default function App() {
                 <section>
                   <h2>哪些内容还没有覆盖</h2>
                   <p>
-                    本版专注前端与基础中间表示。完整 LR(1) / LALR、内存 SSA、
-                    寄存器分配、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，支配树、自然循环、
-                    标量 SSA 构造、校验与基础 SSA 消除，正则 → NFA → DFA 与 DFA 最小化，FIRST / FOLLOW 与 LL(1) 预测分析，以及 SLR(1) 的移进 / 规约。
+                    本版专注前端与基础中间表示。完整 LR(1) / LALR、内存 SSA、复制合并、
+                    指令选择与机器码生成、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，支配树、自然循环、
+                    标量 SSA 构造、校验与基础 SSA 消除，图着色与线性扫描的教学寄存器分配，正则 → NFA → DFA 与 DFA 最小化，FIRST / FOLLOW 与 LL(1) 预测分析，以及 SLR(1) 的移进 / 规约。
                   </p>
                   <p>
                     支配关系实验于 2026-11-17 补充核对 Cornell 与 LLVM
@@ -1304,6 +1324,8 @@ export default function App() {
                   <p>第 16 个实验于 2026-11-21 核对 Cornell 调用约定讲义与《Crafting Interpreters》作者的调用帧实现。专用函数方言支持参数、返回、递归与独立栈帧，未把函数调用接入现有 CFG、SSA 或优化器。</p>
                   <a href={CALL_STACK_REFERENCE} target="_blank" rel="noreferrer">Cornell · 调用约定、返回地址与栈帧 ↗</a>
                   <a href={CALL_FRAMES_REFERENCE} target="_blank" rel="noreferrer">Crafting Interpreters · Calls and Functions ↗</a>
+                  <p>第 17 个实验于 2026-11-22 从本地缓存重读原书第 08 讲的寄存器分配一节（无限虚拟寄存器、溢出到栈、图染色与线性扫描），并核对 Cornell CS 4120 的寄存器分配讲义。按循环深度加权的溢出代价是本项目选定的启发式，讲义未给出。</p>
+                  <a href={REGALLOC_REFERENCE} target="_blank" rel="noreferrer">Cornell · Register Allocation ↗</a>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1438,7 +1460,7 @@ function Home({
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'outssa'].includes(item.id))
+            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'regalloc'].includes(item.id))
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1510,6 +1532,8 @@ function Home({
                               ? '分割细化 / 区分后缀 / 扫描对照'
                               : item.id === 'automata'
                               ? 'NFA / 子集构造 / 最长匹配'
+                              : item.id === 'regalloc'
+                              ? '干涉图 / 线性扫描 / 溢出到栈'
                               : item.id === 'functions'
                               ? 'CALL / RETURN / 独立栈帧 / 递归'
                               : item.id === 'outssa'
@@ -1672,6 +1696,12 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
             <small>补充概念核对：2026-11-21 · φ 消除、关键边与并行复制</small>
             <a href={OUT_SSA_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · Converting from SSA ↗</a>
             <a href={SSA_DECONSTRUCTION_REFERENCE} target="_blank" rel="noreferrer">CMU 15-411 · SSA Deconstruction ↗</a>
+          </>
+        )}
+        {lesson.id === 'regalloc' && (
+          <>
+            <small>补充概念核对：2026-11-22 · 干涉图、Kempe 简化与乐观着色、线性扫描、溢出重写</small>
+            <a href={REGALLOC_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · Register Allocation ↗</a>
           </>
         )}
         {lesson.id === 'functions' && (

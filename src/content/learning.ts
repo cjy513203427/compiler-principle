@@ -23,8 +23,8 @@ export const learningRoutes: LearningRoute[] = [
   {
     id: 'middle',
     title: '程序表示与调用',
-    description: '从分支和数据流走到 SSA，再消除 φ 回到普通 IR；最后进入专用函数方言，观察调用栈。',
-    stages: ['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'functions'],
+    description: '从分支和数据流走到 SSA，再消除 φ 回到普通 IR；用活跃性把值分到有限寄存器，最后进入专用函数方言，观察调用栈。',
+    stages: ['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'regalloc', 'functions'],
   },
 ];
 
@@ -37,13 +37,14 @@ export const lessonConnections: Record<Stage, { before: Stage[]; after: Stage[] 
   optimize: { before: ['ir'], after: ['vm', 'dataflow'] },
   vm: { before: ['ir'], after: ['cfg', 'functions'] },
   cfg: { before: ['ir', 'vm'], after: ['dataflow', 'dominance'] },
-  dataflow: { before: ['cfg'], after: ['optimize', 'ssa'] },
+  dataflow: { before: ['cfg'], after: ['optimize', 'ssa', 'regalloc'] },
   dominance: { before: ['cfg'], after: ['ssa'] },
   automata: { before: ['lex'], after: ['minimize'] },
   grammar: { before: ['parse'], after: ['lr'] },
   lr: { before: ['grammar'], after: ['semantic'] },
   ssa: { before: ['dominance', 'dataflow'], after: ['outssa', 'optimize'] },
   minimize: { before: ['automata'], after: ['grammar'] },
-  outssa: { before: ['ssa', 'cfg'], after: ['vm', 'optimize'] },
+  outssa: { before: ['ssa', 'cfg'], after: ['regalloc', 'vm'] },
   functions: { before: ['vm', 'semantic'], after: ['cfg'] },
+  regalloc: { before: ['dataflow', 'outssa'], after: ['functions', 'vm'] },
 };
