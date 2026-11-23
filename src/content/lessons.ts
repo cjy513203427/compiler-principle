@@ -9,6 +9,8 @@ import { outSsaLesson, outSsaPresets } from './outssa';
 import { functionsLesson } from './functions';
 import { regallocLesson, regallocPresets } from './regalloc';
 import { scheduleLesson, schedulePresets } from './schedule';
+import { redundancyLesson, redundancyPresets } from './redundancy';
+import { gcLesson } from './gc';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -42,6 +44,11 @@ export const chapters = [
     number: '08',
     title: '代码生成：如何实现机器相关的优化？',
     file: '08 代码生成：如何实现机器相关的优化？.md',
+  },
+  {
+    number: '32',
+    title: '运行时（二）：垃圾收集与语言的特性有关吗？',
+    file: '32 运行时（二）：垃圾收集与语言的特性有关吗？.md',
   },
   {
     number: '18',
@@ -398,6 +405,8 @@ export const lessons: Lesson[] = [
   functionsLesson,
   regallocLesson,
   scheduleLesson,
+  redundancyLesson,
+  gcLesson,
 ];
 export const flowPresets = [
   {
@@ -537,5 +546,6 @@ export const presets = [
   ...outSsaPresets,
   ...regallocPresets,
   ...schedulePresets,
+  ...redundancyPresets,
 ];
 export const defaultOptions = { fold: true, propagate: true, dead: true };

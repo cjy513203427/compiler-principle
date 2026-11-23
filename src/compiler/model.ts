@@ -16,7 +16,9 @@ export type Stage =
   | 'outssa'
   | 'functions'
   | 'regalloc'
-  | 'schedule';
+  | 'schedule'
+  | 'cse'
+  | 'gc';
 export type Value = number | boolean;
 export type DataType = 'int' | 'bool';
 export type TokenKind = 'keyword' | 'identifier' | 'number' | 'operator' | 'punctuation' | 'eof';

@@ -12,6 +12,8 @@ import { outSsaPresets } from './content/outssa';
 import { functionPresets } from './content/functions';
 import { regallocPresets } from './content/regalloc';
 import { schedulePresets } from './content/schedule';
+import { redundancyPresets } from './content/redundancy';
+import { gcPresets } from './content/gc';
 import { normalizeRegisterSettings, type RegisterSettings } from './compiler/regalloc';
 
 export type Route = Stage | 'home' | 'notes' | 'sources' | 'assembly';
@@ -39,6 +41,10 @@ export function readUrl(search: string) {
         ? regallocPresets[0].code
         : route === 'schedule'
         ? schedulePresets[0].code
+        : route === 'cse'
+        ? redundancyPresets[0].code
+        : route === 'gc'
+        ? gcPresets[0].code
         : route === 'cfg'
         ? flowPresets[0].code
         : route === 'dataflow'

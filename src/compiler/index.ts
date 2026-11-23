@@ -10,11 +10,12 @@ import { buildSSA } from './ssa';
 import { lowerSSA } from './outssa';
 import { allocateRegisters, sweepRegisters, type RegisterSettings } from './regalloc';
 import { scheduleAllocation, sweepSchedules } from './schedule';
+import { analyzeRedundancy } from './redundancy';
 import { CompileError, type Diagnostic, type OptimizationOptions } from './model';
 export * from './model';
 export { tokenize, parse, analyze, generateIR, optimize, generateBytecode, execute };
 
-export function compile(source: string, options: OptimizationOptions, settings: { outOfSSA?: boolean; registers?: RegisterSettings; schedule?: boolean } = {}) {
+export function compile(source: string, options: OptimizationOptions, settings: { outOfSSA?: boolean; registers?: RegisterSettings; schedule?: boolean; redundancy?: boolean } = {}) {
   let lex: ReturnType<typeof tokenize> | undefined;
   let syntax: ReturnType<typeof parse> | undefined;
   let semantic: ReturnType<typeof analyze> | undefined;
@@ -36,6 +37,7 @@ export function compile(source: string, options: OptimizationOptions, settings: 
   let registerSweep: ReturnType<typeof sweepRegisters> | undefined;
   let schedule: ReturnType<typeof scheduleAllocation> | undefined;
   let scheduleSweep: ReturnType<typeof sweepSchedules> | undefined;
+  let redundancy: ReturnType<typeof analyzeRedundancy> | undefined;
   try {
     lex = tokenize(source);
     syntax = parse(lex.tokens);
@@ -52,6 +54,7 @@ export function compile(source: string, options: OptimizationOptions, settings: 
     dominance = analyzeDominance(cfg);
     ssa = buildSSA(dominance, liveness);
     if (settings.outOfSSA) outssa = lowerSSA(ssa, dominance);
+    if (settings.redundancy) redundancy = analyzeRedundancy(ir, dominance);
     if (settings.registers) {
       // Allocate the unoptimized IR so every temporary and its pressure stays visible.
       regalloc = allocateRegisters(ir, dominance, settings.registers);
@@ -97,6 +100,7 @@ export function compile(source: string, options: OptimizationOptions, settings: 
     registerSweep,
     schedule,
     scheduleSweep,
+    redundancy,
     hasControlFlow: ir ? hasControlFlow(ir) : false,
   };
 }

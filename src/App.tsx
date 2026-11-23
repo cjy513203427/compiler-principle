@@ -25,6 +25,10 @@ import { analyzeFunctions } from './compiler/functions';
 import { FunctionsView } from './components/FunctionsView';
 import { regallocPresets, REGALLOC_REFERENCE } from './content/regalloc';
 import { schedulePresets } from './content/schedule';
+import { redundancyPresets } from './content/redundancy';
+import { gcPresets } from './content/gc';
+import { analyzeGc } from './compiler/gc';
+import { GcView } from './components/GcView';
 import { RegisterSettingsFieldset } from './components/RegallocView';
 import type { RegisterSettings } from './compiler/regalloc';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
@@ -76,11 +80,13 @@ const stageNames: Record<Stage, string> = {
   functions: '函数与调用栈',
   regalloc: '寄存器分配',
   schedule: '指令排序与窥孔优化',
+  cse: '公共子表达式与循环外提',
+  gc: '垃圾收集',
 };
-type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize' | 'functions';
+type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize' | 'functions' | 'gc';
 // Rules and grammar labs keep their own input instead of a Mini C program.
 const kindOf = (route: Route): InputKind =>
-  route === 'automata' || route === 'grammar' || route === 'lr' || route === 'minimize' || route === 'functions' ? route : 'program';
+  route === 'automata' || route === 'grammar' || route === 'lr' || route === 'minimize' || route === 'functions' || route === 'gc' ? route : 'program';
 const inputCopy = {
   program: {
     title: '源程序',
@@ -96,6 +102,11 @@ const inputCopy = {
     title: '函数程序', format: 'Mini C / 函数方言', custom: '自定义函数程序', file: 'functions.mc',
     field: '函数程序代码', run: '编译并执行函数', dirty: '函数程序已修改。编译并执行后更新右侧结果。',
     presets: functionPresets,
+  },
+  gc: {
+    title: '堆与操作', format: '对象 / 根 / %% / 操作', custom: '自定义堆', file: 'heap.gc',
+    field: '堆描述与操作', run: '运行垃圾收集', dirty: '堆或操作已修改。运行垃圾收集后更新右侧结果。',
+    presets: gcPresets,
   },
   automata: {
     title: '词法规则与输入',
@@ -180,9 +191,10 @@ export default function App() {
   const usesRegisters = route === 'regalloc' || route === 'schedule';
   const allocationSettings = usesRegisters ? registers : undefined;
   const needsSchedule = route === 'schedule';
+  const needsRedundancy = route === 'cse';
   const result = useMemo(
-    () => compile(programSource, options, { outOfSSA: needsOutSSA, registers: allocationSettings, schedule: needsSchedule }),
-    [programSource, options, needsOutSSA, allocationSettings, needsSchedule],
+    () => compile(programSource, options, { outOfSSA: needsOutSSA, registers: allocationSettings, schedule: needsSchedule, redundancy: needsRedundancy }),
+    [programSource, options, needsOutSSA, allocationSettings, needsSchedule, needsRedundancy],
   );
   const ownInput = inputKind !== 'program';
   const copy = inputCopy[inputKind];
@@ -207,7 +219,11 @@ export default function App() {
     () => (inputKind === 'functions' ? analyzeFunctions(source) : undefined),
     [inputKind, source],
   );
-  const ownOutcome = automata || grammarResult || lrResult || minimization || functions;
+  const gcResult = useMemo(
+    () => (inputKind === 'gc' ? analyzeGc(source) : undefined),
+    [inputKind, source],
+  );
+  const ownOutcome = automata || grammarResult || lrResult || minimization || functions || gcResult;
   const ownIssue = ownOutcome && !ownOutcome.ok ? ownOutcome.issue : undefined;
   const ownFrames = ownOutcome?.ok ? ownOutcome.analysis.frames : undefined;
   const length = lesson
@@ -217,7 +233,7 @@ export default function App() {
     : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
   const dirty = draft !== source;
-  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : route === 'schedule' ? schedulePresets : undefined;
+  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : route === 'schedule' ? schedulePresets : route === 'cse' ? redundancyPresets : undefined;
   const labPresets = preferredPresets
     ? [...preferredPresets, ...copy.presets.filter((item) => !preferredPresets.some((own) => own.code === item.code))]
     : copy.presets;
@@ -230,6 +246,7 @@ export default function App() {
     lr: { source: lrPresets[0].code, draft: lrPresets[0].code },
     minimize: { source: minimizationPresets[0].code, draft: minimizationPresets[0].code },
     functions: { source: functionPresets[0].code, draft: functionPresets[0].code },
+    gc: { source: gcPresets[0].code, draft: gcPresets[0].code },
   });
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)');
@@ -322,6 +339,8 @@ export default function App() {
               ? regallocPresets[0].code
               : next === 'schedule'
               ? schedulePresets[0].code
+              : next === 'cse'
+              ? redundancyPresets[0].code
               : next === 'outssa'
               ? outSsaPresets[0].code
               : next === 'ssa'
@@ -785,6 +804,12 @@ export default function App() {
                             需要转义。不支持 {'{m,n}'}、锚点和捕获组。
                           </p>
                         </details>
+                      ) : inputKind === 'gc' ? (
+                        <details className="language-help">
+                          <summary>堆怎么写？</summary>
+                          <p>每行一个对象：名字 大小 {'->'} 引用1, 引用2（大小 1–8 格，按声明顺序紧挨着放进堆）。root a, b 写出根；heap N 指定堆容量；request N 指定回收后要申请的连续空间。# 开头为注释。</p>
+                          <p>%% 下方是程序依次做的修改：drop x 去掉一个根，root x 新增一个根，link x {'->'} y 新增引用，cut x {'->'} y 删除引用。程序只能修改当前可达的对象。最多 24 个对象、24 个操作、1200 字符。</p>
+                        </details>
                       ) : inputKind === 'functions' ? (
                         <details className="language-help">
                           <summary>函数方言怎么写？</summary>
@@ -852,7 +877,9 @@ export default function App() {
                         </div>
                       )}
                       <div className="result-content">
-                        {inputKind === 'functions' ? (
+                        {inputKind === 'gc' ? (
+                          gcResult?.ok && <GcView key={source} analysis={gcResult.analysis} step={currentStep} />
+                        ) : inputKind === 'functions' ? (
                           functions?.ok && <FunctionsView key={source} analysis={functions.analysis} source={source} step={currentStep} />
                         ) : inputKind === 'minimize' ? (
                           minimization?.ok && (
@@ -1333,6 +1360,8 @@ export default function App() {
                   <p>第 17 个实验于 2026-11-22 从本地缓存重读原书第 08 讲的寄存器分配一节（无限虚拟寄存器、溢出到栈、图染色与线性扫描），并核对 Cornell CS 4120 的寄存器分配讲义。按循环深度加权的溢出代价是本项目选定的启发式，讲义未给出。</p>
                   <a href={REGALLOC_REFERENCE} target="_blank" rel="noreferrer">Cornell · Register Allocation ↗</a>
                   <p>第 18 个实验于 2026-11-22 从本地缓存重读原书第 08 讲的指令排序（流水线、依赖、List Scheduling）与窥孔优化一节。教学延迟、关键路径优先级和精确异常约定是本项目自定的模型，未另找外部资料核对；不代表任何真实 CPU。</p>
+                  <p>第 19 个实验于 2026-11-22 通过缓存脚本单页重读原书第 07 讲，实现全局可用表达式、公共子表达式消除、本地值编号对照与循环不变代码外提；可能报错的运算只从循环条件中外提，这是本项目为保持输出与错误一致而定的约定。</p>
+                  <p>第 20 个实验于 2026-11-22 通过缓存脚本单页读取原书第 32 讲，补充引用计数、Python 式循环检测、三色标记的标记-清除、标记-整理与停止-拷贝；堆以格为单位，不模拟分代、增量、并发或停顿时间。</p>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1467,7 +1496,7 @@ function Home({
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'regalloc', 'schedule'].includes(item.id))
+            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'regalloc', 'schedule', 'cse'].includes(item.id))
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1539,6 +1568,10 @@ function Home({
                               ? '分割细化 / 区分后缀 / 扫描对照'
                               : item.id === 'automata'
                               ? 'NFA / 子集构造 / 最长匹配'
+                              : item.id === 'cse'
+                              ? '可用表达式 / 复用 / 循环外提'
+                              : item.id === 'gc'
+                              ? '三色标记 / 引用计数 / 碎片'
                               : item.id === 'schedule'
                               ? '依赖图 / 列表调度 / 窥孔窗口'
                               : item.id === 'regalloc'
@@ -1712,6 +1745,12 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
             <small>补充概念核对：2026-11-22 · 干涉图、Kempe 简化与乐观着色、线性扫描、溢出重写</small>
             <a href={REGALLOC_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · Register Allocation ↗</a>
           </>
+        )}
+        {lesson.id === 'cse' && (
+          <small>概念来源：2026-11-22 通过缓存脚本单页重读原书第 07 讲（公共子表达式消除、值编号、可用表达式分析、循环不变代码外提）；异常安全的外提条件是本项目的约定。</small>
+        )}
+        {lesson.id === 'gc' && (
+          <small>概念来源：2026-11-22 通过缓存脚本单页读取原书第 32 讲（可达性、标记-清除、标记-整理、停止-拷贝、引用计数与 Python 循环检测、三色标记）；堆模型为本项目的教学简化。</small>
         )}
         {lesson.id === 'schedule' && (
           <small>概念来源：2026-11-22 从本地缓存重读原书第 08 讲的指令排序与窥孔优化两节；延迟数值、关键路径优先级与精确异常约定是本项目的教学模型，未另找外部资料核对。</small>

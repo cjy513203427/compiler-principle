@@ -1,0 +1,24 @@
+.redundancy-view { min-width: 0; }
+.redundancy-status { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 14px; background: #eaf3ec; border: 1px solid #cfe2d4; border-radius: 8px; font-size: 13px; }
+.redundancy-status span { color: #4f6f58; }
+.redundancy-card { min-width: 0; margin: 16px 0; padding: 18px; background: white; border: 1px solid var(--line); border-radius: 8px; }
+.redundancy-card h3 { font-size: 15px; margin: 0 0 12px; }
+.redundancy-card p, .redundancy-card li { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.redundancy-card code { overflow-wrap: anywhere; }
+.redundancy-card summary { padding: 8px 0; cursor: pointer; font-size: 14px; }
+.redundancy-card .figure-caption { font-size: 13px; line-height: 1.8; color: #5d6f60; }
+.redundancy-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.redundancy-columns.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.redundancy-columns > * { min-width: 0; }
+.redundancy-table td, .redundancy-table th { font-size: 13px; vertical-align: top; }
+.redundancy-table tr.current td { font-weight: 700; background: #f0f7f1; }
+.redundancy-table tr.current td:first-child::before { content: '▶ '; }
+.decision-hoisted { color: #1f6b3a; font-weight: 700; }
+.decision-trap { color: #8a4b2a; font-weight: 700; }
+.decision-blocked, .decision-variant { color: #5f6660; }
+.redundancy-equivalence { background: #f1f6f0; }
+@media (max-width: 1100px) { .redundancy-columns.three { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .redundancy-card { padding: 14px; }
+  .redundancy-columns { grid-template-columns: minmax(0, 1fr); }
+}

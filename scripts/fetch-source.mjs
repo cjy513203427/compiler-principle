@@ -13,13 +13,14 @@ const files = {
   '07': '07 代码优化：跟编译器做朋友，让你的代码飞起来.md',
   '08': '08 代码生成：如何实现机器相关的优化？.md',
   16: '16 Java JIT编译器（四）：Graal的后端是如何工作的？.md',
+  32: '32 运行时（二）：垃圾收集与语言的特性有关吗？.md',
 };
 const args = process.argv.slice(2);
 const index = args.indexOf('--chapter');
 const chapter = index >= 0 ? args[index + 1] : undefined;
 if (!chapter || !files[chapter]) {
   console.log(
-    '用法：npm run sources:fetch -- --chapter 02 [--refresh]\n一次只读取一个已选章节：02、03、04、06、07、08、16。默认优先使用缓存。',
+    '用法：npm run sources:fetch -- --chapter 02 [--refresh]\n一次只读取一个已选章节：02、03、04、06、07、08、16、32。默认优先使用缓存。',
   );
   process.exit(chapter ? 1 : 0);
 }

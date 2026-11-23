@@ -6,6 +6,18 @@ import { outSsaPresets } from './content/outssa';
 import { functionPresets } from './content/functions';
 import { regallocPresets } from './content/regalloc';
 import { schedulePresets } from './content/schedule';
+import { redundancyPresets } from './content/redundancy';
+import { gcPresets } from './content/gc';
+it('restores the redundancy and garbage collection labs with bounded inputs and local notes', () => {
+  expect(readUrl('?lab=cse').source).toBe(redundancyPresets[0].code);
+  expect(readUrl('?lab=gc').source).toBe(gcPresets[0].code);
+  const shared = shareUrl('http://localhost:5173', 'gc', gcPresets[2].code, 5, { fold: true, propagate: true, dead: true });
+  expect(readUrl(new URL(shared).search)).toMatchObject({ route: 'gc', source: gcPresets[2].code, step: 5 });
+  expect(new URL(shared).searchParams.get('regs')).toBeNull();
+  expect(readUrl('?lab=gc&code=' + 'a'.repeat(2001)).source).toBe(gcPresets[0].code);
+  expect(validateNotebook({ version: 1, notes: { cse: '可用', gc: '可达' }, completed: ['cse', 'gc'] }))
+    .toEqual({ version: 1, notes: { cse: '可用', gc: '可达' }, completed: ['cse', 'gc'] });
+});
 it('restores scheduling inputs with the shared register settings', () => {
   expect(readUrl('?lab=schedule').source).toBe(schedulePresets[0].code);
   const shared = shareUrl('http://localhost:5173', 'schedule', schedulePresets[1].code, 3,
