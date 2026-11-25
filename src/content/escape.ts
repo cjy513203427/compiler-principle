@@ -29,7 +29,7 @@ export const escapeLesson: Lesson = {
     },
     {
       title: '标量替换（SROA）：把对象彻底拆成几个局部变量',
-      body: '在实验 07 讲到“化整为零（SROA）”。一旦确认 Point pt 未逃逸且不存在跨分支多对象别名，编译器干脆删掉 new Point(...)，改用两个普通标量 pt$x 和 pt$y！循环 5 次原本要堆分配 5 个对象，优化后变成 0 次堆分配。',
+      body: '原书第 07 讲把这种优化形象地称为“化整为零（SROA）”，第 15 讲在 Graal JIT 中进一步展示：如果对象既未逃逸出方法、也不存在跨分支多对象别名，编译器不仅不必在堆上分配（甚至连栈上分配和对象头都省了），直接把用到的字段拆成普通标量 pt$x 和 pt$y！循环 5 次原本要堆分配 5 个对象，优化后变成 0 次堆分配。',
       example: '// 优化前：Point pt = new Point(i, i + 1); total = total + pt.x + pt.y;\n// SROA后：int pt$x = i; int pt$y = i + 1; total = total + pt$x + pt$y;',
       exampleLanguage: 'c',
     },
@@ -45,7 +45,7 @@ export const escapeLesson: Lesson = {
     },
     {
       title: '逃逸分析依赖连接图与不动点传播',
-      body: '分析器记录“变量指向哪些分配点”和“对象字段指向哪些分配点”，再从 return / publish / 未内联实参出发沿字段边把逃逸状态传播到不动点。',
+      body: '分析器记录“变量指向哪些分配点”和“对象字段指向哪些分配点”，再从 return / publish / 未内联实参出发沿字段边把逃逸状态传播到不动点。原书第 15 讲还指出：NoEscape 可做栈上分配或标量替换；ArgEscape 虽逃出方法但未逃出线程，JVM 仍可借此做锁消除（同步消除）。',
     },
     {
       title: '零堆分配减轻 GC 压力',
@@ -55,7 +55,7 @@ export const escapeLesson: Lesson = {
   misconception:
     '“只要没有 return 或存入全局变量，函数里的 new 就一定能做标量替换”并不完全正确：第一，把它存入一个逃逸对象的字段会触发传递逃逸；第二，如果同一引用变量在不同分支指向不同的分配点（产生别名歧义），简单标量替换无法确定读哪个标量，需要保守保留或做更复杂的部分逃逸分析。',
   limit:
-    '教学方言支持 struct、int、new、字段读写、if/else、while、函数与 publish(...) 全局槽，限制 2000 字符、12 个结构体、16 个函数与 2000 步执行。仅对非递归、单尾出口且不超过 10 条语句的函数做内联（最大深度 3）；SROA 仅对无别名歧义的扁平整数结构体生效，不模拟 Graal 的部分逃逸分析（PEA）或锁消除。',
+    '教学方言支持 struct、int、new、字段读写、if/else、while、函数与 publish(...) 全局槽，限制 2000 字符、12 个结构体、16 个函数与 2000 步执行。仅对非递归、单尾出口且不超过 10 条语句的函数做静态内联（最大深度 3）；SROA 仅对无别名歧义的扁平整数结构体生效，不模拟原书第 15 讲后半的多态内联、锁消除、部分逃逸分析（PEA）或基于运行时统计的推理优化与逆优化（Deoptimization）。',
   challenge:
     '先看“内联解锁零堆分配”预设，比较内联前后的逃逸状态表，说明为什么 makePoint 里的 new Point 从 GlobalEscape 变成了 NoEscape。再把 publish(pt) 加进循环，观察堆分配次数如何变化。',
   answer:

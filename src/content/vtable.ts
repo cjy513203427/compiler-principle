@@ -41,7 +41,7 @@ export const vtableLesson: Lesson = {
   note: [
     {
       title: '字段靠固定偏移，方法靠固定槽位号',
-      body: '单继承下，父类和子类的字段偏移量前缀一致，虚表槽位号前缀也一致。这就是静态类型检查与动态多态能够高效配合的根基。',
+      body: '单继承下，父类和子类的字段偏移量前缀一致，虚表槽位号前缀也一致。原书第 38 讲将无需运行时查表的绑定称为静态绑定（早期绑定，如 private / static / final 或重载 Overload），而基于子类型多态的虚表查表（C++ vtable / Java invokevirtual）称为动态绑定（后期绑定）。',
     },
     {
       title: 'vtable 属于类，vptr 属于实例',
@@ -55,11 +55,11 @@ export const vtableLesson: Lesson = {
   misconception:
     '“虚表查找是在运行时按方法名做字符串哈希查找”是常见误解：在静态类型 OOP 编译器（如 C++、HotSpot vtable）里，方法名在编译期就已经翻译成固定整数槽位号（如 vtable[0]），运行时只需 O(1) 的指针解引用。',
   limit:
-    '教学单继承模型：字段和方法参数/返回值均为 int，不支持多重继承、接口表（itable）、抽象类、super 关键字或动态类加载（封闭世界假设下做 CHA）。限制 2000 字符、12 个类与 2000 步执行。',
+    '教学单继承模型：对象首槽用 +0 vptr 示意类虚表指针（Java 另有标记字等对象头字段，C++ 仅含虚方法的类带 vptr），字段和方法参数/返回值均为 int。不支持多重继承（多 vptr 与指针转换偏移调整）、接口表（itable）、Trait/Mixin、访问控制修饰符、自动装箱/拆箱、super 关键字或动态类加载（封闭世界假设下做 CHA）。限制 2000 字符、12 个类与 2000 步执行。',
   challenge:
-    '选“模板方法：父类经 this 动态回调子类”预设，观察两次调用 describe() 时，父类方法里的 this.area() 为什么一次跳到 Rect::area，一次跳到 Square::area。再把 Square 的覆写删掉，观察 CHA 去虚拟化报告怎么变化。',
+    '选“模板方法（父类 this 回调子类）”预设，观察两次调用 doubleArea() 时，父类方法里的 this.area() 为什么一次跳到 Rect::area，一次跳到 Square::area。再把 Square 的覆写删掉，观察 CHA 去虚拟化报告怎么变化。',
   answer:
-    'describe() 定义在 Shape 里，从未被覆写，因此 s.describe() 可被 CHA 直接去虚拟化为 Shape::describe。但进入 Shape::describe 后，this.area() 的静态类型是 Shape，而 Shape 及其子类共有 3 种 area 实现，无法去虚拟化，必须读取 this 头部 +0 的 vptr 再查槽 [0]：当对象是 Rect 时跳到 Rect::area，换成 Square 时跳到 Square::area。',
+    'doubleArea() 定义在 Shape 里，从未被覆写，因此 a.doubleArea() 可被 CHA 直接去虚拟化为 Shape::doubleArea。但进入 Shape::doubleArea 后，this.area() 的静态类型是 Shape，而 Shape 及其子类共有 3 种 area 实现，无法去虚拟化，必须读取 this 头部 +0 的 vptr 再查槽 [0]：当对象是 Rect 时跳到 Rect::area，换成 Square 时跳到 Square::area。',
   quiz: {
     question: '在单继承下，子类 Rect 覆写了父类 Shape 位于槽位 [0] 的 area() 方法，Rect 的虚函数表里 area() 应该放在哪个槽位？',
     options: [

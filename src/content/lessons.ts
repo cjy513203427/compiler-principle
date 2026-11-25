@@ -60,25 +60,21 @@ export const chapters = [
     number: '15',
     title: 'Java JIT编译器（三）：探究内联和逃逸分析的算法原理',
     file: '15 Java JIT编译器（三）：探究内联和逃逸分析的算法原理.md',
-    verified: false,
   },
   {
     number: '34',
     title: '并发中的编译技术（二）：如何从语言层面支持协程？',
     file: '34 并发中的编译技术（二）：如何从语言层面支持协程？.md',
-    verified: false,
   },
   {
     number: '38',
     title: '综合实现（一）：如何实现面向对象编程？',
     file: '38 综合实现（一）：如何实现面向对象编程？.md',
-    verified: false,
   },
   {
     number: '39',
     title: '综合实现（二）：如何实现函数式编程？',
     file: '39 综合实现（二）：如何实现函数式编程？.md',
-    verified: false,
   },
   {
     number: '18',
@@ -87,6 +83,34 @@ export const chapters = [
     verified: false,
   },
 ];
+export const lessonVerifiedAt: Record<Stage, string> = {
+  lex: '2026-11-16',
+  parse: '2026-11-16',
+  semantic: '2026-11-16',
+  ir: '2026-11-16',
+  optimize: '2026-11-16',
+  vm: '2026-11-16',
+  cfg: '2026-11-16',
+  dataflow: '2026-11-16',
+  dominance: '2026-11-17',
+  automata: '2026-11-18',
+  grammar: '2026-11-18',
+  lr: '2026-11-18',
+  ssa: '2026-11-21',
+  minimize: '2026-11-21',
+  outssa: '2026-11-21',
+  functions: '2026-11-21',
+  regalloc: '2026-11-22',
+  schedule: '2026-11-22',
+  cse: '2026-11-22',
+  gc: '2026-11-22',
+  isel: '2026-11-25',
+  ssaopt: '2026-11-25',
+  escape: '2026-11-25',
+  vtable: '2026-11-25',
+  closure: '2026-11-25',
+  coroutine: '2026-11-25',
+};
 export const chapterUrl = (number: string) =>
   `${BOOK}/${encodeURIComponent(chapters.find((c) => c.number === number)!.file)}`;
 export interface Lesson {

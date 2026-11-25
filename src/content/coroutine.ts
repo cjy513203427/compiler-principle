@@ -39,7 +39,7 @@ export const coroutineLesson: Lesson = {
   note: [
     {
       title: '状态机改写把“暂停/恢复”变成纯数据结构',
-      body: '无栈协程在运行时没有任何神秘的栈切换指令：挂起只是更新整数 state 并 return，恢复只是 switch(state) 跳转，执行开销接近普通函数调用。',
+      body: '原书第 34 讲拿协程和闭包做对照：两者都在堆上保存活动记录，但闭包只存自由变量且每次从头执行，而协程还要保存跨挂起点的局部变量与恢复位置（程序计数器）。编译器自动算出协程帧大小后，挂起只是更新整数 state 并 return，恢复只是 switch(state) 跳转，执行开销接近普通函数调用。',
     },
     {
       title: '跨 yield 活跃分析直接决定协程帧大小',
@@ -53,7 +53,7 @@ export const coroutineLesson: Lesson = {
   misconception:
     '“协程里的每一个局部变量都会被保存到堆上的协程帧里”是误解：只有生命周期跨越了至少一个 yield（在恢复点入口活跃）的变量才需要放进帧结构体，不跨 yield 的临时变量依然留在普通调用栈上。',
   limit:
-    '教学无栈协程方言支持单层 coro、let/赋值、if/else、while、yield、return，驱动侧支持创建、resume(g)、done(g) 与 print，限制 2000 字符与 2000 步执行。不支持嵌套协程调用（await 另一个协程）、向 yield 反向传值或异步事件循环调度器。',
+    '教学方言演示非对称（asymmetric）、无栈（Stackless）、同步生成器式协程，支持单层 coro、let/赋值、if/else、while、yield、return，驱动侧支持创建、resume(g)、done(g) 与 print，限制 2000 字符与 2000 步执行。不支持嵌套挂起（await 另一个协程）、向 yield 反向传值（如 Python send），也不模拟原书第 34 讲讨论的有栈协程（Side Stack / Go 可增长栈序曲检查 / libco 共享栈）、对称协程（channel）或异步 IO 调度器。',
   challenge:
     '运行“循环生成器 + 临时变量”预设，观察编译结果中 i 和 n 为什么被提升进 rangeFrame，而 doubled 却留在临时栈。再把 doubled 改成在 yield 之后再次读取，看看它会不会被自动提升进协程帧。',
   answer:

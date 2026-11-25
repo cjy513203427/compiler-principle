@@ -49,6 +49,7 @@ import { compile, type Stage, type OptimizationOptions } from './compiler';
 import { ResultView, traceLength, traceMessage } from './components/Views';
 import {
   lessons,
+  lessonVerifiedAt,
   presets,
   chapters,
   chapterUrl,
@@ -1492,6 +1493,10 @@ export default function App() {
                     本版专注前端与基础中间表示。完整 LR(1) / LALR、内存 SSA、复制合并、
                     指令选择与机器码生成、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，支配树、自然循环、
                     标量 SSA 构造、校验与基础 SSA 消除，图着色与线性扫描的教学寄存器分配，正则 → NFA → DFA 与 DFA 最小化，FIRST / FOLLOW 与 LL(1) 预测分析，以及 SLR(1) 的移进 / 规约。
+                    当前共涵盖 26 个核心实验与随书汇编附录：包含词法/语法分析、正则 → NFA → DFA 与最小化、LL(1) 与 SLR(1)、语义作用域与类型检查、三地址代码与栈式 VM、CFG / 数据流 / 支配关系 / 标量 SSA 构造与消除、SSA 稀疏条件常量传播（SCCP）、公共子表达式与循环外提、教学树覆盖指令选择、图着色与线性扫描寄存器分配、指令排序与窥孔优化、调用栈、垃圾收集、内联与逃逸分析（SROA）、面向对象虚表分派、闭包装箱以及无栈协程状态机。
+                  </p>
+                  <p>
+                    完整 LR(1) / LALR、内存 SSA、SSA 消除后的复制合并、真实机器码编码、分代/并发三色 GC 写屏障、泛型编译（类型擦除 vs 单态化）、V8 隐藏类与内联缓存、Graal Sea of Nodes 与去优化、SIMD 自动向量化，以及各真实编译器的完整工程实现，均不在当前覆盖范围。
                   </p>
                   <p>
                     支配关系实验于 2026-11-17 补充核对 Cornell 与 LLVM
@@ -1522,6 +1527,7 @@ export default function App() {
                   <p>第 22 个实验（SSA 上的优化）基于本地缓存的第 07 讲与标准 Wegman–Zadeck 稀疏条件常量传播算法，在实验 13 的 SSA 上直接运行 CFG + SSA 双工作表传播、平凡 φ 化简与保守死代码消除。</p>
                   <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA & Sparse Optimizations ↗</a>
                   <p>第 23–26 个实验（内联与逃逸分析、面向对象虚表分派、闭包与环境捕获、协程与状态机改写）分别映射原书第 15、38、39、34 讲主题（第 07 讲 SROA 与内联已由本地缓存核对，其余四讲仅作章节索引，未发起额外网络请求）。</p>
+                  <p>第 23–26 个实验（内联与逃逸分析、面向对象虚表分派、闭包与环境捕获、协程与状态机改写）于 2026-11-25 通过缓存脚本单页串行读取原书第 15、38、39、34 讲完成概念与边界核对（同时结合本地缓存第 07 讲的 SROA 与内联）；第 15 讲的锁消除/部分逃逸分析/逆优化、第 38 讲多重继承、第 39 讲延迟求值与尾递归转循环、第 34 讲有栈协程与异步调度不在模拟范围。</p>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1852,6 +1858,7 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
         </a>
         <small>
           来源核对：{['automata', 'grammar', 'lr', 'minimize'].includes(lesson.id) ? '2026-11-18' : '2026-11-16'} · 本页说明与图形独立编写
+          来源核对：{lessonVerifiedAt[lesson.id]} · 本页说明与图形独立编写
         </small>
         {lesson.id === 'grammar' && (
           <a href={LEFT_RECURSION_REFERENCE} target="_blank" rel="noreferrer">
@@ -1938,15 +1945,19 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
         )}
         {lesson.id === 'escape' && (
           <small>概念来源：2026-11-25 结合本地缓存的第 07 讲（内联与 SROA）并映射第 15 讲主题（第 15 讲仅作章节索引，未额外抓取）；内联预算与逃逸模型为教学实现。</small>
+          <small>概念来源：2026-11-25 通过缓存脚本单页读取原书第 15 讲并结合第 07 讲（内联、连接图逃逸传播、NoEscape / ArgEscape / GlobalEscape 与 SROA）；不模拟多态内联、锁消除、PEA 与逆优化。</small>
         )}
         {lesson.id === 'vtable' && (
           <small>概念来源：2026-11-25 映射原书第 38 讲面向对象实现主题（仅作章节索引，未额外抓取）；前缀布局、虚表槽位与封闭世界 CHA 去虚拟化为本项目教学实现。</small>
+          <small>概念来源：2026-11-25 通过缓存脚本单页读取原书第 38 讲（单继承前缀对象布局、静态绑定 vs 动态绑定、vptr / vtable）；封闭世界 CHA 去虚拟化为本项目教学扩展，不模拟多重继承偏移调整与接口表。</small>
         )}
         {lesson.id === 'closure' && (
           <small>概念来源：2026-11-25 映射原书第 05 / 39 讲闭包与函数式实现主题（仅作章节索引，未额外抓取）；堆上 Cell 装箱与扁平闭包环境经独立链式词法解释器核对。</small>
+          <small>概念来源：2026-11-25 通过缓存脚本单页读取原书第 39 讲（一等函数、高阶函数与闭包的自由变量堆分配）；堆上 Cell 装箱与扁平闭包环境经独立链式词法解释器核对，未涵盖延迟求值与尾递归转循环。</small>
         )}
         {lesson.id === 'coroutine' && (
           <small>概念来源：2026-11-25 映射原书第 34 讲协程编译主题（仅作章节索引，未额外抓取）；跨 yield 活跃分析与 switch(state) 状态机经独立生成器核对。</small>
+          <small>概念来源：2026-11-25 通过缓存脚本单页读取原书第 34 讲（协程堆上活动记录、无栈 vs 有栈、非对称协程）；跨 yield 活跃分析与 switch(state) 状态机经独立生成器核对，不模拟 Side Stack 与异步 IO 调度。</small>
         )}
         {lesson.id === 'schedule' && (
           <small>概念来源：2026-11-22 从本地缓存重读原书第 08 讲的指令排序与窥孔优化两节；延迟数值、关键路径优先级与精确异常约定是本项目的教学模型，未另找外部资料核对。</small>
