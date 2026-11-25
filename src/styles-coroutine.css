@@ -4,17 +4,20 @@
 .coro-card { min-width: 0; margin: 16px 0; padding: 18px; background: white; border: 1px solid var(--line); border-radius: 8px; }
 .coro-card h3 { font-size: 15px; margin: 0 0 12px; }
 .coro-card p { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
-.coro-inst-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
-.coro-inst { padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; display: grid; gap: 8px; }
+.coro-inst-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.coro-inst { padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; display: grid; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
 .coro-inst.focus { border-color: #b5681d; box-shadow: 0 0 0 2px rgba(181, 104, 29, 0.14); }
 .coro-inst.done { opacity: 0.85; background: #f4f5f3; }
-.coro-inst header { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 13px; }
+.coro-inst header { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 13px; flex-wrap: wrap; }
 .state-pill { padding: 2px 7px; border-radius: 999px; background: #f7e4cd; color: #7c4612; font: 700 11px var(--mono); }
 .coro-inst.done .state-pill { background: #e1e6e1; color: #4a554c; }
 .coro-fields { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; }
 .coro-last { color: #647166; font-size: 12px; }
-.coro-lower-block { margin-bottom: 14px; }
+.coro-lower-block { margin-bottom: 14px; min-width: 0; }
 .coro-liveness-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 8px; font-size: 13px; }
 .tag-hoisted { padding: 2px 8px; border-radius: 4px; background: #fcebd9; color: #8c4814; font-size: 12px; }
 .tag-transient { padding: 2px 8px; border-radius: 4px; background: #e8f3ec; color: #26603e; font-size: 12px; }
-@media (max-width: 760px) { .coro-card { padding: 14px; } }
+@media (max-width: 760px) {
+  .coro-card { padding: 14px; }
+  .coro-inst-grid { grid-template-columns: minmax(0, 1fr); }
+}

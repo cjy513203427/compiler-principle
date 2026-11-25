@@ -823,6 +823,8 @@ export default function App() {
                             aria-label={copy.field}
                             spellCheck={false}
                             maxLength={MAX_SOURCE}
+                            rows={Math.max(7, draft.split('\n').length)}
+                            style={{ height: `calc(${Math.max(7, draft.split('\n').length)} * 1.9em + 18px)` }}
                             value={draft}
                             onChange={(event) => {
                               setDraft(event.target.value);

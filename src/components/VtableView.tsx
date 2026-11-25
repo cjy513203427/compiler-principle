@@ -64,24 +64,26 @@ export function VtableView({ analysis, step }: { analysis: VtableAnalysis; step:
                   </div>
                 ))}
               </div>
-              <table className="vtable-mini">
-                <thead>
-                  <tr><th>槽</th><th>方法</th><th>指向实现</th><th>来源</th></tr>
-                </thead>
-                <tbody>
-                  {lay.vtable.map((slot) => (
-                    <tr
-                      key={slot.slot}
-                      className={`${slot.status} ${frame.dispatch?.runtimeClass === lay.name && frame.dispatch.slot === slot.slot ? 'active-slot' : ''}`}
-                    >
-                      <td><code>[{slot.slot}]</code></td>
-                      <td><code>{slot.methodName}</code></td>
-                      <td><code>{slot.implClass}::{slot.methodName}</code></td>
-                      <td>{statusText[slot.status]}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="table-scroll" tabIndex={0} aria-label={`${lay.name} 虚函数表，可横向滚动`}>
+                <table className="vtable-mini">
+                  <thead>
+                    <tr><th>槽</th><th>方法</th><th>指向实现</th><th>来源</th></tr>
+                  </thead>
+                  <tbody>
+                    {lay.vtable.map((slot) => (
+                      <tr
+                        key={slot.slot}
+                        className={`${slot.status} ${frame.dispatch?.runtimeClass === lay.name && frame.dispatch.slot === slot.slot ? 'active-slot' : ''}`}
+                      >
+                        <td><code>[{slot.slot}]</code></td>
+                        <td><code>{slot.methodName}</code></td>
+                        <td><code>{slot.implClass}::{slot.methodName}</code></td>
+                        <td>{statusText[slot.status]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </article>
           ))}
         </div>

@@ -5,6 +5,7 @@
 .isel-card h3 { font-size: 15px; margin: 0 0 12px; }
 .isel-card p { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
 .isel-tree-block { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; margin-top: 12px; align-items: start; }
+.isel-tree-block > * { min-width: 0; }
 .isel-tree-scroll { overflow: auto; max-width: 100%; padding: 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; }
 .isel-edge { stroke: #8a7c69; stroke-width: 1.4; }
 .isel-node rect { fill: #f6f4ef; stroke: #8b7b66; stroke-width: 1.2; }
@@ -12,11 +13,13 @@
 .isel-node.kind-const rect { fill: #eef4ec; stroke: #4e7c5a; }
 .isel-node.active rect { stroke-width: 2.6; stroke: #1f2a22; }
 .isel-node text { font: 12px var(--mono); fill: #1f2a22; }
-.isel-choice-box { display: grid; gap: 8px; margin-top: 10px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+.isel-choice-box { display: grid; gap: 8px; margin-top: 10px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; min-width: 0; }
 .isel-choice-box > div { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
 .isel-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.isel-table td, .isel-table th { font-size: 13px; vertical-align: top; }
+.isel-columns > * { min-width: 0; }
+.isel-table { white-space: normal; }
+.isel-table td, .isel-table th { font-size: 13px; vertical-align: top; line-height: 1.6; overflow-wrap: anywhere; }
 .isel-table tr.current { background: #fdf3e4; }
 .isel-equivalence { border-color: #c8dfc9; background: #f6fbf6; }
-@media (max-width: 960px) { .isel-columns, .isel-tree-block { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1280px) { .isel-columns, .isel-tree-block { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 760px) { .isel-card { padding: 14px; } }

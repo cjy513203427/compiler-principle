@@ -5,21 +5,24 @@
 .ssaopt-card h3 { font-size: 15px; margin: 0 0 12px; }
 .ssaopt-card h4 { font-size: 13px; margin: 0 0 6px; color: #455248; }
 .ssaopt-card p { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
-.ssaopt-queues { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-.ssaopt-queues > div { padding: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; display: grid; gap: 4px; }
+.ssaopt-queues { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 12px; }
+.ssaopt-queues > div { padding: 10px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; display: grid; gap: 4px; min-width: 0; }
 .ssaopt-queues span { font-size: 12px; color: #5b695e; }
 .ssaopt-queues code { overflow-wrap: anywhere; }
-.ssaopt-table td, .ssaopt-table th { font-size: 13px; vertical-align: top; }
+.ssaopt-table { white-space: normal; }
+.ssaopt-table td, .ssaopt-table th { font-size: 13px; vertical-align: top; line-height: 1.6; overflow-wrap: anywhere; }
 .ssaopt-table tr.current { background: #f2ecfa; }
 .lat-const { color: #2b6644; }
 .lat-top { color: #9a4726; }
 .lat-bot { color: #7b847d; }
 .ssaopt-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.ssaopt-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
-.ssaopt-summary-grid ul { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.7; }
+.ssaopt-columns > * { min-width: 0; }
+.ssaopt-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.ssaopt-summary-grid > * { min-width: 0; }
+.ssaopt-summary-grid ul { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
 .ssaopt-equivalence { border-color: #c8dfc9; background: #f6fbf6; }
 .ssaopt-lattice-details { margin-top: 12px; font-size: 13px; }
 .ssaopt-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .ssaopt-chips code { padding: 3px 7px; background: white; border: 1px solid var(--line); border-radius: 4px; font-size: 12px; }
-@media (max-width: 960px) { .ssaopt-queues, .ssaopt-columns, .ssaopt-summary-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1280px) { .ssaopt-columns { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 760px) { .ssaopt-card { padding: 14px; } }

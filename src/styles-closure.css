@@ -5,11 +5,12 @@
 .closure-card h3 { font-size: 15px; margin: 0 0 12px; }
 .closure-card h4 { font-size: 13px; margin: 0 0 8px; color: #47544a; }
 .closure-card p { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
-.closure-table td, .closure-table th { font-size: 13px; vertical-align: top; }
+.closure-table { white-space: normal; }
+.closure-table td, .closure-table th { font-size: 13px; vertical-align: top; line-height: 1.6; overflow-wrap: anywhere; }
 .boxed-col { color: #8c3d16; font-weight: 600; }
-.closure-runtime-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.closure-runtime-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; }
 .rt-col { display: grid; gap: 8px; min-width: 0; }
-.rt-box { padding: 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); font-size: 12px; display: grid; gap: 4px; }
+.rt-box { padding: 10px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--paper); font-size: 12px; line-height: 1.6; display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
 .rt-box strong { font-family: var(--mono); font-size: 12px; }
 .rt-box small { color: #5d6a60; }
 .stack-box { background: #f7f9f7; }
@@ -18,5 +19,7 @@
 .cell-box.escaped { border-left: 4px solid #b8601c; }
 .cl-box { background: #f5f1fb; border-color: #d6c8ee; }
 .rt-box.focus { box-shadow: 0 0 0 2px #2e3b31; }
-@media (max-width: 960px) { .closure-runtime-grid { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 760px) { .closure-card { padding: 14px; } }
+@media (max-width: 760px) {
+  .closure-card { padding: 14px; }
+  .closure-runtime-grid { grid-template-columns: minmax(0, 1fr); }
+}

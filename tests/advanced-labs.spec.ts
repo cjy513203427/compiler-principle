@@ -1,9 +1,29 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { lessons } from '../src/content/lessons';
+
+async function expectNoDoubleEditorScroll(page: Page) {
+  const metrics = await page.evaluate(() => {
+    const body = document.querySelector<HTMLElement>('.editor-body');
+    const ta = document.querySelector<HTMLTextAreaElement>('#source-code');
+    if (!body || !ta) return null;
+    return {
+      taScrollH: ta.scrollHeight,
+      taClientH: ta.clientHeight,
+      taOverflowY: getComputedStyle(ta).overflowY,
+      bodyScrollW: body.scrollWidth,
+      bodyClientW: body.clientWidth,
+    };
+  });
+  expect(metrics).not.toBeNull();
+  expect(metrics!.taOverflowY).toBe('hidden');
+  expect(metrics!.taScrollH).toBeLessThanOrEqual(metrics!.taClientH + 2);
+  expect(metrics!.bodyScrollW).toBeLessThanOrEqual(metrics!.bodyClientW + 1);
+}
 
 test('instruction selection (isel) compares DP vs Maximal Munch and verifies equivalence', async ({ page }) => {
   await page.goto('/?lab=isel');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('CISC');
+  await expectNoDoubleEditorScroll(page);
   await page.getByRole('button', { name: '看最终结果' }).click();
   await expect(page.getByLabel('指令选择行为核对')).toContainText('四个目标版本与原 Mini C 虚拟机输出和错误完全一致');
   await expect(page.getByLabel('四种指令选择结果对比')).toContainText('LEA v2_addr');
@@ -48,10 +68,30 @@ test('inlining & escape analysis (escape) unlocks SROA zero-heap allocation', as
 test('OOP vtable dispatch traces layout, vtable slots, and CHA devirtualization', async ({ page }) => {
   await page.goto('/?lab=vtable');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('子类的方法');
+  await expectNoDoubleEditorScroll(page);
   await page.getByRole('button', { name: '看最终结果' }).click();
   await expect(page.getByLabel('对象内存布局与虚函数表')).toContainText('Rect::area');
   await expect(page.getByLabel('静态去虚拟化分析')).toContainText('可静态直调');
   await expect(page.locator('.output-console pre')).toContainText('20\n8\n36');
+
+  // Verify vtable class cards never overlap and inner tables stay contained inside their cards.
+  const layoutOk = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll<HTMLElement>('.vtable-class-box')];
+    const rects = cards.map((c) => c.getBoundingClientRect());
+    for (let i = 0; i < cards.length; i++) {
+      const tableWrap = cards[i].querySelector<HTMLElement>('.table-scroll');
+      if (tableWrap && tableWrap.getBoundingClientRect().right > rects[i].right + 1) return false;
+      for (let j = i + 1; j < cards.length; j++) {
+        const a = rects[i];
+        const b = rects[j];
+        const overlapX = a.left < b.right - 1 && b.left < a.right - 1;
+        const overlapY = a.top < b.bottom - 1 && b.top < a.bottom - 1;
+        if (overlapX && overlapY) return false;
+      }
+    }
+    return cards.length === 3;
+  });
+  expect(layoutOk).toBe(true);
 
   await page.setViewportSize({ width: 320, height: 740 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -60,6 +100,7 @@ test('OOP vtable dispatch traces layout, vtable slots, and CHA devirtualization'
 test('closure lab boxes captured variables into heap cells surviving frame pop', async ({ page }) => {
   await page.goto('/?lab=closure');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('局部变量为什么还活着');
+  await expectNoDoubleEditorScroll(page);
   await page.getByRole('button', { name: '看最终结果' }).click();
   await expect(page.getByLabel('运行时栈与堆环境')).toContainText('Cell#1');
   await expect(page.getByLabel('运行时栈与堆环境')).toContainText('原栈帧已弹出');
