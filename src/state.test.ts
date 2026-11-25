@@ -14,6 +14,35 @@ import { escapePresets } from './content/escape';
 import { vtablePresets } from './content/vtable';
 import { closurePresets } from './content/closure';
 import { coroutinePresets } from './content/coroutine';
+import { genericsPresets } from './content/generics';
+import { inlineCachePresets } from './content/inlinecache';
+import { concurGcPresets } from './content/concurgc';
+import { seaOfNodesPresets } from './content/seaofnodes';
+
+it('restores labs 27–30 (generics, inlinecache, concurgc, seaofnodes) with bounded inputs and local notes', () => {
+  expect(readUrl('?lab=generics').source).toBe(genericsPresets[0].code);
+  expect(readUrl('?lab=inlinecache').source).toBe(inlineCachePresets[0].code);
+  expect(readUrl('?lab=concurgc').source).toBe(concurGcPresets[0].code);
+  expect(readUrl('?lab=seaofnodes').source).toBe(seaOfNodesPresets[0].code);
+  const shared = shareUrl('http://localhost:5173', 'seaofnodes', seaOfNodesPresets[2].code, 3, {
+    fold: true,
+    propagate: true,
+    dead: true,
+  });
+  expect(readUrl(new URL(shared).search)).toMatchObject({
+    route: 'seaofnodes',
+    source: seaOfNodesPresets[2].code,
+    step: 3,
+  });
+  expect(readUrl('?lab=generics&code=' + 'a'.repeat(2001)).source).toBe(genericsPresets[0].code);
+  const noteIds = ['generics', 'inlinecache', 'concurgc', 'seaofnodes'] as const;
+  const notes = Object.fromEntries(noteIds.map((id) => [id, `笔记-${id}`]));
+  expect(validateNotebook({ version: 1, notes, completed: [...noteIds] })).toEqual({
+    version: 1,
+    notes,
+    completed: [...noteIds],
+  });
+});
 
 it('restores the 6 advanced labs (isel, ssaopt, escape, vtable, closure, coroutine) with bounded inputs and local notes', () => {
   expect(readUrl('?lab=isel').source).toBe(iselPresets[0].code);

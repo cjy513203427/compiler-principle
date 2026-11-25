@@ -1,0 +1,30 @@
+.ic-view { min-width: 0; }
+.ic-status { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 14px; background: #fff5ea; border: 1px solid #edd0b4; border-radius: 8px; font-size: 13px; }
+.ic-status span { color: #7d4416; }
+.ic-card { min-width: 0; margin: 16px 0; padding: 18px; background: white; border: 1px solid var(--line); border-radius: 8px; }
+.ic-card h3 { font-size: 15px; margin: 0 0 12px; }
+.ic-card p { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.shape-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.shape-box { padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; min-width: 0; }
+.shape-box.active { border-color: #c2651d; background: #fff9f2; box-shadow: 0 0 0 2px rgba(194, 101, 29, 0.14); }
+.shape-box header { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; margin-bottom: 8px; font-size: 13px; flex-wrap: wrap; }
+.shape-box header small { font-family: var(--mono); color: #666; font-size: 11px; }
+.shape-props { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+.shape-slot { padding: 3px 7px; background: white; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+.shape-empty { color: #777; font-size: 12px; }
+.shape-edges { display: flex; flex-wrap: wrap; gap: 5px; font: 11px var(--mono); color: #2b5b84; }
+.ic-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ic-table th, .ic-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.ic-table tr.active-row { background: #fff8ee; }
+.ic-pill { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.ic-pill.uninitialized { background: #f0f0f0; color: #555; }
+.ic-pill.monomorphic { background: #e3f5e9; color: #1b6036; }
+.ic-pill.polymorphic { background: #fff2dc; color: #8c4f0a; }
+.ic-pill.megamorphic { background: #fde8e8; color: #9c1f1f; }
+.ic-heap-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.ic-heap-obj { padding: 10px 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; font: 12px var(--mono); display: grid; gap: 3px; }
+.ic-heap-obj.active { border-color: #c2651d; background: #fff9f2; }
+.ic-shape-ref { color: #7d4416; font-weight: 600; }
+@media (max-width: 760px) {
+  .ic-card { padding: 14px; }
+}

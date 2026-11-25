@@ -79,6 +79,10 @@ export function traceLength(result: Compilation, stage: Stage): number {
     case 'vtable':
     case 'closure':
     case 'coroutine':
+    case 'generics':
+    case 'inlinecache':
+    case 'concurgc':
+    case 'seaofnodes':
       // These labs read their own input (rules / grammar); see analyzeAutomata and analyzeGrammar.
       return 0;
   }
@@ -129,6 +133,10 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
     case 'vtable':
     case 'closure':
     case 'coroutine':
+    case 'generics':
+    case 'inlinecache':
+    case 'concurgc':
+    case 'seaofnodes':
       return '';
   }
 }

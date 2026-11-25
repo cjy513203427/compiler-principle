@@ -122,6 +122,54 @@ test('coroutine lab lowers yield to switch(state) and hoists only live-across-yi
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test('generics lab compares type erasure boxing vs monomorphization specialization', async ({ page }) => {
+  await page.goto('/?lab=generics');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Box<T>');
+  await page.getByRole('button', { name: '看最终结果' }).click();
+  await expect(page.getByLabel('双路线开销与行为对照')).toContainText('类型擦除');
+  await expect(page.getByLabel('双路线开销与行为对照')).toContainText('单态化');
+  await expect(page.locator('.output-console pre')).toContainText('50\ntrue');
+
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('inlinecache lab builds Shape transition tree and tracks IC states', async ({ page }) => {
+  await page.goto('/?lab=inlinecache');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('V8');
+  await page.getByRole('button', { name: '看最终结果' }).click();
+  await expect(page.getByLabel('隐藏类转移树')).toContainText('Shape#2');
+  await expect(page.getByLabel('内联缓存状态表')).toContainText('单态 (Monomorphic)');
+  await expect(page.locator('.output-console pre')).toContainText('2\n4\n8');
+
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('concurgc lab reproduces lost-object bug without barrier and rescues with Dijkstra & SATB', async ({ page }) => {
+  await page.goto('/?lab=concurgc');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('三色标记');
+  await page.getByRole('button', { name: '看最终结果' }).click();
+  await expect(page.getByLabel('无写屏障（Naive）')).toContainText('误杀可达对象 [C]');
+  await expect(page.getByLabel('Dijkstra 插入屏障')).toContainText('安全且精确');
+  await expect(page.getByLabel('Yuasa SATB 删除屏障')).toContainText('安全且精确');
+
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('seaofnodes lab prunes cold branch and deoptimizes safely on out-of-profile input', async ({ page }) => {
+  await page.goto('/?lab=seaofnodes');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('分支');
+  await page.getByRole('button', { name: '看最终结果' }).click();
+  await expect(page.getByLabel('JIT 执行与逆优化核对')).toContainText('JIT 优化快路径');
+  await expect(page.getByLabel('JIT 执行与逆优化核对')).toContainText('触发 Deopt');
+  await expect(page.getByLabel('JIT 执行与逆优化核对')).toContainText('一致 ✓');
+
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test('advanced route links all 6 new labs with zero external requests and local notes', async ({ page }) => {
   const external: string[] = [];
   page.on('request', (request) => {

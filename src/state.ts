@@ -20,6 +20,10 @@ import { escapePresets } from './content/escape';
 import { vtablePresets } from './content/vtable';
 import { closurePresets } from './content/closure';
 import { coroutinePresets } from './content/coroutine';
+import { genericsPresets } from './content/generics';
+import { inlineCachePresets } from './content/inlinecache';
+import { concurGcPresets } from './content/concurgc';
+import { seaOfNodesPresets } from './content/seaofnodes';
 import { normalizeRegisterSettings, type RegisterSettings } from './compiler/regalloc';
 
 export type Route = Stage | 'home' | 'notes' | 'sources' | 'assembly';
@@ -63,6 +67,14 @@ export function readUrl(search: string) {
         ? closurePresets[0].code
         : route === 'coroutine'
         ? coroutinePresets[0].code
+        : route === 'generics'
+        ? genericsPresets[0].code
+        : route === 'inlinecache'
+        ? inlineCachePresets[0].code
+        : route === 'concurgc'
+        ? concurGcPresets[0].code
+        : route === 'seaofnodes'
+        ? seaOfNodesPresets[0].code
         : route === 'cfg'
         ? flowPresets[0].code
         : route === 'dataflow'

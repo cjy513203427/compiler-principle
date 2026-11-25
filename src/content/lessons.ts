@@ -17,6 +17,10 @@ import { escapeLesson } from './escape';
 import { vtableLesson } from './vtable';
 import { closureLesson } from './closure';
 import { coroutineLesson } from './coroutine';
+import { genericsLesson } from './generics';
+import { inlineCacheLesson } from './inlinecache';
+import { concurGcLesson } from './concurgc';
+import { seaOfNodesLesson } from './seaofnodes';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -57,14 +61,29 @@ export const chapters = [
     file: '32 运行时（二）：垃圾收集与语言的特性有关吗？.md',
   },
   {
+    number: '14',
+    title: 'Java JIT编译器（二）：Sea of Nodes为何如此强大？',
+    file: '14 Java JIT编译器（二）：Sea of Nodes为何如此强大？.md',
+  },
+  {
     number: '15',
     title: 'Java JIT编译器（三）：探究内联和逃逸分析的算法原理',
     file: '15 Java JIT编译器（三）：探究内联和逃逸分析的算法原理.md',
   },
   {
+    number: '21',
+    title: 'JavaScript编译器（二）：V8的解释器和优化编译器',
+    file: '21 JavaScript编译器（二）：V8的解释器和优化编译器.md',
+  },
+  {
     number: '34',
     title: '并发中的编译技术（二）：如何从语言层面支持协程？',
     file: '34 并发中的编译技术（二）：如何从语言层面支持协程？.md',
+  },
+  {
+    number: '37',
+    title: '高级特性（二）：揭秘泛型编程的实现机制',
+    file: '37 高级特性（二）：揭秘泛型编程的实现机制.md',
   },
   {
     number: '38',
@@ -110,6 +129,10 @@ export const lessonVerifiedAt: Record<Stage, string> = {
   vtable: '2026-11-25',
   closure: '2026-11-25',
   coroutine: '2026-11-25',
+  generics: '2026-11-25',
+  inlinecache: '2026-11-25',
+  concurgc: '2026-11-25',
+  seaofnodes: '2026-11-25',
 };
 export const chapterUrl = (number: string) =>
   `${BOOK}/${encodeURIComponent(chapters.find((c) => c.number === number)!.file)}`;
@@ -467,6 +490,10 @@ export const lessons: Lesson[] = [
   vtableLesson,
   closureLesson,
   coroutineLesson,
+  genericsLesson,
+  inlineCacheLesson,
+  concurGcLesson,
+  seaOfNodesLesson,
 ];
 export const flowPresets = [
   {

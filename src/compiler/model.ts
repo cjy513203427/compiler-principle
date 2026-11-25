@@ -24,7 +24,11 @@ export type Stage =
   | 'escape'
   | 'vtable'
   | 'closure'
-  | 'coroutine';
+  | 'coroutine'
+  | 'generics'
+  | 'inlinecache'
+  | 'concurgc'
+  | 'seaofnodes';
 export type Value = number | boolean;
 export type DataType = 'int' | 'bool';
 export type TokenKind = 'keyword' | 'identifier' | 'number' | 'operator' | 'punctuation' | 'eof';

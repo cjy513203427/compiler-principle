@@ -1,0 +1,28 @@
+.generics-view { min-width: 0; }
+.generics-status { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 14px; background: #f2eef9; border: 1px solid #d7cceb; border-radius: 8px; font-size: 13px; }
+.generics-status span { color: #543d7a; }
+.generics-card { min-width: 0; margin: 16px 0; padding: 18px; background: white; border: 1px solid var(--line); border-radius: 8px; }
+.generics-card h3 { font-size: 15px; margin: 0 0 12px; }
+.generics-card p { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+.generics-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.generics-split .generics-card { margin: 0; }
+.gen-op-badge { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+.op-erased, .op-mono { padding: 6px 10px; border-radius: 6px; font-size: 12px; }
+.op-erased { background: #fff3eb; border: 1px solid #efc8ae; color: #8c3f14; }
+.op-mono { background: #eaf6ee; border: 1px solid #bdddc7; color: #1f5c37; }
+.gen-clash-banner { margin-bottom: 12px; padding: 10px 12px; background: #fff1f0; border: 1px solid #e6b3ae; border-radius: 6px; color: #94261c; font-size: 13px; line-height: 1.6; }
+.gen-unit-list { display: grid; gap: 10px; }
+.gen-unit { padding: 10px 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; min-width: 0; }
+.gen-unit.mono { background: #f6fbf7; border-color: #cde2d3; }
+.gen-unit-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; margin-bottom: 6px; font-size: 13px; }
+.gen-unit-head small { color: #5f6670; font-family: var(--mono); font-size: 11px; }
+.gen-code { margin: 0; padding: 10px 12px; background: #1e1e1e; color: #d4d4d4; border-radius: 5px; font: 12px/1.6 var(--mono); overflow-x: auto; }
+.gen-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gen-table th, .gen-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.metric-warn { color: #9c4a1a; font-weight: 700; }
+.metric-good { color: #1f6039; font-weight: 700; }
+.metric-note { color: #543d7a; font-weight: 700; }
+@media (max-width: 760px) {
+  .generics-card { padding: 14px; }
+  .generics-split { grid-template-columns: minmax(0, 1fr); }
+}

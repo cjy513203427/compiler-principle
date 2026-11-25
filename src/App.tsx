@@ -43,6 +43,18 @@ import { ClosureView } from './components/ClosureView';
 import { coroutinePresets } from './content/coroutine';
 import { analyzeCoroutine } from './compiler/coroutine';
 import { CoroutineView } from './components/CoroutineView';
+import { genericsPresets } from './content/generics';
+import { analyzeGenerics } from './compiler/generics';
+import { GenericsView } from './components/GenericsView';
+import { inlineCachePresets } from './content/inlinecache';
+import { analyzeInlineCache } from './compiler/inlinecache';
+import { InlineCacheView } from './components/InlineCacheView';
+import { concurGcPresets } from './content/concurgc';
+import { analyzeConcurGc } from './compiler/concurgc';
+import { ConcurGcView } from './components/ConcurGcView';
+import { seaOfNodesPresets } from './content/seaofnodes';
+import { analyzeSeaOfNodes } from './compiler/seaofnodes';
+import { SeaOfNodesView } from './components/SeaOfNodesView';
 import { RegisterSettingsFieldset } from './components/RegallocView';
 import type { RegisterSettings } from './compiler/regalloc';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
@@ -103,6 +115,10 @@ const stageNames: Record<Stage, string> = {
   vtable: '面向对象与虚表分派',
   closure: '闭包与环境捕获',
   coroutine: '协程与状态机改写',
+  generics: '泛型编译：擦除与单态化',
+  inlinecache: '隐藏类与内联缓存',
+  concurgc: '并发 GC 与写屏障',
+  seaofnodes: 'Sea of Nodes 与去优化',
 };
 type InputKind =
   | 'program'
@@ -115,7 +131,11 @@ type InputKind =
   | 'escape'
   | 'vtable'
   | 'closure'
-  | 'coroutine';
+  | 'coroutine'
+  | 'generics'
+  | 'inlinecache'
+  | 'concurgc'
+  | 'seaofnodes';
 // Rules and grammar labs keep their own input instead of a Mini C program.
 const kindOf = (route: Route): InputKind =>
   route === 'automata' ||
@@ -127,7 +147,11 @@ const kindOf = (route: Route): InputKind =>
   route === 'escape' ||
   route === 'vtable' ||
   route === 'closure' ||
-  route === 'coroutine'
+  route === 'coroutine' ||
+  route === 'generics' ||
+  route === 'inlinecache' ||
+  route === 'concurgc' ||
+  route === 'seaofnodes'
     ? route
     : 'program';
 const inputCopy = {
@@ -170,6 +194,26 @@ const inputCopy = {
     title: '协程程序', format: 'coro / yield / resume / done', custom: '自定义协程程序', file: 'coro.sm',
     field: '协程程序', run: '改写状态机并执行', dirty: '协程程序已修改。运行后更新右侧结果。',
     presets: coroutinePresets,
+  },
+  generics: {
+    title: '泛型程序', format: 'struct<T> / fn<T> / 擦除与单态化', custom: '自定义泛型程序', file: 'generics.gn',
+    field: '泛型程序', run: '双路线编译并执行', dirty: '泛型程序已修改。运行后更新右侧结果。',
+    presets: genericsPresets,
+  },
+  inlinecache: {
+    title: '动态对象程序', format: '{ k: v } / obj.prop / 动态加属性', custom: '自定义动态对象程序', file: 'shapes.ic',
+    field: '动态对象程序', run: '追踪 Shape 与 IC', dirty: '程序已修改。运行后更新右侧结果。',
+    presets: inlineCachePresets,
+  },
+  concurgc: {
+    title: '并发堆与操作序列', format: 'heap / root / edge / %% / mark / link / cut', custom: '自定义并发 GC 序列', file: 'concur.gc',
+    field: '并发 GC 堆与操作', run: '运行三屏障对照', dirty: '堆或并发操作已修改。运行后更新右侧结果。',
+    presets: concurGcPresets,
+  },
+  seaofnodes: {
+    title: '函数与 Profile / Run 样例', format: 'fn(...) / profile (...) / run (...)', custom: '自定义 Sea of Nodes 函数', file: 'graph.son',
+    field: '函数与运行样例', run: '构建图并执行去优化', dirty: '函数或样例已修改。运行后更新右侧结果。',
+    presets: seaOfNodesPresets,
   },
   automata: {
     title: '词法规则与输入',
@@ -312,6 +356,24 @@ export default function App() {
     () => (inputKind === 'coroutine' ? analyzeCoroutine(source) : undefined),
     [inputKind, source],
   );
+  const toIssue = <T,>(r: { ok: true; analysis: T } | { ok: false; error: string }) =>
+    r.ok ? r : { ok: false as const, issue: { message: r.error, start: 0, end: 0 } };
+  const genericsResult = useMemo(
+    () => (inputKind === 'generics' ? toIssue(analyzeGenerics(source)) : undefined),
+    [inputKind, source],
+  );
+  const inlineCacheResult = useMemo(
+    () => (inputKind === 'inlinecache' ? toIssue(analyzeInlineCache(source)) : undefined),
+    [inputKind, source],
+  );
+  const concurGcResult = useMemo(
+    () => (inputKind === 'concurgc' ? toIssue(analyzeConcurGc(source)) : undefined),
+    [inputKind, source],
+  );
+  const seaOfNodesResult = useMemo(
+    () => (inputKind === 'seaofnodes' ? toIssue(analyzeSeaOfNodes(source)) : undefined),
+    [inputKind, source],
+  );
   const ownOutcome =
     automata ||
     grammarResult ||
@@ -322,7 +384,11 @@ export default function App() {
     escapeResult ||
     vtableResult ||
     closureResult ||
-    coroutineResult;
+    coroutineResult ||
+    genericsResult ||
+    inlineCacheResult ||
+    concurGcResult ||
+    seaOfNodesResult;
   const ownIssue = ownOutcome && !ownOutcome.ok ? ownOutcome.issue : undefined;
   const ownFrames = ownOutcome?.ok ? ownOutcome.analysis.frames : undefined;
   const length = lesson
@@ -365,6 +431,10 @@ export default function App() {
     vtable: { source: vtablePresets[0].code, draft: vtablePresets[0].code },
     closure: { source: closurePresets[0].code, draft: closurePresets[0].code },
     coroutine: { source: coroutinePresets[0].code, draft: coroutinePresets[0].code },
+    generics: { source: genericsPresets[0].code, draft: genericsPresets[0].code },
+    inlinecache: { source: inlineCachePresets[0].code, draft: inlineCachePresets[0].code },
+    concurgc: { source: concurGcPresets[0].code, draft: concurGcPresets[0].code },
+    seaofnodes: { source: seaOfNodesPresets[0].code, draft: seaOfNodesPresets[0].code },
   });
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)');
@@ -958,6 +1028,30 @@ export default function App() {
                           <p>用 coro name(n) {'{ ... yield v; ... return r; }'} 定义无栈协程；顶层驱动代码用 let g = name(3); 创建协程帧，用 resume(g) 推进、done(g) 判断是否结束、print(...) 输出。</p>
                           <p>跨 yield 仍活跃的变量会被提升进协程帧结构体，仅在两次 yield 间使用的临时变量留在临时调用栈。</p>
                         </details>
+                      ) : inputKind === 'generics' ? (
+                        <details className="language-help">
+                          <summary>泛型方言怎么写？</summary>
+                          <p>支持 struct Box&lt;T&gt; {'{ T value; }'}、fn id&lt;T&gt;(T x) {'->'} T {'{ return x; }'}、简单类继承 class Cat extends Animal {'{}'}、int / bool / str 与 print(...)。</p>
+                          <p>同一份代码同时跑类型擦除（自动插入 box / checkcast / unbox，并检测擦除重载冲突）与单态化（按具体类型展开零装箱特化代码）。</p>
+                        </details>
+                      ) : inputKind === 'inlinecache' ? (
+                        <details className="language-help">
+                          <summary>动态对象方言怎么写？</summary>
+                          <p>用 let p = {'{ x: 2, y: 3 }'}; 创建对象，p.z = 10; 动态追加属性，fn getX(o) {'{ return o.x; }'} 访问属性。支持 if / else、while 与 print(...)。</p>
+                          <p>属性按添加顺序沿隐藏类（Shape）转移树分配偏移；每个 o.prop 点的内联缓存随遇到不同 Shape 经历未初始化 → 单态 → 多态（≤4）→ 超态。</p>
+                        </details>
+                      ) : inputKind === 'concurgc' ? (
+                        <details className="language-help">
+                          <summary>并发 GC 序列怎么写？</summary>
+                          <p>%% 上方写初始堆：heap A B C、root A、edge A {'->'} B。%% 下方写交错命令：mark-step、mark-all、link X {'->'} Y、cut X {'->'} Y、root X、drop X、alloc X、sweep。</p>
+                          <p>三种策略（无写屏障 / Dijkstra 插入屏障 / Yuasa SATB 删除屏障）同步推进，sweep 时用独立 BFS 核对是否误杀活对象或保留浮动垃圾。</p>
+                        </details>
+                      ) : inputKind === 'seaofnodes' ? (
+                        <details className="language-help">
+                          <summary>Sea of Nodes 输入怎么写？</summary>
+                          <p>写一个 fn name(a, b) {'{ ... return ...; }'}，下方用 profile (12), (25) 提供热点采样输入，用 run (18), (3) 提供实际运行测试输入。</p>
+                          <p>图会依次运行 Canonicalizer（强度折减/双负号/折叠）、GVN 节点合并、冷分支 FixedGuard + Deopt(FrameState) 裁剪，并与基线解释器核对所有 run 输入。</p>
+                        </details>
                       ) : inputKind === 'functions' ? (
                         <details className="language-help">
                           <summary>函数方言怎么写？</summary>
@@ -1035,6 +1129,14 @@ export default function App() {
                           closureResult?.ok && <ClosureView key={source} analysis={closureResult.analysis} step={currentStep} />
                         ) : inputKind === 'coroutine' ? (
                           coroutineResult?.ok && <CoroutineView key={source} analysis={coroutineResult.analysis} step={currentStep} />
+                        ) : inputKind === 'generics' ? (
+                          genericsResult?.ok && <GenericsView key={source} analysis={genericsResult.analysis} step={currentStep} />
+                        ) : inputKind === 'inlinecache' ? (
+                          inlineCacheResult?.ok && <InlineCacheView key={source} analysis={inlineCacheResult.analysis} step={currentStep} />
+                        ) : inputKind === 'concurgc' ? (
+                          concurGcResult?.ok && <ConcurGcView key={source} analysis={concurGcResult.analysis} step={currentStep} />
+                        ) : inputKind === 'seaofnodes' ? (
+                          seaOfNodesResult?.ok && <SeaOfNodesView key={source} analysis={seaOfNodesResult.analysis} step={currentStep} />
                         ) : inputKind === 'functions' ? (
                           functions?.ok && <FunctionsView key={source} analysis={functions.analysis} source={source} step={currentStep} />
                         ) : inputKind === 'minimize' ? (
@@ -1490,13 +1592,10 @@ export default function App() {
                 <section>
                   <h2>哪些内容还没有覆盖</h2>
                   <p>
-                    本版专注前端与基础中间表示。完整 LR(1) / LALR、内存 SSA、复制合并、
-                    指令选择与机器码生成、垃圾回收和各真实编译器的工程实现，均不在当前覆盖范围。已有基础分支、循环、常量传播、活跃变量分析，支配树、自然循环、
-                    标量 SSA 构造、校验与基础 SSA 消除，图着色与线性扫描的教学寄存器分配，正则 → NFA → DFA 与 DFA 最小化，FIRST / FOLLOW 与 LL(1) 预测分析，以及 SLR(1) 的移进 / 规约。
-                    当前共涵盖 26 个核心实验与随书汇编附录：包含词法/语法分析、正则 → NFA → DFA 与最小化、LL(1) 与 SLR(1)、语义作用域与类型检查、三地址代码与栈式 VM、CFG / 数据流 / 支配关系 / 标量 SSA 构造与消除、SSA 稀疏条件常量传播（SCCP）、公共子表达式与循环外提、教学树覆盖指令选择、图着色与线性扫描寄存器分配、指令排序与窥孔优化、调用栈、垃圾收集、内联与逃逸分析（SROA）、面向对象虚表分派、闭包装箱以及无栈协程状态机。
+                    当前共涵盖 30 个核心实验与随书汇编附录：包含词法/语法分析、正则 → NFA → DFA 与最小化、LL(1) 与 SLR(1)、语义作用域与类型检查、三地址代码与栈式 VM、CFG / 数据流 / 支配关系 / 标量 SSA 构造与消除、SSA 稀疏条件常量传播（SCCP）、公共子表达式与循环外提、教学树覆盖指令选择、图着色与线性扫描寄存器分配、指令排序与窥孔优化、调用栈、垃圾收集与并发三色写屏障、内联与逃逸分析（SROA）、面向对象虚表分派、闭包装箱、无栈协程状态机、泛型擦除与单态化、V8 隐藏类与内联缓存，以及 Sea of Nodes 规范化与去优化。
                   </p>
                   <p>
-                    完整 LR(1) / LALR、内存 SSA、SSA 消除后的复制合并、真实机器码编码、分代/并发三色 GC 写屏障、泛型编译（类型擦除 vs 单态化）、V8 隐藏类与内联缓存、Graal Sea of Nodes 与去优化、SIMD 自动向量化，以及各真实编译器的完整工程实现，均不在当前覆盖范围。
+                    完整 LR(1) / LALR、内存 SSA、SSA 消除后的复制合并、真实机器码编码、分代卡表与 ZGC 读屏障、SIMD 自动向量化、尾递归转循环、Hindley–Milner 类型推导、SQL 查询代价优化器，以及各真实编译器的完整工程实现，均不在当前覆盖范围。
                   </p>
                   <p>
                     支配关系实验于 2026-11-17 补充核对 Cornell 与 LLVM
@@ -1526,8 +1625,8 @@ export default function App() {
                   <a href={ISEL_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · Instruction Selection ↗</a>
                   <p>第 22 个实验（SSA 上的优化）基于本地缓存的第 07 讲与标准 Wegman–Zadeck 稀疏条件常量传播算法，在实验 13 的 SSA 上直接运行 CFG + SSA 双工作表传播、平凡 φ 化简与保守死代码消除。</p>
                   <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA & Sparse Optimizations ↗</a>
-                  <p>第 23–26 个实验（内联与逃逸分析、面向对象虚表分派、闭包与环境捕获、协程与状态机改写）分别映射原书第 15、38、39、34 讲主题（第 07 讲 SROA 与内联已由本地缓存核对，其余四讲仅作章节索引，未发起额外网络请求）。</p>
                   <p>第 23–26 个实验（内联与逃逸分析、面向对象虚表分派、闭包与环境捕获、协程与状态机改写）于 2026-11-25 通过缓存脚本单页串行读取原书第 15、38、39、34 讲完成概念与边界核对（同时结合本地缓存第 07 讲的 SROA 与内联）；第 15 讲的锁消除/部分逃逸分析/逆优化、第 38 讲多重继承、第 39 讲延迟求值与尾递归转循环、第 34 讲有栈协程与异步调度不在模拟范围。</p>
+                  <p>第 27–30 个实验（泛型擦除与单态化、V8 隐藏类与内联缓存、并发 GC 写屏障、Sea of Nodes 与去优化）同日通过缓存脚本单页串行读取原书第 37、21、14 讲并复核第 32 讲缓存完成核对；每个实验均附独立参考解释器或可达性核对，教学代价与简化边界均在对应实验页明示。</p>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1750,6 +1849,14 @@ function Home({
                               ? '自由变量 / 堆上 Cell / 环境'
                               : item.id === 'coroutine'
                               ? '跨 yield 活跃 / switch 状态机'
+                              : item.id === 'generics'
+                              ? '类型擦除 / 单态化 / 不变性'
+                              : item.id === 'inlinecache'
+                              ? 'Shape 转移树 / 单态→超态 IC'
+                              : item.id === 'concurgc'
+                              ? '三色漏标 / Dijkstra / SATB 屏障'
+                              : item.id === 'seaofnodes'
+                              ? '控制+数据双图 / GVN / Deopt'
                               : item.id === 'schedule'
                               ? '依赖图 / 列表调度 / 窥孔窗口'
                               : item.id === 'regalloc'
@@ -1944,20 +2051,28 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
           </>
         )}
         {lesson.id === 'escape' && (
-          <small>概念来源：2026-11-25 结合本地缓存的第 07 讲（内联与 SROA）并映射第 15 讲主题（第 15 讲仅作章节索引，未额外抓取）；内联预算与逃逸模型为教学实现。</small>
           <small>概念来源：2026-11-25 通过缓存脚本单页读取原书第 15 讲并结合第 07 讲（内联、连接图逃逸传播、NoEscape / ArgEscape / GlobalEscape 与 SROA）；不模拟多态内联、锁消除、PEA 与逆优化。</small>
         )}
         {lesson.id === 'vtable' && (
-          <small>概念来源：2026-11-25 映射原书第 38 讲面向对象实现主题（仅作章节索引，未额外抓取）；前缀布局、虚表槽位与封闭世界 CHA 去虚拟化为本项目教学实现。</small>
           <small>概念来源：2026-11-25 通过缓存脚本单页读取原书第 38 讲（单继承前缀对象布局、静态绑定 vs 动态绑定、vptr / vtable）；封闭世界 CHA 去虚拟化为本项目教学扩展，不模拟多重继承偏移调整与接口表。</small>
         )}
         {lesson.id === 'closure' && (
-          <small>概念来源：2026-11-25 映射原书第 05 / 39 讲闭包与函数式实现主题（仅作章节索引，未额外抓取）；堆上 Cell 装箱与扁平闭包环境经独立链式词法解释器核对。</small>
           <small>概念来源：2026-11-25 通过缓存脚本单页读取原书第 39 讲（一等函数、高阶函数与闭包的自由变量堆分配）；堆上 Cell 装箱与扁平闭包环境经独立链式词法解释器核对，未涵盖延迟求值与尾递归转循环。</small>
         )}
         {lesson.id === 'coroutine' && (
-          <small>概念来源：2026-11-25 映射原书第 34 讲协程编译主题（仅作章节索引，未额外抓取）；跨 yield 活跃分析与 switch(state) 状态机经独立生成器核对。</small>
           <small>概念来源：2026-11-25 通过缓存脚本单页读取原书第 34 讲（协程堆上活动记录、无栈 vs 有栈、非对称协程）；跨 yield 活跃分析与 switch(state) 状态机经独立生成器核对，不模拟 Side Stack 与异步 IO 调度。</small>
+        )}
+        {lesson.id === 'generics' && (
+          <small>概念来源：2026-11-25 通过缓存脚本单页读取原书第 37 讲（类型擦除、装箱/checkcast、重载冲突、模板单态化与泛型不变性）；对象头 16B 与双路线 VM 经独立类型化参考解释器核对。</small>
+        )}
+        {lesson.id === 'inlinecache' && (
+          <small>概念来源：2026-11-25 通过缓存脚本单页读取原书第 21 讲（V8 隐藏类 Shapes、属性顺序分叉与内联缓存 IC）；多态上限 4 与访问周期为教学模型，经独立字典模式解释器核对。</small>
+        )}
+        {lesson.id === 'concurgc' && (
+          <small>概念来源：2026-11-25 复核本地缓存第 32 讲（增量/并发垃圾收集与 STW 问题），补充三色漏标条件、Dijkstra 插入写屏障与 Yuasa SATB 删除写屏障及浮动垃圾对照，由独立 BFS 核对可达性。</small>
+        )}
+        {lesson.id === 'seaofnodes' && (
+          <small>概念来源：2026-11-25 通过缓存脚本单页读取原书第 14 讲并结合第 15 讲（Sea of Nodes 固定/浮动节点、Canonicalizer、GVN、投机优化与 FrameState 逆优化）；经独立基线解释器核对所有运行输入。</small>
         )}
         {lesson.id === 'schedule' && (
           <small>概念来源：2026-11-22 从本地缓存重读原书第 08 讲的指令排序与窥孔优化两节；延迟数值、关键路径优先级与精确异常约定是本项目的教学模型，未另找外部资料核对。</small>
