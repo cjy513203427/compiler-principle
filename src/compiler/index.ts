@@ -11,11 +11,24 @@ import { lowerSSA } from './outssa';
 import { allocateRegisters, sweepRegisters, type RegisterSettings } from './regalloc';
 import { scheduleAllocation, sweepSchedules } from './schedule';
 import { analyzeRedundancy } from './redundancy';
+import { analyzeInstructionSelection } from './isel';
+import { optimizeSSA } from './ssaopt';
 import { CompileError, type Diagnostic, type OptimizationOptions } from './model';
 export * from './model';
 export { tokenize, parse, analyze, generateIR, optimize, generateBytecode, execute };
 
-export function compile(source: string, options: OptimizationOptions, settings: { outOfSSA?: boolean; registers?: RegisterSettings; schedule?: boolean; redundancy?: boolean } = {}) {
+export function compile(
+  source: string,
+  options: OptimizationOptions,
+  settings: {
+    outOfSSA?: boolean;
+    registers?: RegisterSettings;
+    schedule?: boolean;
+    redundancy?: boolean;
+    isel?: boolean;
+    ssaopt?: boolean;
+  } = {},
+) {
   let lex: ReturnType<typeof tokenize> | undefined;
   let syntax: ReturnType<typeof parse> | undefined;
   let semantic: ReturnType<typeof analyze> | undefined;
@@ -38,6 +51,8 @@ export function compile(source: string, options: OptimizationOptions, settings: 
   let schedule: ReturnType<typeof scheduleAllocation> | undefined;
   let scheduleSweep: ReturnType<typeof sweepSchedules> | undefined;
   let redundancy: ReturnType<typeof analyzeRedundancy> | undefined;
+  let isel: ReturnType<typeof analyzeInstructionSelection> | undefined;
+  let ssaopt: ReturnType<typeof optimizeSSA> | undefined;
   try {
     lex = tokenize(source);
     syntax = parse(lex.tokens);
@@ -55,6 +70,8 @@ export function compile(source: string, options: OptimizationOptions, settings: 
     ssa = buildSSA(dominance, liveness);
     if (settings.outOfSSA) outssa = lowerSSA(ssa, dominance);
     if (settings.redundancy) redundancy = analyzeRedundancy(ir, dominance);
+    if (settings.isel) isel = analyzeInstructionSelection(ir, baseline);
+    if (settings.ssaopt) ssaopt = optimizeSSA(ssa, dominance, baseline);
     if (settings.registers) {
       // Allocate the unoptimized IR so every temporary and its pressure stays visible.
       regalloc = allocateRegisters(ir, dominance, settings.registers);
@@ -101,6 +118,8 @@ export function compile(source: string, options: OptimizationOptions, settings: 
     schedule,
     scheduleSweep,
     redundancy,
+    isel,
+    ssaopt,
     hasControlFlow: ir ? hasControlFlow(ir) : false,
   };
 }

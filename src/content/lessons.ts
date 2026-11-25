@@ -11,6 +11,12 @@ import { regallocLesson, regallocPresets } from './regalloc';
 import { scheduleLesson, schedulePresets } from './schedule';
 import { redundancyLesson, redundancyPresets } from './redundancy';
 import { gcLesson } from './gc';
+import { iselLesson, iselPresets } from './isel';
+import { ssaOptLesson, ssaOptPresets } from './ssaopt';
+import { escapeLesson } from './escape';
+import { vtableLesson } from './vtable';
+import { closureLesson } from './closure';
+import { coroutineLesson } from './coroutine';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -49,6 +55,30 @@ export const chapters = [
     number: '32',
     title: '运行时（二）：垃圾收集与语言的特性有关吗？',
     file: '32 运行时（二）：垃圾收集与语言的特性有关吗？.md',
+  },
+  {
+    number: '15',
+    title: 'Java JIT编译器（三）：探究内联和逃逸分析的算法原理',
+    file: '15 Java JIT编译器（三）：探究内联和逃逸分析的算法原理.md',
+    verified: false,
+  },
+  {
+    number: '34',
+    title: '并发中的编译技术（二）：如何从语言层面支持协程？',
+    file: '34 并发中的编译技术（二）：如何从语言层面支持协程？.md',
+    verified: false,
+  },
+  {
+    number: '38',
+    title: '综合实现（一）：如何实现面向对象编程？',
+    file: '38 综合实现（一）：如何实现面向对象编程？.md',
+    verified: false,
+  },
+  {
+    number: '39',
+    title: '综合实现（二）：如何实现函数式编程？',
+    file: '39 综合实现（二）：如何实现函数式编程？.md',
+    verified: false,
   },
   {
     number: '18',
@@ -407,6 +437,12 @@ export const lessons: Lesson[] = [
   scheduleLesson,
   redundancyLesson,
   gcLesson,
+  iselLesson,
+  ssaOptLesson,
+  escapeLesson,
+  vtableLesson,
+  closureLesson,
+  coroutineLesson,
 ];
 export const flowPresets = [
   {
@@ -547,5 +583,7 @@ export const presets = [
   ...regallocPresets,
   ...schedulePresets,
   ...redundancyPresets,
+  ...iselPresets,
+  ...ssaOptPresets,
 ];
 export const defaultOptions = { fold: true, propagate: true, dead: true };

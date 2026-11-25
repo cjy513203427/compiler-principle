@@ -14,6 +14,12 @@ import { regallocPresets } from './content/regalloc';
 import { schedulePresets } from './content/schedule';
 import { redundancyPresets } from './content/redundancy';
 import { gcPresets } from './content/gc';
+import { iselPresets } from './content/isel';
+import { ssaOptPresets } from './content/ssaopt';
+import { escapePresets } from './content/escape';
+import { vtablePresets } from './content/vtable';
+import { closurePresets } from './content/closure';
+import { coroutinePresets } from './content/coroutine';
 import { normalizeRegisterSettings, type RegisterSettings } from './compiler/regalloc';
 
 export type Route = Stage | 'home' | 'notes' | 'sources' | 'assembly';
@@ -45,6 +51,18 @@ export function readUrl(search: string) {
         ? redundancyPresets[0].code
         : route === 'gc'
         ? gcPresets[0].code
+        : route === 'isel'
+        ? iselPresets[0].code
+        : route === 'ssaopt'
+        ? ssaOptPresets[0].code
+        : route === 'escape'
+        ? escapePresets[0].code
+        : route === 'vtable'
+        ? vtablePresets[0].code
+        : route === 'closure'
+        ? closurePresets[0].code
+        : route === 'coroutine'
+        ? coroutinePresets[0].code
         : route === 'cfg'
         ? flowPresets[0].code
         : route === 'dataflow'

@@ -8,6 +8,31 @@ import { regallocPresets } from './content/regalloc';
 import { schedulePresets } from './content/schedule';
 import { redundancyPresets } from './content/redundancy';
 import { gcPresets } from './content/gc';
+import { iselPresets } from './content/isel';
+import { ssaOptPresets } from './content/ssaopt';
+import { escapePresets } from './content/escape';
+import { vtablePresets } from './content/vtable';
+import { closurePresets } from './content/closure';
+import { coroutinePresets } from './content/coroutine';
+
+it('restores the 6 advanced labs (isel, ssaopt, escape, vtable, closure, coroutine) with bounded inputs and local notes', () => {
+  expect(readUrl('?lab=isel').source).toBe(iselPresets[0].code);
+  expect(readUrl('?lab=ssaopt').source).toBe(ssaOptPresets[0].code);
+  expect(readUrl('?lab=escape').source).toBe(escapePresets[0].code);
+  expect(readUrl('?lab=vtable').source).toBe(vtablePresets[0].code);
+  expect(readUrl('?lab=closure').source).toBe(closurePresets[0].code);
+  expect(readUrl('?lab=coroutine').source).toBe(coroutinePresets[0].code);
+  const shared = shareUrl('http://localhost:5173', 'vtable', vtablePresets[1].code, 4, { fold: true, propagate: true, dead: true });
+  expect(readUrl(new URL(shared).search)).toMatchObject({ route: 'vtable', source: vtablePresets[1].code, step: 4 });
+  expect(readUrl('?lab=coroutine&code=' + 'a'.repeat(2001)).source).toBe(coroutinePresets[0].code);
+  const noteIds = ['isel', 'ssaopt', 'escape', 'vtable', 'closure', 'coroutine'] as const;
+  const notes = Object.fromEntries(noteIds.map((id) => [id, `笔记-${id}`]));
+  expect(validateNotebook({ version: 1, notes, completed: [...noteIds] })).toEqual({
+    version: 1,
+    notes,
+    completed: [...noteIds],
+  });
+});
 it('restores the redundancy and garbage collection labs with bounded inputs and local notes', () => {
   expect(readUrl('?lab=cse').source).toBe(redundancyPresets[0].code);
   expect(readUrl('?lab=gc').source).toBe(gcPresets[0].code);

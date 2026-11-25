@@ -29,6 +29,20 @@ import { redundancyPresets } from './content/redundancy';
 import { gcPresets } from './content/gc';
 import { analyzeGc } from './compiler/gc';
 import { GcView } from './components/GcView';
+import { iselPresets, ISEL_REFERENCE } from './content/isel';
+import { ssaOptPresets, SCCP_REFERENCE } from './content/ssaopt';
+import { escapePresets } from './content/escape';
+import { analyzeEscape } from './compiler/escape';
+import { EscapeView } from './components/EscapeView';
+import { vtablePresets } from './content/vtable';
+import { analyzeVtable } from './compiler/vtable';
+import { VtableView } from './components/VtableView';
+import { closurePresets } from './content/closure';
+import { analyzeClosure } from './compiler/closure';
+import { ClosureView } from './components/ClosureView';
+import { coroutinePresets } from './content/coroutine';
+import { analyzeCoroutine } from './compiler/coroutine';
+import { CoroutineView } from './components/CoroutineView';
 import { RegisterSettingsFieldset } from './components/RegallocView';
 import type { RegisterSettings } from './compiler/regalloc';
 import { compile, type Stage, type OptimizationOptions } from './compiler';
@@ -82,11 +96,39 @@ const stageNames: Record<Stage, string> = {
   schedule: '指令排序与窥孔优化',
   cse: '公共子表达式与循环外提',
   gc: '垃圾收集',
+  isel: '指令选择',
+  ssaopt: 'SSA 上的优化',
+  escape: '内联与逃逸分析',
+  vtable: '面向对象与虚表分派',
+  closure: '闭包与环境捕获',
+  coroutine: '协程与状态机改写',
 };
-type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize' | 'functions' | 'gc';
+type InputKind =
+  | 'program'
+  | 'automata'
+  | 'grammar'
+  | 'lr'
+  | 'minimize'
+  | 'functions'
+  | 'gc'
+  | 'escape'
+  | 'vtable'
+  | 'closure'
+  | 'coroutine';
 // Rules and grammar labs keep their own input instead of a Mini C program.
 const kindOf = (route: Route): InputKind =>
-  route === 'automata' || route === 'grammar' || route === 'lr' || route === 'minimize' || route === 'functions' || route === 'gc' ? route : 'program';
+  route === 'automata' ||
+  route === 'grammar' ||
+  route === 'lr' ||
+  route === 'minimize' ||
+  route === 'functions' ||
+  route === 'gc' ||
+  route === 'escape' ||
+  route === 'vtable' ||
+  route === 'closure' ||
+  route === 'coroutine'
+    ? route
+    : 'program';
 const inputCopy = {
   program: {
     title: '源程序',
@@ -107,6 +149,26 @@ const inputCopy = {
     title: '堆与操作', format: '对象 / 根 / %% / 操作', custom: '自定义堆', file: 'heap.gc',
     field: '堆描述与操作', run: '运行垃圾收集', dirty: '堆或操作已修改。运行垃圾收集后更新右侧结果。',
     presets: gcPresets,
+  },
+  escape: {
+    title: '结构体与函数程序', format: 'struct / new / 函数 / publish', custom: '自定义逃逸程序', file: 'escape.mc',
+    field: '逃逸分析程序', run: '分析并执行', dirty: '程序已修改。运行分析后更新右侧结果。',
+    presets: escapePresets,
+  },
+  vtable: {
+    title: '面向对象程序', format: 'class / extends / 虚方法调用', custom: '自定义类层次', file: 'vtable.oo',
+    field: '面向对象程序', run: '构建虚表并执行', dirty: '类层次已修改。运行后更新右侧结果。',
+    presets: vtablePresets,
+  },
+  closure: {
+    title: '闭包程序', format: '嵌套 fn / let / 高阶函数', custom: '自定义闭包程序', file: 'closure.fn',
+    field: '闭包程序', run: '分析捕获并执行', dirty: '闭包程序已修改。运行后更新右侧结果。',
+    presets: closurePresets,
+  },
+  coroutine: {
+    title: '协程程序', format: 'coro / yield / resume / done', custom: '自定义协程程序', file: 'coro.sm',
+    field: '协程程序', run: '改写状态机并执行', dirty: '协程程序已修改。运行后更新右侧结果。',
+    presets: coroutinePresets,
   },
   automata: {
     title: '词法规则与输入',
@@ -192,9 +254,19 @@ export default function App() {
   const allocationSettings = usesRegisters ? registers : undefined;
   const needsSchedule = route === 'schedule';
   const needsRedundancy = route === 'cse';
+  const needsIsel = route === 'isel';
+  const needsSsaOpt = route === 'ssaopt';
   const result = useMemo(
-    () => compile(programSource, options, { outOfSSA: needsOutSSA, registers: allocationSettings, schedule: needsSchedule, redundancy: needsRedundancy }),
-    [programSource, options, needsOutSSA, allocationSettings, needsSchedule, needsRedundancy],
+    () =>
+      compile(programSource, options, {
+        outOfSSA: needsOutSSA,
+        registers: allocationSettings,
+        schedule: needsSchedule,
+        redundancy: needsRedundancy,
+        isel: needsIsel,
+        ssaopt: needsSsaOpt,
+      }),
+    [programSource, options, needsOutSSA, allocationSettings, needsSchedule, needsRedundancy, needsIsel, needsSsaOpt],
   );
   const ownInput = inputKind !== 'program';
   const copy = inputCopy[inputKind];
@@ -223,7 +295,33 @@ export default function App() {
     () => (inputKind === 'gc' ? analyzeGc(source) : undefined),
     [inputKind, source],
   );
-  const ownOutcome = automata || grammarResult || lrResult || minimization || functions || gcResult;
+  const escapeResult = useMemo(
+    () => (inputKind === 'escape' ? analyzeEscape(source) : undefined),
+    [inputKind, source],
+  );
+  const vtableResult = useMemo(
+    () => (inputKind === 'vtable' ? analyzeVtable(source) : undefined),
+    [inputKind, source],
+  );
+  const closureResult = useMemo(
+    () => (inputKind === 'closure' ? analyzeClosure(source) : undefined),
+    [inputKind, source],
+  );
+  const coroutineResult = useMemo(
+    () => (inputKind === 'coroutine' ? analyzeCoroutine(source) : undefined),
+    [inputKind, source],
+  );
+  const ownOutcome =
+    automata ||
+    grammarResult ||
+    lrResult ||
+    minimization ||
+    functions ||
+    gcResult ||
+    escapeResult ||
+    vtableResult ||
+    closureResult ||
+    coroutineResult;
   const ownIssue = ownOutcome && !ownOutcome.ok ? ownOutcome.issue : undefined;
   const ownFrames = ownOutcome?.ok ? ownOutcome.analysis.frames : undefined;
   const length = lesson
@@ -233,7 +331,22 @@ export default function App() {
     : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
   const dirty = draft !== source;
-  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : route === 'schedule' ? schedulePresets : route === 'cse' ? redundancyPresets : undefined;
+  const preferredPresets =
+    route === 'ssa'
+      ? ssaPresets
+      : route === 'outssa'
+        ? outSsaPresets
+        : route === 'regalloc'
+          ? regallocPresets
+          : route === 'schedule'
+            ? schedulePresets
+            : route === 'cse'
+              ? redundancyPresets
+              : route === 'isel'
+                ? iselPresets
+                : route === 'ssaopt'
+                  ? ssaOptPresets
+                  : undefined;
   const labPresets = preferredPresets
     ? [...preferredPresets, ...copy.presets.filter((item) => !preferredPresets.some((own) => own.code === item.code))]
     : copy.presets;
@@ -247,6 +360,10 @@ export default function App() {
     minimize: { source: minimizationPresets[0].code, draft: minimizationPresets[0].code },
     functions: { source: functionPresets[0].code, draft: functionPresets[0].code },
     gc: { source: gcPresets[0].code, draft: gcPresets[0].code },
+    escape: { source: escapePresets[0].code, draft: escapePresets[0].code },
+    vtable: { source: vtablePresets[0].code, draft: vtablePresets[0].code },
+    closure: { source: closurePresets[0].code, draft: closurePresets[0].code },
+    coroutine: { source: coroutinePresets[0].code, draft: coroutinePresets[0].code },
   });
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)');
@@ -341,6 +458,10 @@ export default function App() {
               ? schedulePresets[0].code
               : next === 'cse'
               ? redundancyPresets[0].code
+              : next === 'isel'
+              ? iselPresets[0].code
+              : next === 'ssaopt'
+              ? ssaOptPresets[0].code
               : next === 'outssa'
               ? outSsaPresets[0].code
               : next === 'ssa'
@@ -810,6 +931,30 @@ export default function App() {
                           <p>每行一个对象：名字 大小 {'->'} 引用1, 引用2（大小 1–8 格，按声明顺序紧挨着放进堆）。root a, b 写出根；heap N 指定堆容量；request N 指定回收后要申请的连续空间。# 开头为注释。</p>
                           <p>%% 下方是程序依次做的修改：drop x 去掉一个根，root x 新增一个根，link x {'->'} y 新增引用，cut x {'->'} y 删除引用。程序只能修改当前可达的对象。最多 24 个对象、24 个操作、1200 字符。</p>
                         </details>
+                      ) : inputKind === 'escape' ? (
+                        <details className="language-help">
+                          <summary>结构体与内联方言怎么写？</summary>
+                          <p>用 struct Point {'{ int x; int y; }'} 定义结构体，new Point(a, b) 分配对象，p.x 读写字段。可定义返回 int 或结构体的函数，以及 print(...) 和 publish(obj) 全局发布。</p>
+                          <p>非递归且单尾返回的小函数会自动内联；逃逸分析按 NoEscape / ArgEscape / GlobalEscape 分类，未逃逸且无多对象别名歧义的扁平结构体将做标量替换（SROA）。</p>
+                        </details>
+                      ) : inputKind === 'vtable' ? (
+                        <details className="language-help">
+                          <summary>面向对象方言怎么写？</summary>
+                          <p>用 class Sub extends Base {'{ int field; int method(int x) { return ...; } }'} 定义单继承类层次；字段和方法参数/返回值均为 int，方法内使用 this.field 与 this.method()。</p>
+                          <p>用 Base s = new Sub(f1, f2); 创建实例并允许向上转型；构造实参按父类到子类的字段顺序传入。</p>
+                        </details>
+                      ) : inputKind === 'closure' ? (
+                        <details className="language-help">
+                          <summary>闭包方言怎么写？</summary>
+                          <p>支持嵌套 fn name(a, b) {'{ ... }'}、let x = expr;、赋值、if / else、while、return、print 与一等函数返回/传参。</p>
+                          <p>被内层函数引用的外层变量会自动装箱为堆上 Cell（Upvalue），在创建栈帧弹出后继续存活；未捕获的变量留在栈帧中。</p>
+                        </details>
+                      ) : inputKind === 'coroutine' ? (
+                        <details className="language-help">
+                          <summary>协程方言怎么写？</summary>
+                          <p>用 coro name(n) {'{ ... yield v; ... return r; }'} 定义无栈协程；顶层驱动代码用 let g = name(3); 创建协程帧，用 resume(g) 推进、done(g) 判断是否结束、print(...) 输出。</p>
+                          <p>跨 yield 仍活跃的变量会被提升进协程帧结构体，仅在两次 yield 间使用的临时变量留在临时调用栈。</p>
+                        </details>
                       ) : inputKind === 'functions' ? (
                         <details className="language-help">
                           <summary>函数方言怎么写？</summary>
@@ -879,6 +1024,14 @@ export default function App() {
                       <div className="result-content">
                         {inputKind === 'gc' ? (
                           gcResult?.ok && <GcView key={source} analysis={gcResult.analysis} step={currentStep} />
+                        ) : inputKind === 'escape' ? (
+                          escapeResult?.ok && <EscapeView key={source} analysis={escapeResult.analysis} step={currentStep} />
+                        ) : inputKind === 'vtable' ? (
+                          vtableResult?.ok && <VtableView key={source} analysis={vtableResult.analysis} step={currentStep} />
+                        ) : inputKind === 'closure' ? (
+                          closureResult?.ok && <ClosureView key={source} analysis={closureResult.analysis} step={currentStep} />
+                        ) : inputKind === 'coroutine' ? (
+                          coroutineResult?.ok && <CoroutineView key={source} analysis={coroutineResult.analysis} step={currentStep} />
                         ) : inputKind === 'functions' ? (
                           functions?.ok && <FunctionsView key={source} analysis={functions.analysis} source={source} step={currentStep} />
                         ) : inputKind === 'minimize' ? (
@@ -1362,6 +1515,11 @@ export default function App() {
                   <p>第 18 个实验于 2026-11-22 从本地缓存重读原书第 08 讲的指令排序（流水线、依赖、List Scheduling）与窥孔优化一节。教学延迟、关键路径优先级和精确异常约定是本项目自定的模型，未另找外部资料核对；不代表任何真实 CPU。</p>
                   <p>第 19 个实验于 2026-11-22 通过缓存脚本单页重读原书第 07 讲，实现全局可用表达式、公共子表达式消除、本地值编号对照与循环不变代码外提；可能报错的运算只从循环条件中外提，这是本项目为保持输出与错误一致而定的约定。</p>
                   <p>第 20 个实验于 2026-11-22 通过缓存脚本单页读取原书第 32 讲，补充引用计数、Python 式循环检测、三色标记的标记-清除、标记-整理与停止-拷贝；堆以格为单位，不模拟分代、增量、并发或停顿时间。</p>
+                  <p>第 21 个实验（指令选择）基于本地缓存的第 08、16 讲，补充表达式树还原、CISC LEA / MADD 与 RISC Load-Store 瓦片集、贪心最大吞噬与自底向上动态规划对照，并独立执行四版核对。</p>
+                  <a href={ISEL_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · Instruction Selection ↗</a>
+                  <p>第 22 个实验（SSA 上的优化）基于本地缓存的第 07 讲与标准 Wegman–Zadeck 稀疏条件常量传播算法，在实验 13 的 SSA 上直接运行 CFG + SSA 双工作表传播、平凡 φ 化简与保守死代码消除。</p>
+                  <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA & Sparse Optimizations ↗</a>
+                  <p>第 23–26 个实验（内联与逃逸分析、面向对象虚表分派、闭包与环境捕获、协程与状态机改写）分别映射原书第 15、38、39、34 讲主题（第 07 讲 SROA 与内联已由本地缓存核对，其余四讲仅作章节索引，未发起额外网络请求）。</p>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1496,7 +1654,7 @@ function Home({
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'regalloc', 'schedule', 'cse'].includes(item.id))
+            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'regalloc', 'schedule', 'cse', 'isel', 'ssaopt'].includes(item.id))
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1572,6 +1730,18 @@ function Home({
                               ? '可用表达式 / 复用 / 循环外提'
                               : item.id === 'gc'
                               ? '三色标记 / 引用计数 / 碎片'
+                              : item.id === 'isel'
+                              ? '树覆盖 / LEA / 贪心 vs DP'
+                              : item.id === 'ssaopt'
+                              ? 'SCCP / 双工作表 / SSA DCE'
+                              : item.id === 'escape'
+                              ? '内联 / 逃逸分析 / 标量替换'
+                              : item.id === 'vtable'
+                              ? '前缀布局 / vtable / 去虚拟化'
+                              : item.id === 'closure'
+                              ? '自由变量 / 堆上 Cell / 环境'
+                              : item.id === 'coroutine'
+                              ? '跨 yield 活跃 / switch 状态机'
                               : item.id === 'schedule'
                               ? '依赖图 / 列表调度 / 窥孔窗口'
                               : item.id === 'regalloc'
@@ -1751,6 +1921,30 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
         )}
         {lesson.id === 'gc' && (
           <small>概念来源：2026-11-22 通过缓存脚本单页读取原书第 32 讲（可达性、标记-清除、标记-整理、停止-拷贝、引用计数与 Python 循环检测、三色标记）；堆模型为本项目的教学简化。</small>
+        )}
+        {lesson.id === 'isel' && (
+          <>
+            <small>概念来源：2026-11-25 复核本地缓存的第 08、16 讲（LEA 融合、树覆盖与 BURS、RISC vs CISC）；教学瓦片代价与模拟器由本项目独立编写。</small>
+            <a href={ISEL_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · Instruction Selection ↗</a>
+          </>
+        )}
+        {lesson.id === 'ssaopt' && (
+          <>
+            <small>概念来源：2026-11-25 复核本地缓存的第 07 讲与 Wegman–Zadeck 稀疏条件常量传播（SCCP）；保留未折叠算术以维持精确异常语义。</small>
+            <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA & Sparse Optimizations ↗</a>
+          </>
+        )}
+        {lesson.id === 'escape' && (
+          <small>概念来源：2026-11-25 结合本地缓存的第 07 讲（内联与 SROA）并映射第 15 讲主题（第 15 讲仅作章节索引，未额外抓取）；内联预算与逃逸模型为教学实现。</small>
+        )}
+        {lesson.id === 'vtable' && (
+          <small>概念来源：2026-11-25 映射原书第 38 讲面向对象实现主题（仅作章节索引，未额外抓取）；前缀布局、虚表槽位与封闭世界 CHA 去虚拟化为本项目教学实现。</small>
+        )}
+        {lesson.id === 'closure' && (
+          <small>概念来源：2026-11-25 映射原书第 05 / 39 讲闭包与函数式实现主题（仅作章节索引，未额外抓取）；堆上 Cell 装箱与扁平闭包环境经独立链式词法解释器核对。</small>
+        )}
+        {lesson.id === 'coroutine' && (
+          <small>概念来源：2026-11-25 映射原书第 34 讲协程编译主题（仅作章节索引，未额外抓取）；跨 yield 活跃分析与 switch(state) 状态机经独立生成器核对。</small>
         )}
         {lesson.id === 'schedule' && (
           <small>概念来源：2026-11-22 从本地缓存重读原书第 08 讲的指令排序与窥孔优化两节；延迟数值、关键路径优先级与精确异常约定是本项目的教学模型，未另找外部资料核对。</small>

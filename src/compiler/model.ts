@@ -18,7 +18,13 @@ export type Stage =
   | 'regalloc'
   | 'schedule'
   | 'cse'
-  | 'gc';
+  | 'gc'
+  | 'isel'
+  | 'ssaopt'
+  | 'escape'
+  | 'vtable'
+  | 'closure'
+  | 'coroutine';
 export type Value = number | boolean;
 export type DataType = 'int' | 'bool';
 export type TokenKind = 'keyword' | 'identifier' | 'number' | 'operator' | 'punctuation' | 'eof';

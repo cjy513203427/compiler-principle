@@ -18,6 +18,8 @@ import { OutSsaView } from './OutSsaView';
 import { RegallocView } from './RegallocView';
 import { ScheduleView } from './ScheduleView';
 import { RedundancyView } from './RedundancyView';
+import { IselView } from './IselView';
+import { SsaOptView } from './SsaOptView';
 import type { OptimizationOptions } from '../compiler/model';
 
 const valueText = (value: Value) => String(value);
@@ -63,12 +65,20 @@ export function traceLength(result: Compilation, stage: Stage): number {
       return result.schedule?.frames.length || 0;
     case 'cse':
       return result.redundancy?.frames.length || 0;
+    case 'isel':
+      return result.isel?.frames.length || 0;
+    case 'ssaopt':
+      return result.ssaopt?.frames.length || 0;
     case 'automata':
     case 'minimize':
     case 'grammar':
     case 'lr':
     case 'functions':
     case 'gc':
+    case 'escape':
+    case 'vtable':
+    case 'closure':
+    case 'coroutine':
       // These labs read their own input (rules / grammar); see analyzeAutomata and analyzeGrammar.
       return 0;
   }
@@ -105,12 +115,20 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
       return result.schedule?.frames[step]?.message || '';
     case 'cse':
       return result.redundancy?.frames[step]?.message || '';
+    case 'isel':
+      return result.isel?.frames[step]?.message || '';
+    case 'ssaopt':
+      return result.ssaopt?.frames[step]?.message || '';
     case 'automata':
     case 'minimize':
     case 'grammar':
     case 'lr':
     case 'functions':
     case 'gc':
+    case 'escape':
+    case 'vtable':
+    case 'closure':
+    case 'coroutine':
       return '';
   }
 }
@@ -580,6 +598,8 @@ export function ResultView({
   if (stage === 'regalloc') return <RegallocView result={result} step={step} />;
   if (stage === 'schedule') return <ScheduleView result={result} step={step} />;
   if (stage === 'cse') return <RedundancyView result={result} step={step} />;
+  if (stage === 'isel') return <IselView analysis={result.isel!} step={step} />;
+  if (stage === 'ssaopt') return <SsaOptView result={result} step={step} />;
   if (stage === 'dataflow')
     return <DataflowView result={result} step={step} source={source} options={options} />;
   const current = result.execution!.steps[step];
