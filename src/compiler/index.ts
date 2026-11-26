@@ -11,11 +11,12 @@ import { lowerSSA } from './outssa';
 import { allocateRegisters, sweepRegisters, type RegisterSettings } from './regalloc';
 import { scheduleAllocation, sweepSchedules } from './schedule';
 import { analyzeRedundancy } from './redundancy';
+import { optimizeSSA } from './ssaopt';
 import { CompileError, type Diagnostic, type OptimizationOptions } from './model';
 export * from './model';
 export { tokenize, parse, analyze, generateIR, optimize, generateBytecode, execute };
 
-export function compile(source: string, options: OptimizationOptions, settings: { outOfSSA?: boolean; registers?: RegisterSettings; schedule?: boolean; redundancy?: boolean } = {}) {
+export function compile(source: string, options: OptimizationOptions, settings: { outOfSSA?: boolean; ssaOpt?: boolean; registers?: RegisterSettings; schedule?: boolean; redundancy?: boolean } = {}) {
   let lex: ReturnType<typeof tokenize> | undefined;
   let syntax: ReturnType<typeof parse> | undefined;
   let semantic: ReturnType<typeof analyze> | undefined;
@@ -38,6 +39,7 @@ export function compile(source: string, options: OptimizationOptions, settings: 
   let schedule: ReturnType<typeof scheduleAllocation> | undefined;
   let scheduleSweep: ReturnType<typeof sweepSchedules> | undefined;
   let redundancy: ReturnType<typeof analyzeRedundancy> | undefined;
+  let ssaopt: ReturnType<typeof optimizeSSA> | undefined;
   try {
     lex = tokenize(source);
     syntax = parse(lex.tokens);
@@ -54,6 +56,7 @@ export function compile(source: string, options: OptimizationOptions, settings: 
     dominance = analyzeDominance(cfg);
     ssa = buildSSA(dominance, liveness);
     if (settings.outOfSSA) outssa = lowerSSA(ssa, dominance);
+    if (settings.ssaOpt) ssaopt = optimizeSSA(ssa, dominance, dataflow);
     if (settings.redundancy) redundancy = analyzeRedundancy(ir, dominance);
     if (settings.registers) {
       // Allocate the unoptimized IR so every temporary and its pressure stays visible.
@@ -101,6 +104,7 @@ export function compile(source: string, options: OptimizationOptions, settings: 
     schedule,
     scheduleSweep,
     redundancy,
+    ssaopt,
     hasControlFlow: ir ? hasControlFlow(ir) : false,
   };
 }

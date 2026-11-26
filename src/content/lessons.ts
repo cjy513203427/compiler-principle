@@ -11,6 +11,7 @@ import { regallocLesson, regallocPresets } from './regalloc';
 import { scheduleLesson, schedulePresets } from './schedule';
 import { redundancyLesson, redundancyPresets } from './redundancy';
 import { gcLesson } from './gc';
+import { ssaOptLesson, ssaOptPresets } from './ssaopt';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -407,6 +408,7 @@ export const lessons: Lesson[] = [
   scheduleLesson,
   redundancyLesson,
   gcLesson,
+  ssaOptLesson,
 ];
 export const flowPresets = [
   {
@@ -547,5 +549,6 @@ export const presets = [
   ...regallocPresets,
   ...schedulePresets,
   ...redundancyPresets,
+  ...ssaOptPresets,
 ];
 export const defaultOptions = { fold: true, propagate: true, dead: true };

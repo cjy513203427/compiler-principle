@@ -26,7 +26,9 @@ import { FunctionsView } from './components/FunctionsView';
 import { regallocPresets, REGALLOC_REFERENCE } from './content/regalloc';
 import { schedulePresets } from './content/schedule';
 import { redundancyPresets } from './content/redundancy';
+import { ssaOptPresets, SCCP_REFERENCE, SSA_OPT_REFERENCE, LOST_COPY_REFERENCE } from './content/ssaopt';
 import { gcPresets } from './content/gc';
+import { ssaOptPresets, SCCP_REFERENCE, SSA_OPT_REFERENCE, LOST_COPY_REFERENCE } from './content/ssaopt';
 import { analyzeGc } from './compiler/gc';
 import { GcView } from './components/GcView';
 import { RegisterSettingsFieldset } from './components/RegallocView';
@@ -82,6 +84,8 @@ const stageNames: Record<Stage, string> = {
   schedule: '指令排序与窥孔优化',
   cse: '公共子表达式与循环外提',
   gc: '垃圾收集',
+  ssaopt: 'SSA 优化与复制合并',
+  ssaopt: 'SSA 优化与复制合并',
 };
 type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize' | 'functions' | 'gc';
 // Rules and grammar labs keep their own input instead of a Mini C program.
@@ -192,9 +196,10 @@ export default function App() {
   const allocationSettings = usesRegisters ? registers : undefined;
   const needsSchedule = route === 'schedule';
   const needsRedundancy = route === 'cse';
+  const needsSsaOpt = route === 'ssaopt';
   const result = useMemo(
-    () => compile(programSource, options, { outOfSSA: needsOutSSA, registers: allocationSettings, schedule: needsSchedule, redundancy: needsRedundancy }),
-    [programSource, options, needsOutSSA, allocationSettings, needsSchedule, needsRedundancy],
+    () => compile(programSource, options, { outOfSSA: needsOutSSA, ssaOpt: needsSsaOpt, registers: allocationSettings, schedule: needsSchedule, redundancy: needsRedundancy }),
+    [programSource, options, needsOutSSA, needsSsaOpt, allocationSettings, needsSchedule, needsRedundancy],
   );
   const ownInput = inputKind !== 'program';
   const copy = inputCopy[inputKind];
@@ -233,7 +238,7 @@ export default function App() {
     : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
   const dirty = draft !== source;
-  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : route === 'schedule' ? schedulePresets : route === 'cse' ? redundancyPresets : undefined;
+  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'ssaopt' ? ssaOptPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : route === 'schedule' ? schedulePresets : route === 'cse' ? redundancyPresets : undefined;
   const labPresets = preferredPresets
     ? [...preferredPresets, ...copy.presets.filter((item) => !preferredPresets.some((own) => own.code === item.code))]
     : copy.presets;
@@ -341,6 +346,10 @@ export default function App() {
               ? schedulePresets[0].code
               : next === 'cse'
               ? redundancyPresets[0].code
+              : next === 'ssaopt'
+              ? ssaOptPresets[0].code
+              : next === 'ssaopt'
+              ? ssaOptPresets[0].code
               : next === 'outssa'
               ? outSsaPresets[0].code
               : next === 'ssa'
@@ -1362,6 +1371,15 @@ export default function App() {
                   <p>第 18 个实验于 2026-11-22 从本地缓存重读原书第 08 讲的指令排序（流水线、依赖、List Scheduling）与窥孔优化一节。教学延迟、关键路径优先级和精确异常约定是本项目自定的模型，未另找外部资料核对；不代表任何真实 CPU。</p>
                   <p>第 19 个实验于 2026-11-22 通过缓存脚本单页重读原书第 07 讲，实现全局可用表达式、公共子表达式消除、本地值编号对照与循环不变代码外提；可能报错的运算只从循环条件中外提，这是本项目为保持输出与错误一致而定的约定。</p>
                   <p>第 20 个实验于 2026-11-22 通过缓存脚本单页读取原书第 32 讲，补充引用计数、Python 式循环检测、三色标记的标记-清除、标记-整理与停止-拷贝；堆以格为单位，不模拟分代、增量、并发或停顿时间。</p>
+                  <p>第 21 个实验于 2026-11-26 核对 Wegman-Zadeck 稀疏条件常量传播（SCCP）、LLVM Passes 说明、Cornell CS 6120 的 SSA 优化讲义与 Briggs 等人的 Practical Improvements to the Construction and Destruction of Static Single Assignment Form（Lost-Copy 与 Swap 问题），实现标量 SSA 上的 SCCP、复制传播、异常安全的稀疏死代码删除，以及消除 φ 时的干涉图保守复制合并；未重新请求原书。</p>
+                  <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">LLVM · Sparse Conditional Constant Propagation ↗</a>
+                  <a href={SSA_OPT_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA Optimization &amp; Deconstruction ↗</a>
+                  <a href={LOST_COPY_REFERENCE} target="_blank" rel="noreferrer">Briggs et al. · Lost-Copy &amp; Swap in SSA Destruction ↗</a>
+                  <p>第 21 个实验于 2026-11-26 核对 Wegman-Zadeck 稀疏条件常量传播（SCCP）、LLVM Passes 说明、Cornell CS 6120 的 SSA 优化讲义与 Briggs 等人的 Practical Improvements to the Construction and Destruction of Static Single Assignment Form（Lost-Copy 与 Swap 问题），实现标量 SSA 上的 SCCP、复制传播、异常安全的稀疏死代码删除，以及消除 φ 时的干涉图保守复制合并；未重新请求原书。</p>
+                  <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">LLVM · Sparse Conditional Constant Propagation ↗</a>
+                  <a href={SSA_OPT_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA Optimization &amp; Deconstruction ↗</a>
+                  <a href={LOST_COPY_REFERENCE} target="_blank" rel="noreferrer">Briggs et al. · Lost-Copy &amp; Swap in SSA Destruction ↗</a>
+                  <p>第 21 个实验于 2026-11-26 核对 LLVM SCCP、Cornell CS 6120 与 Briggs 等人的 SSA 消除资料（未重新请求原书），在标量 SSA 上实现稀疏条件常量传播、复制传播、异常安全的稀疏死代码删除，以及基于逐条活跃性与干涉图的保守复制合并，并接回原栈式 VM 执行核对。</p>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1496,7 +1514,7 @@ function Home({
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'outssa', 'regalloc', 'schedule', 'cse'].includes(item.id))
+            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'ssaopt', 'outssa', 'regalloc', 'schedule', 'cse'].includes(item.id))
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1582,6 +1600,8 @@ function Home({
                               ? '边复制 / 关键边拆分 / 原 VM 执行'
                               : item.id === 'ssa'
                               ? 'φ 裁剪 / 版本重命名 / 行为核对'
+                              : item.id === 'ssaopt'
+                              ? '稀疏传播 / 死代码 / 复制合并'
                               : item.id === 'dominance'
                               ? '支配树 / 自然循环 / φ 候选'
                               : item.id === 'dataflow'
@@ -1740,6 +1760,14 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
             <a href={SSA_DECONSTRUCTION_REFERENCE} target="_blank" rel="noreferrer">CMU 15-411 · SSA Deconstruction ↗</a>
           </>
         )}
+        {lesson.id === 'ssaopt' && (
+          <>
+            <small>补充概念核对：2026-11-26 · 稀疏条件常量传播（SCCP）、稀疏死代码删除与干涉图保护的复制合并</small>
+            <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">LLVM · Sparse Conditional Constant Propagation ↗</a>
+            <a href={SSA_OPT_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA Optimization &amp; Deconstruction ↗</a>
+            <a href={LOST_COPY_REFERENCE} target="_blank" rel="noreferrer">Briggs et al. · Practical Improvements to SSA Destruction (Lost-Copy) ↗</a>
+          </>
+        )}
         {lesson.id === 'regalloc' && (
           <>
             <small>补充概念核对：2026-11-22 · 干涉图、Kempe 简化与乐观着色、线性扫描、溢出重写</small>
@@ -1751,6 +1779,14 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
         )}
         {lesson.id === 'gc' && (
           <small>概念来源：2026-11-22 通过缓存脚本单页读取原书第 32 讲（可达性、标记-清除、标记-整理、停止-拷贝、引用计数与 Python 循环检测、三色标记）；堆模型为本项目的教学简化。</small>
+        )}
+        {lesson.id === 'ssaopt' && (
+          <>
+            <small>补充概念核对：2026-11-26 · 稀疏条件常量传播（SCCP）、稀疏死代码删除与干涉图保护的保守复制合并</small>
+            <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">LLVM · Sparse Conditional Constant Propagation ↗</a>
+            <a href={SSA_OPT_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA &amp; Out of SSA ↗</a>
+            <a href={LOST_COPY_REFERENCE} target="_blank" rel="noreferrer">Briggs et al. · Practical Improvements to SSA Destruction (Lost-Copy) ↗</a>
+          </>
         )}
         {lesson.id === 'schedule' && (
           <small>概念来源：2026-11-22 从本地缓存重读原书第 08 讲的指令排序与窥孔优化两节；延迟数值、关键路径优先级与精确异常约定是本项目的教学模型，未另找外部资料核对。</small>

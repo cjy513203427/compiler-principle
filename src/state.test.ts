@@ -8,6 +8,16 @@ import { regallocPresets } from './content/regalloc';
 import { schedulePresets } from './content/schedule';
 import { redundancyPresets } from './content/redundancy';
 import { gcPresets } from './content/gc';
+import { ssaOptPresets } from './content/ssaopt';
+it('restores SSA optimization lab with bounded inputs and local notes', () => {
+  expect(readUrl('?lab=ssaopt').source).toBe(ssaOptPresets[0].code);
+  const shared = shareUrl('http://localhost:5173', 'ssaopt', ssaOptPresets[2].code, 6, { fold: false, propagate: false, dead: false });
+  expect(readUrl(new URL(shared).search)).toMatchObject({ route: 'ssaopt', source: ssaOptPresets[2].code, step: 6 });
+  expect(new URL(shared).searchParams.get('regs')).toBeNull();
+  expect(readUrl('?lab=ssaopt&code=' + 'a'.repeat(2001)).source).toBe(ssaOptPresets[0].code);
+  expect(validateNotebook({ version: 1, notes: { ssa: '构造', ssaopt: '稀疏传播' }, completed: ['ssa', 'ssaopt'] }))
+    .toEqual({ version: 1, notes: { ssa: '构造', ssaopt: '稀疏传播' }, completed: ['ssa', 'ssaopt'] });
+});
 it('restores the redundancy and garbage collection labs with bounded inputs and local notes', () => {
   expect(readUrl('?lab=cse').source).toBe(redundancyPresets[0].code);
   expect(readUrl('?lab=gc').source).toBe(gcPresets[0].code);
