@@ -2,7 +2,7 @@ import type { Lesson } from './lessons';
 
 export const SCCP_REFERENCE = 'https://llvm.org/docs/Passes.html#sccp-sparse-conditional-constant-propagation';
 export const SSA_OPT_REFERENCE = 'https://www.cs.cornell.edu/courses/cs6120/2025sp/lesson/6/';
-export const LOST_COPY_REFERENCE = 'https://dl.acm.org/doi/10.1145/291891.291897';
+export const LOST_COPY_REFERENCE = 'https://doi.org/10.1002/(SICI)1097-024X(19980710)28:8%3C859::AID-SPE188%3E3.0.CO;2-8';
 
 export const ssaOptLesson: Lesson = {
   id: 'ssaopt',

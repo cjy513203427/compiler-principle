@@ -16,6 +16,8 @@ import { redundancyPresets } from './content/redundancy';
 import { gcPresets } from './content/gc';
 import { ssaOptPresets } from './content/ssaopt';
 import { normalizeRegisterSettings, type RegisterSettings } from './compiler/regalloc';
+import { codegenPresets } from './content/codegen';
+import { normalizeCodegenSettings, type CodegenSettings } from './compiler/codegen';
 
 export type Route = Stage | 'home' | 'notes' | 'sources' | 'assembly';
 export type NoteId = Stage | AssemblyNoteId;
@@ -46,6 +48,8 @@ export function readUrl(search: string) {
         ? redundancyPresets[0].code
         : route === 'ssaopt'
         ? ssaOptPresets[0].code
+        : route === 'codegen'
+        ? codegenPresets[0].code
         : route === 'gc'
         ? gcPresets[0].code
         : route === 'cfg'
@@ -76,7 +80,8 @@ export function readUrl(search: string) {
         ? { fold: false, propagate: false, dead: false }
         : defaultOptions;
   const registers = normalizeRegisterSettings(params.get('regs') ?? undefined, params.get('alloc'));
-  return { route, source, step, options, registers };
+  const codegen = normalizeCodegenSettings(params.get('pool') ?? undefined, params.get('ir') ?? undefined);
+  return { route, source, step, options, registers, codegen };
 }
 export function shareUrl(
   base: string,
@@ -85,6 +90,7 @@ export function shareUrl(
   step: number,
   options: OptimizationOptions,
   registers?: RegisterSettings,
+  codegen?: CodegenSettings,
 ) {
   const url = new URL(base);
   url.search = '';
@@ -96,6 +102,10 @@ export function shareUrl(
   if ((route === 'regalloc' || route === 'schedule') && registers) {
     url.searchParams.set('regs', String(registers.count));
     url.searchParams.set('alloc', registers.algorithm);
+  }
+  if (route === 'codegen' && codegen) {
+    url.searchParams.set('pool', codegen.pool);
+    url.searchParams.set('ir', codegen.input);
   }
   return url.href;
 }

@@ -9,6 +9,8 @@ import { schedulePresets } from './content/schedule';
 import { redundancyPresets } from './content/redundancy';
 import { gcPresets } from './content/gc';
 import { ssaOptPresets } from './content/ssaopt';
+import { codegenPresets } from './content/codegen';
+import { defaultOptions } from './content/lessons';
 it('restores SSA optimization lab with bounded inputs and local notes', () => {
   expect(readUrl('?lab=ssaopt').source).toBe(ssaOptPresets[0].code);
   const shared = shareUrl('http://localhost:5173', 'ssaopt', ssaOptPresets[2].code, 6, { fold: false, propagate: false, dead: false });
@@ -88,10 +90,20 @@ it('round-trips the current executable state without encoding private notes', ()
   const code = 'int integer = 5;\nprint(integer); // & ?';
   const url = shareUrl('http://localhost:5173/?old=1#fragment', 'vm', code, 12, options);
   expect(readUrl(new URL(url).search)).toEqual({ route: 'vm', source: code, step: 12, options,
-    registers: { count: 3, algorithm: 'color' } });
+    registers: { count: 3, algorithm: 'color' }, codegen: { pool: 'full', input: 'raw' } });
   expect(url).not.toContain('regs=');
+  expect(url).not.toContain('pool=');
   expect(url).not.toContain('notes');
   expect(new URL(url).hash).toBe('');
+});
+it('restores code generation settings from bounded URLs', () => {
+  expect(readUrl('?lab=codegen')).toMatchObject({ route: 'codegen', source: codegenPresets[0].code, codegen: { pool: 'full', input: 'raw' } });
+  const shared = shareUrl('http://localhost:5173', 'codegen', codegenPresets[3].code, 4, defaultOptions,
+    undefined, { pool: 'tight', input: 'optimized' });
+  expect(readUrl(new URL(shared).search)).toMatchObject({ route: 'codegen', source: codegenPresets[3].code, step: 4,
+    codegen: { pool: 'tight', input: 'optimized' } });
+  expect(readUrl('?lab=codegen&pool=%3Cscript%3E&ir=all').codegen).toEqual({ pool: 'full', input: 'raw' });
+  expect(new URL(shareUrl('http://localhost:5173', 'regalloc', 'print(1);', 0, defaultOptions, undefined, { pool: 'tight', input: 'raw' })).searchParams.get('pool')).toBeNull();
 });
 it('bounds and validates untrusted URLs and imports', () => {
   const restored = readUrl('?lab=unknown&step=-22&opt=nope&code=' + 'a'.repeat(2001));

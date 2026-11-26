@@ -19,7 +19,8 @@ export type Stage =
   | 'schedule'
   | 'cse'
   | 'gc'
-  | 'ssaopt';
+  | 'ssaopt'
+  | 'codegen';
 export type Value = number | boolean;
 export type DataType = 'int' | 'bool';
 export type TokenKind = 'keyword' | 'identifier' | 'number' | 'operator' | 'punctuation' | 'eof';

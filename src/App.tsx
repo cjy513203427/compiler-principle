@@ -27,8 +27,10 @@ import { regallocPresets, REGALLOC_REFERENCE } from './content/regalloc';
 import { schedulePresets } from './content/schedule';
 import { redundancyPresets } from './content/redundancy';
 import { ssaOptPresets, SCCP_REFERENCE, SSA_OPT_REFERENCE, LOST_COPY_REFERENCE } from './content/ssaopt';
+import { codegenPresets, TILING_REFERENCE, SYSV_ABI_REFERENCE, INTEL_SDM_REFERENCE } from './content/codegen';
+import { CodegenSettingsFieldset } from './components/CodegenView';
+import type { CodegenSettings } from './compiler/codegen';
 import { gcPresets } from './content/gc';
-import { ssaOptPresets, SCCP_REFERENCE, SSA_OPT_REFERENCE, LOST_COPY_REFERENCE } from './content/ssaopt';
 import { analyzeGc } from './compiler/gc';
 import { GcView } from './components/GcView';
 import { RegisterSettingsFieldset } from './components/RegallocView';
@@ -85,7 +87,7 @@ const stageNames: Record<Stage, string> = {
   cse: '公共子表达式与循环外提',
   gc: '垃圾收集',
   ssaopt: 'SSA 优化与复制合并',
-  ssaopt: 'SSA 优化与复制合并',
+  codegen: '指令选择与代码生成',
 };
 type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize' | 'functions' | 'gc';
 // Rules and grammar labs keep their own input instead of a Mini C program.
@@ -172,6 +174,7 @@ export default function App() {
   const [step, setStep] = useState(initial.step);
   const [options, setOptions] = useState<OptimizationOptions>(initial.options);
   const [registers, setRegisters] = useState<RegisterSettings>(initial.registers);
+  const [codegenSettings, setCodegenSettings] = useState<CodegenSettings>(initial.codegen);
   const [notebook, setNotebook] = useState<Notebook>(readNotebook);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -197,9 +200,10 @@ export default function App() {
   const needsSchedule = route === 'schedule';
   const needsRedundancy = route === 'cse';
   const needsSsaOpt = route === 'ssaopt';
+  const generation = route === 'codegen' ? codegenSettings : undefined;
   const result = useMemo(
-    () => compile(programSource, options, { outOfSSA: needsOutSSA, ssaOpt: needsSsaOpt, registers: allocationSettings, schedule: needsSchedule, redundancy: needsRedundancy }),
-    [programSource, options, needsOutSSA, needsSsaOpt, allocationSettings, needsSchedule, needsRedundancy],
+    () => compile(programSource, options, { outOfSSA: needsOutSSA, ssaOpt: needsSsaOpt, registers: allocationSettings, schedule: needsSchedule, redundancy: needsRedundancy, codegen: generation }),
+    [programSource, options, needsOutSSA, needsSsaOpt, allocationSettings, needsSchedule, needsRedundancy, generation],
   );
   const ownInput = inputKind !== 'program';
   const copy = inputCopy[inputKind];
@@ -238,7 +242,7 @@ export default function App() {
     : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
   const dirty = draft !== source;
-  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'ssaopt' ? ssaOptPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : route === 'schedule' ? schedulePresets : route === 'cse' ? redundancyPresets : undefined;
+  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'ssaopt' ? ssaOptPresets : route === 'codegen' ? codegenPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : route === 'schedule' ? schedulePresets : route === 'cse' ? redundancyPresets : undefined;
   const labPresets = preferredPresets
     ? [...preferredPresets, ...copy.presets.filter((item) => !preferredPresets.some((own) => own.code === item.code))]
     : copy.presets;
@@ -288,6 +292,7 @@ export default function App() {
       setStep(restored.step);
       setOptions(restored.options);
       setRegisters(restored.registers);
+      setCodegenSettings(restored.codegen);
       setPlaying(false);
       setPanel('lab');
       setMenuOpen(false);
@@ -348,8 +353,8 @@ export default function App() {
               ? redundancyPresets[0].code
               : next === 'ssaopt'
               ? ssaOptPresets[0].code
-              : next === 'ssaopt'
-              ? ssaOptPresets[0].code
+              : next === 'codegen'
+              ? codegenPresets[0].code
               : next === 'outssa'
               ? outSsaPresets[0].code
               : next === 'ssa'
@@ -376,7 +381,7 @@ export default function App() {
       '',
       next === 'assembly'
         ? new URL('?lab=assembly', window.location.href).href
-        : shareUrl(window.location.href, next, nextSource, 0, nextOptions, registers),
+        : shareUrl(window.location.href, next, nextSource, 0, nextOptions, registers, codegenSettings),
     );
     window.scrollTo({ top: 0, behavior: 'instant' });
     window.setTimeout(() => heading.current?.focus({ preventScroll: true }), 0);
@@ -393,13 +398,18 @@ export default function App() {
     setPlaying(false);
     setStep(0);
   }
+  function changeCodegen(next: CodegenSettings) {
+    setCodegenSettings(next);
+    setPlaying(false);
+    setStep(0);
+  }
   function changeOptions(key: keyof OptimizationOptions) {
     setOptions((previous) => ({ ...previous, [key]: !previous[key] }));
     setPlaying(false);
     setStep(0);
   }
   async function copyShare() {
-    const url = shareUrl(window.location.href, route, source, currentStep, options, registers);
+    const url = shareUrl(window.location.href, route, source, currentStep, options, registers, codegenSettings);
     window.history.replaceState(null, '', url);
     try {
       await navigator.clipboard.writeText(url);
@@ -790,6 +800,9 @@ export default function App() {
                       {usesRegisters && (
                         <RegisterSettingsFieldset settings={registers} onChange={changeRegisters} />
                       )}
+                      {lesson.id === 'codegen' && (
+                        <CodegenSettingsFieldset settings={codegenSettings} onChange={changeCodegen} />
+                      )}
                       {inputKind === 'grammar' || inputKind === 'lr' ? (
                         <details className="language-help">
                           <summary>文法怎么写？</summary>
@@ -916,7 +929,7 @@ export default function App() {
                           )
                         ) : (
                           <ResultView
-                            key={`${lesson.id}:${source}:${usesRegisters ? `${registers.count}${registers.algorithm}` : ''}`}
+                            key={`${lesson.id}:${source}:${usesRegisters ? `${registers.count}${registers.algorithm}` : ''}:${generation ? `${generation.pool}${generation.input}${+options.fold}${+options.propagate}${+options.dead}` : ''}`}
                             stage={lesson.id}
                             result={result}
                             source={source}
@@ -1374,12 +1387,11 @@ export default function App() {
                   <p>第 21 个实验于 2026-11-26 核对 Wegman-Zadeck 稀疏条件常量传播（SCCP）、LLVM Passes 说明、Cornell CS 6120 的 SSA 优化讲义与 Briggs 等人的 Practical Improvements to the Construction and Destruction of Static Single Assignment Form（Lost-Copy 与 Swap 问题），实现标量 SSA 上的 SCCP、复制传播、异常安全的稀疏死代码删除，以及消除 φ 时的干涉图保守复制合并；未重新请求原书。</p>
                   <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">LLVM · Sparse Conditional Constant Propagation ↗</a>
                   <a href={SSA_OPT_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA Optimization &amp; Deconstruction ↗</a>
-                  <a href={LOST_COPY_REFERENCE} target="_blank" rel="noreferrer">Briggs et al. · Lost-Copy &amp; Swap in SSA Destruction ↗</a>
-                  <p>第 21 个实验于 2026-11-26 核对 Wegman-Zadeck 稀疏条件常量传播（SCCP）、LLVM Passes 说明、Cornell CS 6120 的 SSA 优化讲义与 Briggs 等人的 Practical Improvements to the Construction and Destruction of Static Single Assignment Form（Lost-Copy 与 Swap 问题），实现标量 SSA 上的 SCCP、复制传播、异常安全的稀疏死代码删除，以及消除 φ 时的干涉图保守复制合并；未重新请求原书。</p>
-                  <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">LLVM · Sparse Conditional Constant Propagation ↗</a>
-                  <a href={SSA_OPT_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA Optimization &amp; Deconstruction ↗</a>
-                  <a href={LOST_COPY_REFERENCE} target="_blank" rel="noreferrer">Briggs et al. · Lost-Copy &amp; Swap in SSA Destruction ↗</a>
-                  <p>第 21 个实验于 2026-11-26 核对 LLVM SCCP、Cornell CS 6120 与 Briggs 等人的 SSA 消除资料（未重新请求原书），在标量 SSA 上实现稀疏条件常量传播、复制传播、异常安全的稀疏死代码删除，以及基于逐条活跃性与干涉图的保守复制合并，并接回原栈式 VM 执行核对。</p>
+                  <a href={LOST_COPY_REFERENCE} target="_blank" rel="noreferrer">Briggs et al. · Practical Improvements to the Construction and Destruction of SSA Form（SPE 1998）↗</a>
+                  <p>第 22 个实验于 2026-11-26 通过缓存脚本单页重读原书第 08 讲的指令选择一节（选代价更低的指令组合、lea 一次完成三数相加、树覆盖与 BURS），并核对 Cornell CS 4120 的指令选择讲义（瓦片与最大吞进）、x86-64 psABI 仓库（System V 调用约定）与 Intel 手册入口。目标语义、r11 保留给范围检查、三个运行时函数和 x86-64 子集模拟器是本项目的约定；页面结果没有在真实 CPU 或汇编器上验证。</p>
+                  <a href={TILING_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · Instruction Selection（Tiles）↗</a>
+                  <a href={SYSV_ABI_REFERENCE} target="_blank" rel="noreferrer">x86-64 psABI · System V AMD64 调用约定 ↗</a>
+                  <a href={INTEL_SDM_REFERENCE} target="_blank" rel="noreferrer">Intel 64 and IA-32 Architectures Software Developer's Manuals ↗</a>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1514,7 +1526,7 @@ function Home({
         </div>
         <div className="journey">
           {lessons
-            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'ssaopt', 'outssa', 'regalloc', 'schedule', 'cse'].includes(item.id))
+            .filter((item) => kindOf(item.id) === 'program' && !['cfg', 'dataflow', 'dominance', 'ssa', 'ssaopt', 'outssa', 'regalloc', 'schedule', 'cse', 'codegen'].includes(item.id))
             .map((item, index) => (
               <button key={item.id} onClick={() => navigate(item.id)}>
                 <span className={`journey-icon ${item.color}`}>{item.icon}</span>
@@ -1594,6 +1606,8 @@ function Home({
                               ? '依赖图 / 列表调度 / 窥孔窗口'
                               : item.id === 'regalloc'
                               ? '干涉图 / 线性扫描 / 溢出到栈'
+                              : item.id === 'codegen'
+                              ? '树覆盖 / 预着色 / x86-64 执行'
                               : item.id === 'functions'
                               ? 'CALL / RETURN / 独立栈帧 / 递归'
                               : item.id === 'outssa'
@@ -1760,12 +1774,20 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
             <a href={SSA_DECONSTRUCTION_REFERENCE} target="_blank" rel="noreferrer">CMU 15-411 · SSA Deconstruction ↗</a>
           </>
         )}
+        {lesson.id === 'codegen' && (
+          <>
+            <small>概念来源：2026-11-26 通过缓存脚本单页重读原书第 08 讲的指令选择一节；补充核对瓦片与最大吞进、System V AMD64 调用约定与 x86 指令手册。目标语义与运行时函数是本项目的教学约定。</small>
+            <a href={TILING_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · Instruction Selection（Tiles）↗</a>
+            <a href={SYSV_ABI_REFERENCE} target="_blank" rel="noreferrer">x86-64 psABI · System V AMD64 ↗</a>
+            <a href={INTEL_SDM_REFERENCE} target="_blank" rel="noreferrer">Intel SDM ↗</a>
+          </>
+        )}
         {lesson.id === 'ssaopt' && (
           <>
             <small>补充概念核对：2026-11-26 · 稀疏条件常量传播（SCCP）、稀疏死代码删除与干涉图保护的复制合并</small>
             <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">LLVM · Sparse Conditional Constant Propagation ↗</a>
             <a href={SSA_OPT_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA Optimization &amp; Deconstruction ↗</a>
-            <a href={LOST_COPY_REFERENCE} target="_blank" rel="noreferrer">Briggs et al. · Practical Improvements to SSA Destruction (Lost-Copy) ↗</a>
+            <a href={LOST_COPY_REFERENCE} target="_blank" rel="noreferrer">Briggs et al. · Practical Improvements to the Construction and Destruction of SSA Form（SPE 1998）↗</a>
           </>
         )}
         {lesson.id === 'regalloc' && (
@@ -1779,14 +1801,6 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
         )}
         {lesson.id === 'gc' && (
           <small>概念来源：2026-11-22 通过缓存脚本单页读取原书第 32 讲（可达性、标记-清除、标记-整理、停止-拷贝、引用计数与 Python 循环检测、三色标记）；堆模型为本项目的教学简化。</small>
-        )}
-        {lesson.id === 'ssaopt' && (
-          <>
-            <small>补充概念核对：2026-11-26 · 稀疏条件常量传播（SCCP）、稀疏死代码删除与干涉图保护的保守复制合并</small>
-            <a href={SCCP_REFERENCE} target="_blank" rel="noreferrer">LLVM · Sparse Conditional Constant Propagation ↗</a>
-            <a href={SSA_OPT_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · SSA &amp; Out of SSA ↗</a>
-            <a href={LOST_COPY_REFERENCE} target="_blank" rel="noreferrer">Briggs et al. · Practical Improvements to SSA Destruction (Lost-Copy) ↗</a>
-          </>
         )}
         {lesson.id === 'schedule' && (
           <small>概念来源：2026-11-22 从本地缓存重读原书第 08 讲的指令排序与窥孔优化两节；延迟数值、关键路径优先级与精确异常约定是本项目的教学模型，未另找外部资料核对。</small>

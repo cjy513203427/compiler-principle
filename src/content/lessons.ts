@@ -12,6 +12,7 @@ import { scheduleLesson, schedulePresets } from './schedule';
 import { redundancyLesson, redundancyPresets } from './redundancy';
 import { gcLesson } from './gc';
 import { ssaOptLesson, ssaOptPresets } from './ssaopt';
+import { codegenLesson } from './codegen';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -409,6 +410,7 @@ export const lessons: Lesson[] = [
   redundancyLesson,
   gcLesson,
   ssaOptLesson,
+  codegenLesson,
 ];
 export const flowPresets = [
   {

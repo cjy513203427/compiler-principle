@@ -29,8 +29,8 @@ export const learningRoutes: LearningRoute[] = [
   {
     id: 'backend',
     title: '优化、后端与运行时',
-    description: '在数据流与循环分析之上消除重复计算，再把值分到有限寄存器、重排指令；最后看运行时怎样回收不再使用的对象。',
-    stages: ['cse', 'regalloc', 'schedule', 'gc'],
+    description: '在数据流与循环分析之上消除重复计算，再把值分到有限寄存器、重排指令，然后把 IR 真正翻译成 x86-64 汇编；最后看运行时怎样回收不再使用的对象。',
+    stages: ['cse', 'regalloc', 'schedule', 'codegen', 'gc'],
   },
 ];
 
@@ -52,9 +52,10 @@ export const lessonConnections: Record<Stage, { before: Stage[]; after: Stage[] 
   minimize: { before: ['automata'], after: ['grammar'] },
   outssa: { before: ['ssa', 'ssaopt'], after: ['regalloc', 'vm'] },
   functions: { before: ['vm', 'semantic'], after: ['cfg', 'gc'] },
-  regalloc: { before: ['dataflow', 'cse'], after: ['schedule', 'functions'] },
-  schedule: { before: ['regalloc', 'dataflow'], after: ['gc', 'functions'] },
+  regalloc: { before: ['dataflow', 'cse'], after: ['schedule', 'codegen'] },
+  schedule: { before: ['regalloc', 'dataflow'], after: ['codegen', 'gc'] },
   cse: { before: ['dataflow', 'dominance'], after: ['regalloc', 'optimize'] },
   gc: { before: ['functions', 'schedule'], after: ['vm'] },
   ssaopt: { before: ['ssa', 'outssa', 'dataflow'], after: ['regalloc', 'cse'] },
+  codegen: { before: ['regalloc', 'schedule'], after: ['functions', 'gc'] },
 };
