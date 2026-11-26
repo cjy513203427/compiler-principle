@@ -119,6 +119,7 @@ export function highlightLine(line: string, language: SnippetLanguage): Piece[] 
         [/^[\w./-]+\.(c|s|sh)\b/, 'string'],
       ]);
     case 'text':
-      return scan(line, [[/^#.*/, 'comment']]);
+      // Slot names such as n#0 or fact@1.n#0 are identifiers, not comments.
+      return scan(line, [[/^[A-Za-z_][\w.@]*#\d+/, 'plain'], [/^#.*/, 'comment']]);
   }
 }

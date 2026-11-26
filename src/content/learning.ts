@@ -23,8 +23,8 @@ export const learningRoutes: LearningRoute[] = [
   {
     id: 'middle',
     title: '程序表示与调用',
-    description: '从分支和数据流走到 SSA，在 SSA 上做稀疏优化与复制合并，再看消除 φ 与专用函数调用栈。',
-    stages: ['cfg', 'dataflow', 'dominance', 'ssa', 'ssaopt', 'outssa', 'functions'],
+    description: '从分支和数据流走到 SSA，在 SSA 上做稀疏优化与复制合并，再看消除 φ 与专用函数调用栈，最后跨函数分析效果、传播常量与内联。',
+    stages: ['cfg', 'dataflow', 'dominance', 'ssa', 'ssaopt', 'outssa', 'functions', 'interproc'],
   },
   {
     id: 'backend',
@@ -51,11 +51,12 @@ export const lessonConnections: Record<Stage, { before: Stage[]; after: Stage[] 
   ssa: { before: ['dominance', 'dataflow'], after: ['ssaopt', 'outssa'] },
   minimize: { before: ['automata'], after: ['grammar'] },
   outssa: { before: ['ssa', 'ssaopt'], after: ['regalloc', 'vm'] },
-  functions: { before: ['vm', 'semantic'], after: ['cfg', 'gc'] },
+  functions: { before: ['vm', 'semantic'], after: ['interproc', 'gc'] },
   regalloc: { before: ['dataflow', 'cse'], after: ['schedule', 'codegen'] },
   schedule: { before: ['regalloc', 'dataflow'], after: ['codegen', 'gc'] },
   cse: { before: ['dataflow', 'dominance'], after: ['regalloc', 'optimize'] },
   gc: { before: ['functions', 'schedule'], after: ['vm'] },
   ssaopt: { before: ['ssa', 'outssa', 'dataflow'], after: ['regalloc', 'cse'] },
   codegen: { before: ['regalloc', 'schedule'], after: ['functions', 'gc'] },
+  interproc: { before: ['functions', 'dataflow'], after: ['optimize', 'codegen'] },
 };

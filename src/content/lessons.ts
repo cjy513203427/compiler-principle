@@ -13,6 +13,7 @@ import { redundancyLesson, redundancyPresets } from './redundancy';
 import { gcLesson } from './gc';
 import { ssaOptLesson, ssaOptPresets } from './ssaopt';
 import { codegenLesson } from './codegen';
+import { interprocLesson } from './interproc';
 
 export const BOOK = 'https://learn.lianglianglee.com/专栏/编译原理实战课';
 export const CONTROL_FLOW_REFERENCE =
@@ -46,6 +47,11 @@ export const chapters = [
     number: '08',
     title: '代码生成：如何实现机器相关的优化？',
     file: '08 代码生成：如何实现机器相关的优化？.md',
+  },
+  {
+    number: '15',
+    title: 'Java JIT编译器（三）：探究内联和逃逸分析的算法原理',
+    file: '15 Java JIT编译器（三）：探究内联和逃逸分析的算法原理.md',
   },
   {
     number: '32',
@@ -411,6 +417,7 @@ export const lessons: Lesson[] = [
   gcLesson,
   ssaOptLesson,
   codegenLesson,
+  interprocLesson,
 ];
 export const flowPresets = [
   {

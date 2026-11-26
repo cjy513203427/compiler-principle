@@ -22,6 +22,9 @@ import { LearningRoutes, LessonConnections } from './components/LearningRoutes';
 import { outSsaPresets, OUT_SSA_REFERENCE, SSA_DECONSTRUCTION_REFERENCE } from './content/outssa';
 import { functionPresets, CALL_STACK_REFERENCE, CALL_FRAMES_REFERENCE } from './content/functions';
 import { analyzeFunctions } from './compiler/functions';
+import { analyzeInterproc } from './compiler/interproc';
+import { interprocPresets, INTERPROC_REFERENCE, IPSCCP_REFERENCE } from './content/interproc';
+import { InterprocView } from './components/InterprocView';
 import { FunctionsView } from './components/FunctionsView';
 import { regallocPresets, REGALLOC_REFERENCE } from './content/regalloc';
 import { schedulePresets } from './content/schedule';
@@ -88,11 +91,13 @@ const stageNames: Record<Stage, string> = {
   gc: '垃圾收集',
   ssaopt: 'SSA 优化与复制合并',
   codegen: '指令选择与代码生成',
+  interproc: '跨过程分析与内联',
 };
 type InputKind = 'program' | 'automata' | 'grammar' | 'lr' | 'minimize' | 'functions' | 'gc';
 // Rules and grammar labs keep their own input instead of a Mini C program.
 const kindOf = (route: Route): InputKind =>
-  route === 'automata' || route === 'grammar' || route === 'lr' || route === 'minimize' || route === 'functions' || route === 'gc' ? route : 'program';
+  route === 'interproc' ? 'functions' // shares the function program with lab 16
+    : route === 'automata' || route === 'grammar' || route === 'lr' || route === 'minimize' || route === 'functions' || route === 'gc' ? route : 'program';
 const inputCopy = {
   program: {
     title: '源程序',
@@ -225,14 +230,18 @@ export default function App() {
     [inputKind, source],
   );
   const functions = useMemo(
-    () => (inputKind === 'functions' ? analyzeFunctions(source) : undefined),
-    [inputKind, source],
+    () => (route === 'functions' ? analyzeFunctions(source) : undefined),
+    [route, source],
+  );
+  const interproc = useMemo(
+    () => (route === 'interproc' ? analyzeInterproc(source) : undefined),
+    [route, source],
   );
   const gcResult = useMemo(
     () => (inputKind === 'gc' ? analyzeGc(source) : undefined),
     [inputKind, source],
   );
-  const ownOutcome = automata || grammarResult || lrResult || minimization || functions || gcResult;
+  const ownOutcome = automata || grammarResult || lrResult || minimization || functions || interproc || gcResult;
   const ownIssue = ownOutcome && !ownOutcome.ok ? ownOutcome.issue : undefined;
   const ownFrames = ownOutcome?.ok ? ownOutcome.analysis.frames : undefined;
   const length = lesson
@@ -242,7 +251,7 @@ export default function App() {
     : 0;
   const currentStep = Math.max(0, Math.min(step, Math.max(0, length - 1)));
   const dirty = draft !== source;
-  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'ssaopt' ? ssaOptPresets : route === 'codegen' ? codegenPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : route === 'schedule' ? schedulePresets : route === 'cse' ? redundancyPresets : undefined;
+  const preferredPresets = route === 'ssa' ? ssaPresets : route === 'ssaopt' ? ssaOptPresets : route === 'codegen' ? codegenPresets : route === 'interproc' ? interprocPresets : route === 'outssa' ? outSsaPresets : route === 'regalloc' ? regallocPresets : route === 'schedule' ? schedulePresets : route === 'cse' ? redundancyPresets : undefined;
   const labPresets = preferredPresets
     ? [...preferredPresets, ...copy.presets.filter((item) => !preferredPresets.some((own) => own.code === item.code))]
     : copy.presets;
@@ -340,7 +349,9 @@ export default function App() {
       pendingDraft = restored.draft;
     }
     const nextSource =
-      base === presets[0].code && pendingDraft === base
+      next === 'interproc' && base === functionPresets[0].code && pendingDraft === base
+        ? interprocPresets[0].code
+        : base === presets[0].code && pendingDraft === base
         ? next === 'cfg'
           ? flowPresets[0].code
           : next === 'dataflow'
@@ -901,6 +912,8 @@ export default function App() {
                       <div className="result-content">
                         {inputKind === 'gc' ? (
                           gcResult?.ok && <GcView key={source} analysis={gcResult.analysis} step={currentStep} />
+                        ) : route === 'interproc' ? (
+                          interproc?.ok && <InterprocView key={source} analysis={interproc.analysis} step={currentStep} />
                         ) : inputKind === 'functions' ? (
                           functions?.ok && <FunctionsView key={source} analysis={functions.analysis} source={source} step={currentStep} />
                         ) : inputKind === 'minimize' ? (
@@ -1392,6 +1405,9 @@ export default function App() {
                   <a href={TILING_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 4120 · Instruction Selection（Tiles）↗</a>
                   <a href={SYSV_ABI_REFERENCE} target="_blank" rel="noreferrer">x86-64 psABI · System V AMD64 调用约定 ↗</a>
                   <a href={INTEL_SDM_REFERENCE} target="_blank" rel="noreferrer">Intel 64 and IA-32 Architectures Software Developer's Manuals ↗</a>
+                  <p>第 23 个实验于 2026-11-26 把第 15 讲加入抓取脚本的允许列表，单页读取其中的内联一节（把被调方法体展开到调用处、热点且不太大、内联带来跨过程优化、atLeastTen(3) 示例），并核对 Cornell CS 6120 的跨过程分析课（内联、代码膨胀、递归无法完全展开）与 LLVM IPSCCP 的源码说明。效果摘要只区分输出、可能报错与可能不终止，是本项目的约定；没有实现逃逸分析与基于运行统计的内联。</p>
+                  <a href={INTERPROC_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · Interprocedural Analysis ↗</a>
+                  <a href={IPSCCP_REFERENCE} target="_blank" rel="noreferrer">LLVM · Interprocedural SCCP ↗</a>
                 </section>
               </div>
               <p className="figure-caption">
@@ -1608,6 +1624,8 @@ function Home({
                               ? '干涉图 / 线性扫描 / 溢出到栈'
                               : item.id === 'codegen'
                               ? '树覆盖 / 预着色 / x86-64 执行'
+                              : item.id === 'interproc'
+                              ? '调用图 / 效果摘要 / 常量传播 / 内联'
                               : item.id === 'functions'
                               ? 'CALL / RETURN / 独立栈帧 / 递归'
                               : item.id === 'outssa'
@@ -1772,6 +1790,13 @@ function Reading({ lesson, navigate }: { lesson: Lesson; navigate: (stage: Stage
             <small>补充概念核对：2026-11-21 · φ 消除、关键边与并行复制</small>
             <a href={OUT_SSA_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · Converting from SSA ↗</a>
             <a href={SSA_DECONSTRUCTION_REFERENCE} target="_blank" rel="noreferrer">CMU 15-411 · SSA Deconstruction ↗</a>
+          </>
+        )}
+        {lesson.id === 'interproc' && (
+          <>
+            <small>概念来源：2026-11-26 通过缓存脚本单页读取原书第 15 讲的内联一节（展开方法体、热点且不太大、内联带来跨过程优化、atLeastTen 示例）；补充核对 Cornell CS 6120 跨过程分析课与 LLVM IPSCCP。效果摘要的分类与迭代轮数是本项目的教学约定。</small>
+            <a href={INTERPROC_REFERENCE} target="_blank" rel="noreferrer">Cornell CS 6120 · Interprocedural Analysis ↗</a>
+            <a href={IPSCCP_REFERENCE} target="_blank" rel="noreferrer">LLVM · Interprocedural SCCP（IPO/SCCP.cpp）↗</a>
           </>
         )}
         {lesson.id === 'codegen' && (

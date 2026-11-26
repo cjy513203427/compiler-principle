@@ -20,7 +20,8 @@ export type Stage =
   | 'cse'
   | 'gc'
   | 'ssaopt'
-  | 'codegen';
+  | 'codegen'
+  | 'interproc';
 export type Value = number | boolean;
 export type DataType = 'int' | 'bool';
 export type TokenKind = 'keyword' | 'identifier' | 'number' | 'operator' | 'punctuation' | 'eof';

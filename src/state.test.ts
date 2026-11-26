@@ -10,6 +10,7 @@ import { redundancyPresets } from './content/redundancy';
 import { gcPresets } from './content/gc';
 import { ssaOptPresets } from './content/ssaopt';
 import { codegenPresets } from './content/codegen';
+import { interprocPresets } from './content/interproc';
 import { defaultOptions } from './content/lessons';
 it('restores SSA optimization lab with bounded inputs and local notes', () => {
   expect(readUrl('?lab=ssaopt').source).toBe(ssaOptPresets[0].code);
@@ -95,6 +96,12 @@ it('round-trips the current executable state without encoding private notes', ()
   expect(url).not.toContain('pool=');
   expect(url).not.toContain('notes');
   expect(new URL(url).hash).toBe('');
+});
+it('opens the interprocedural lab with its own preset and bounded input', () => {
+  expect(readUrl('?lab=interproc')).toMatchObject({ route: 'interproc', source: interprocPresets[0].code });
+  const shared = shareUrl('http://localhost:5173', 'interproc', interprocPresets[1].code, 3, defaultOptions);
+  expect(readUrl(new URL(shared).search)).toMatchObject({ route: 'interproc', source: interprocPresets[1].code, step: 3 });
+  expect(readUrl('?lab=interproc&code=' + 'a'.repeat(2001)).source).toBe(interprocPresets[0].code);
 });
 it('restores code generation settings from bounded URLs', () => {
   expect(readUrl('?lab=codegen')).toMatchObject({ route: 'codegen', source: codegenPresets[0].code, codegen: { pool: 'full', input: 'raw' } });

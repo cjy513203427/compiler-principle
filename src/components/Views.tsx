@@ -74,6 +74,7 @@ export function traceLength(result: Compilation, stage: Stage): number {
     case 'grammar':
     case 'lr':
     case 'functions':
+    case 'interproc':
     case 'gc':
       // These labs read their own input (rules / grammar); see analyzeAutomata and analyzeGrammar.
       return 0;
@@ -120,6 +121,7 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
     case 'grammar':
     case 'lr':
     case 'functions':
+    case 'interproc':
     case 'gc':
       return '';
   }

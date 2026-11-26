@@ -17,6 +17,7 @@ import { gcPresets } from './content/gc';
 import { ssaOptPresets } from './content/ssaopt';
 import { normalizeRegisterSettings, type RegisterSettings } from './compiler/regalloc';
 import { codegenPresets } from './content/codegen';
+import { interprocPresets } from './content/interproc';
 import { normalizeCodegenSettings, type CodegenSettings } from './compiler/codegen';
 
 export type Route = Stage | 'home' | 'notes' | 'sources' | 'assembly';
@@ -40,6 +41,8 @@ export function readUrl(search: string) {
       ? raw
       : route === 'functions'
         ? functionPresets[0].code
+        : route === 'interproc'
+        ? interprocPresets[0].code
         : route === 'regalloc'
         ? regallocPresets[0].code
         : route === 'schedule'
