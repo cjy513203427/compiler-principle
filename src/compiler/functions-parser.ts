@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import { tokenize } from './lexer';
 import { CompileError, type DataType, type NodeBase, type Value } from './model';
 
@@ -31,17 +32,17 @@ export function parseFunctions(source: string): FunctionProgram {
   const peek = () => tokens[cursor];
   const fail = (message: string): never => { throw new CompileError({ stage: 'functions', message, start: peek().start, end: peek().end }); };
   const take = (expected?: string) => {
-    if (expected && peek().text !== expected) fail(`期望「${expected}」，实际读到「${peek().text}」。`);
+    if (expected && peek().text !== expected) fail(T('期望「{#0}」，实际读到「{#1}」。', expected, peek().text));
     return tokens[cursor++];
   };
-  const name = () => { if (peek().kind !== 'identifier') fail('这里需要 ASCII 标识符。'); return take(); };
+  const name = () => { if (peek().kind !== 'identifier') fail(T('这里需要 ASCII 标识符。')); return take(); };
   const type = (): DataType => {
-    if (peek().text !== 'int' && peek().text !== 'bool') fail('参数和返回值的类型只能是 int 或 bool。');
+    if (peek().text !== 'int' && peek().text !== 'bool') fail(T('参数和返回值的类型只能是 int 或 bool。'));
     return take().text as DataType;
   };
   const node = (start: number) => ({ id: serial++, start, end: tokens[cursor - 1].end });
-  function nested<T>(read: () => T): T {
-    if (++nesting > 64) fail('语法嵌套超过 64 层，请缩小示例。');
+  function nested<R>(read: () => R): R {
+    if (++nesting > 64) fail(T('语法嵌套超过 64 层，请缩小示例。'));
     try { return read(); } finally { nesting--; }
   }
   function primary(): FunctionExpr {
@@ -52,7 +53,7 @@ export function parseFunctions(source: string): FunctionProgram {
     }
     if (token.kind === 'number' || token.text === 'true' || token.text === 'false') {
       take(); const value = token.kind === 'number' ? Number(token.text) : token.text === 'true';
-      if (typeof value === 'number' && !Number.isSafeInteger(value)) throw new CompileError({ stage: 'functions', message: '整数字面量超出安全整数范围。', start: token.start, end: token.end });
+      if (typeof value === 'number' && !Number.isSafeInteger(value)) throw new CompileError({ stage: 'functions', message: T('整数字面量超出安全整数范围。'), start: token.start, end: token.end });
       return { kind: 'literal', value, ...node(token.start) };
     }
     if (token.kind === 'identifier') {
@@ -61,7 +62,7 @@ export function parseFunctions(source: string): FunctionProgram {
       take('('); const args: FunctionExpr[] = [];
       if (peek().text !== ')') {
         do {
-          if (args.length === 8) fail('一次调用最多传入 8 个实参。');
+          if (args.length === 8) fail(T('一次调用最多传入 8 个实参。'));
           args.push(nested(expression));
           if (peek().text !== ',') break;
           take(',');
@@ -70,7 +71,7 @@ export function parseFunctions(source: string): FunctionProgram {
       take(')'); return { kind: 'call', name: token.text, args, ...node(token.start) };
     }
     if (token.text === '(') { take(); const value = nested(expression); take(')'); return value; }
-    return fail(`期望表达式，实际读到「${token.text}」。`);
+    return fail(T('期望表达式，实际读到「{#0}」。', token.text));
   }
   function expression(min = 1): FunctionExpr {
     let left = primary();
@@ -90,12 +91,12 @@ export function parseFunctions(source: string): FunctionProgram {
     }
     if (token.text === 'if' || token.text === 'while') {
       take(); take('('); const condition = expression(); take(')');
-      if (peek().text !== '{') fail('if / while 的主体需要花括号。');
+      if (peek().text !== '{') fail(T('if / while 的主体需要花括号。'));
       const body = nested(statement);
       if (token.text === 'while') return { kind: 'while', condition, body, ...node(token.start) };
       let otherwise: FunctionStmt | undefined;
       if (peek().text === 'else') {
-        take(); if (peek().text !== '{') fail('else 的主体需要花括号。');
+        take(); if (peek().text !== '{') fail(T('else 的主体需要花括号。'));
         otherwise = nested(statement);
       }
       return { kind: 'if', condition, then: body, otherwise, ...node(token.start) };
@@ -115,27 +116,27 @@ export function parseFunctions(source: string): FunctionProgram {
         return { kind: 'assign', name: token.text, value, ...node(token.start) };
       }
       const value = expression();
-      if (value.kind !== 'call') fail('独立表达式语句必须是函数调用。');
+      if (value.kind !== 'call') fail(T('独立表达式语句必须是函数调用。'));
       take(';'); return { kind: 'discard', value, ...node(token.start) };
     }
-    return fail('这里需要声明、赋值、调用、return、print、if、while 或语句块。函数只可在顶层定义。');
+    return fail(T('这里需要声明、赋值、调用、return、print、if、while 或语句块。函数只可在顶层定义。'));
   }
   const functions: FunctionDefinition[] = [], main: FunctionStmt[] = [];
   while (peek().kind !== 'eof') {
     if (['int', 'bool'].includes(peek().text) && tokens[cursor + 1]?.kind === 'identifier' && tokens[cursor + 2]?.text === '(') {
-      if (functions.length === 24) fail('最多定义 24 个函数。');
+      if (functions.length === 24) fail(T('最多定义 24 个函数。'));
       const start = peek().start, returnType = type(), identifier = name(); take('(');
       const params: FunctionParameter[] = [];
       if (peek().text !== ')') {
         do {
-          if (params.length === 8) fail('每个函数最多 8 个形参。');
+          if (params.length === 8) fail(T('每个函数最多 8 个形参。'));
           const start = peek().start, dataType = type(), identifier = name();
           params.push({ name: identifier.text, dataType, ...node(start) });
           if (peek().text !== ',') break;
           take(',');
         } while (true);
       }
-      take(')'); if (peek().text !== '{') fail('函数体需要花括号；不支持函数原型。');
+      take(')'); if (peek().text !== '{') fail(T('函数体需要花括号；不支持函数原型。'));
       const body = statement(); functions.push({ name: identifier.text, returnType, params, body, ...node(start) });
     } else main.push(statement());
   }

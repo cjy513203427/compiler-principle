@@ -1,4 +1,5 @@
 import type { Stage } from '../compiler/model';
+import { T } from '../i18n';
 
 export interface LearningRoute {
   id: string;
@@ -10,26 +11,30 @@ export interface LearningRoute {
 export const learningRoutes: LearningRoute[] = [
   {
     id: 'foundation',
-    title: '先跑通编译流程',
-    description: '第一次阅读，从字符一直走到执行。沿用同一份 Mini C 程序，先建立全貌。',
+    title: T('先跑通编译流程'),
+    description: T('第一次阅读，从字符一直走到执行。沿用同一份 Mini C 程序，先建立全貌。'),
     stages: ['lex', 'parse', 'semantic', 'ir', 'optimize', 'vm'],
   },
   {
     id: 'frontend',
-    title: '词法与文法进阶',
-    description: '熟悉词法和语法分析后，再看规则如何生成自动机、预测表与移进规约表。',
+    title: T('词法与文法进阶'),
+    description: T('熟悉词法和语法分析后，再看规则如何生成自动机、预测表与移进规约表。'),
     stages: ['automata', 'minimize', 'grammar', 'lr'],
   },
   {
     id: 'middle',
-    title: '程序表示与调用',
-    description: '从分支和数据流走到 SSA，在 SSA 上做稀疏优化与复制合并，再看消除 φ 与专用函数调用栈，最后跨函数分析效果、传播常量与内联。',
+    title: T('程序表示与调用'),
+    description: T(
+      '从分支和数据流走到 SSA，在 SSA 上做稀疏优化与复制合并，再看消除 φ 与专用函数调用栈，最后跨函数分析效果、传播常量与内联。',
+    ),
     stages: ['cfg', 'dataflow', 'dominance', 'ssa', 'ssaopt', 'outssa', 'functions', 'interproc'],
   },
   {
     id: 'backend',
-    title: '优化、后端与运行时',
-    description: '在数据流与循环分析之上消除重复计算，再把值分到有限寄存器、重排指令，然后把 IR 真正翻译成 x86-64 汇编；最后看运行时怎样回收不再使用的对象。',
+    title: T('优化、后端与运行时'),
+    description: T(
+      '在数据流与循环分析之上消除重复计算，再把值分到有限寄存器、重排指令，然后把 IR 真正翻译成 x86-64 汇编；最后看运行时怎样回收不再使用的对象。',
+    ),
     stages: ['cse', 'regalloc', 'schedule', 'codegen', 'gc'],
   },
 ];

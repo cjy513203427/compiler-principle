@@ -1,3 +1,4 @@
+import { T } from '../../i18n';
 import {
   type Access,
   type Alias,
@@ -91,20 +92,20 @@ export function runAssembly(program: Program, budget = MAX_ASSEMBLY_STEPS): Exec
       address + BigInt(bytes) <= program.array.address + BigInt(program.array.values.length * 4));
   const store = (address: bigint, width: Width, value: bigint) => {
     if (!mapped(address, width / 8))
-      throw new Error('教学检查：访问超出本例映射内存；真实 CPU 不会自动检查 C 数组边界。');
+      throw new Error(T('教学检查：访问超出本例映射内存；真实 CPU 不会自动检查 C 数组边界。'));
     const normalized = unsignedValue(value, width);
     for (let i = 0; i < width / 8; i++)
       memory[String(address + BigInt(i))] = Number((normalized >> BigInt(i * 8)) & 255n);
   };
   const load = (address: bigint, width: Width): bigint => {
     if (!mapped(address, width / 8))
-      throw new Error('教学检查：访问超出本例映射内存；真实 CPU 不会自动检查 C 数组边界。');
+      throw new Error(T('教学检查：访问超出本例映射内存；真实 CPU 不会自动检查 C 数组边界。'));
     let value = 0n;
     for (let i = 0; i < width / 8; i++) {
       const byte = memory[String(address + BigInt(i))];
       if (byte === undefined)
         throw new Error(
-          '教学检查：正在读取本例尚未初始化的内存；这不是 CPU 自动提供的未初始化检测。',
+          T('教学检查：正在读取本例尚未初始化的内存；这不是 CPU 自动提供的未初始化检测。'),
         );
       value |= BigInt(byte) << BigInt(i * 8);
     }
@@ -143,7 +144,7 @@ export function runAssembly(program: Program, budget = MAX_ASSEMBLY_STEPS): Exec
       ),
     });
   };
-  snapshot(-1, 0, '进入示例。参数与外部返回位置已准备；下一步执行第 0 条指令。', []);
+  snapshot(-1, 0, T('进入示例。参数与外部返回位置已准备；下一步执行第 0 条指令。'), []);
   const address = (operand: Extract<Operand, { kind: 'mem' }>) =>
     unsignedValue(
       state[operand.base] +
@@ -180,24 +181,27 @@ export function runAssembly(program: Program, budget = MAX_ASSEMBLY_STEPS): Exec
           kind: 'write',
           value: unsignedValue(value, operand.width),
         });
-      } else throw new Error('立即数不能作为写入目标。');
+      } else throw new Error(T('立即数不能作为写入目标。'));
     };
     const target = (label: string): number => {
       const found = labels.get(label);
-      if (found === undefined) throw new Error(`不存在标签 ${label}。`);
+      if (found === undefined) throw new Error(T('不存在标签 {#0}。', label));
       return found;
     };
     try {
       switch (instruction.op) {
         case 'MOV':
           write(instruction.left, read(instruction.right));
-          message = 'MOV 复制右侧值到左侧，源操作数保留；四个标志位不变。';
+          message = T('MOV 复制右侧值到左侧，源操作数保留；四个标志位不变。');
           break;
         case 'LEA': {
-          if (instruction.right.kind !== 'mem') throw new Error('LEA 需要地址表达式。');
+          if (instruction.right.kind !== 'mem') throw new Error(T('LEA 需要地址表达式。'));
           const value = address(instruction.right);
           write(instruction.left, value);
-          message = `LEA 只计算地址 ${value.toString(16).toUpperCase()}h，没有读取该地址中的数据，标志位不变。`;
+          message = T(
+            'LEA 只计算地址 {#0}h，没有读取该地址中的数据，标志位不变。',
+            value.toString(16).toUpperCase(),
+          );
           break;
         }
         case 'ADD':
@@ -217,24 +221,47 @@ export function runAssembly(program: Program, budget = MAX_ASSEMBLY_STEPS): Exec
           if (instruction.op !== 'CMP') write(instruction.left, calculated.result);
           message =
             instruction.op === 'CMP'
-              ? `CMP 临时计算左减右，低 ${width} 位差为 ${calculated.result}；只更新标志，不改写两个操作数。`
-              : `${instruction.op} 计算后把低 ${width} 位写回左侧：${calculated.result}。CF=${Number(flags.CF)}，OF=${Number(flags.OF)}。`;
+              ? T(
+                  'CMP 临时计算左减右，低 {#0} 位差为 {#1}；只更新标志，不改写两个操作数。',
+                  width,
+                  calculated.result,
+                )
+              : T(
+                  '{#0} 计算后把低 {#1} 位写回左侧：{#2}。CF={#3}，OF={#4}。',
+                  instruction.op,
+                  width,
+                  calculated.result,
+                  Number(flags.CF),
+                  Number(flags.OF),
+                );
           break;
         }
         case 'JMP':
           nextPc = target(instruction.target);
-          message = `无条件跳到 ${instruction.target}，不修改标志位。`;
+          message = T('无条件跳到 {#0}，不修改标志位。', instruction.target);
           break;
         case 'JGE':
         case 'JAE': {
           const taken = instruction.op === 'JGE' ? flags.SF === flags.OF : !flags.CF;
           if (taken) nextPc = target(instruction.target);
-          message = `${instruction.op} 检查 ${instruction.op === 'JGE' ? 'SF = OF（有符号大于等于）' : 'CF = 0（无符号大于等于）'}，结果为 ${taken}；${taken ? `跳到 ${instruction.target}` : '顺序执行下一条'}。`;
+          const condText =
+            instruction.op === 'JGE'
+              ? T('SF = OF（有符号大于等于）')
+              : T('CF = 0（无符号大于等于）');
+          message = taken
+            ? T(
+                '{#0} 检查 {#1}，结果为 {#2}；跳到 {#3}。',
+                instruction.op,
+                condText,
+                taken,
+                instruction.target,
+              )
+            : T('{#0} 检查 {#1}，结果为 {#2}；顺序执行下一条。', instruction.op, condText, taken);
           break;
         }
         case 'CALL': {
           if (state.RSP % 16n !== 0n)
-            throw new Error('教学 ABI 检查：本例 CALL 前 RSP 需要 16 字节对齐。');
+            throw new Error(T('教学 ABI 检查：本例 CALL 前 RSP 需要 16 字节对齐。'));
           const destination = target(instruction.target);
           const stackAddress = state.RSP - 8n;
           store(stackAddress, 64, BigInt(nextPc));
@@ -242,21 +269,25 @@ export function runAssembly(program: Program, budget = MAX_ASSEMBLY_STEPS): Exec
           accesses.push({ address: stackAddress, width: 64, kind: 'write', value: BigInt(nextPc) });
           frames.push({ name: instruction.target, returnPc: nextPc, returnAddress: stackAddress });
           nextPc = destination;
-          message = `CALL 把返回位置 #${pc + 1} 压入 8 字节栈槽，RSP 减 8，再进入 ${instruction.target}。此处的 # 是教学指令序号。`;
+          message = T(
+            'CALL 把返回位置 #{#0} 压入 8 字节栈槽，RSP 减 8，再进入 {#1}。此处的 # 是教学指令序号。',
+            pc + 1,
+            instruction.target,
+          );
           break;
         }
         case 'RET': {
           const stackAddress = state.RSP;
           const value = load(stackAddress, 64);
-          if (value < 0n || value > BigInt(code.length)) throw new Error('教学返回位置越界。');
+          if (value < 0n || value > BigInt(code.length)) throw new Error(T('教学返回位置越界。'));
           accesses.push({ address: stackAddress, width: 64, kind: 'read', value });
           state.RSP += 8n;
           nextPc = Number(value);
           frames.pop();
           halted = nextPc === code.length;
           message = halted
-            ? 'RET 弹出外部返回位置，RSP 加 8，示例结束；返回值保留在规定的寄存器中。'
-            : `RET 弹出返回位置 #${nextPc}，RSP 加 8，继续调用者下一条指令。`;
+            ? T('RET 弹出外部返回位置，RSP 加 8，示例结束；返回值保留在规定的寄存器中。')
+            : T('RET 弹出返回位置 #{#0}，RSP 加 8，继续调用者下一条指令。', nextPc);
           break;
         }
       }
@@ -277,7 +308,7 @@ export function runAssembly(program: Program, budget = MAX_ASSEMBLY_STEPS): Exec
     }
   }
   const limited = pc < code.length && !halted;
-  if (limited) steps.at(-1)!.message += ` 已达到 ${limit} 条指令的教学回放上限。`;
+  if (limited) steps.at(-1)!.message += ' ' + T('已达到 {#0} 条指令的教学回放上限。', limit);
   return {
     steps,
     instructions: code,

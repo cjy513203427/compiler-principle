@@ -1,5 +1,6 @@
 // Context-free grammars, FIRST / FOLLOW, LL(1) tables and table-driven parsing (原书第 03 讲).
 // Pure functions only; the view renders these results.
+import { T } from '../i18n';
 
 export const GRAMMAR_LIMITS = {
   source: 2000,
@@ -60,7 +61,7 @@ const WORD = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export function parseGrammarSpec(source: string): GrammarSpec {
   if (source.length > GRAMMAR_LIMITS.source)
     throw new GrammarError({
-      message: `文法与输入合计最多 ${GRAMMAR_LIMITS.source} 个字符。`,
+      message: T('文法与输入合计最多 {#0} 个字符。', GRAMMAR_LIMITS.source),
       start: GRAMMAR_LIMITS.source,
       end: source.length,
     });
@@ -86,48 +87,48 @@ export function parseGrammarSpec(source: string): GrammarSpec {
     let body: string;
     if (trimmed.startsWith('|')) {
       // A continuation line adds more alternatives to the previous left-hand side.
-      if (!current) fail('以 | 开头的行要接在某条产生式后面。');
+      if (!current) fail(T('以 | 开头的行要接在某条产生式后面。'));
       lhs = current!;
       body = trimmed.slice(1);
     } else {
       const arrow = line.indexOf('->');
-      if (arrow < 0) fail('产生式写成“左边 -> 右边”，多个候选用 | 分开。');
+      if (arrow < 0) fail(T('产生式写成“左边 -> 右边”，多个候选用 | 分开。'));
       lhs = line.slice(0, arrow).trim();
       body = line.slice(arrow + 2);
       if (!NONTERMINAL.test(lhs))
-        fail(`左边「${lhs || '空'}」不是合法的非终结符名：用字母开头，可带撇号，如 add'。`);
+        fail(T("左边「{#0}」不是合法的非终结符名：用字母开头，可带撇号，如 add'。", lhs || T('空')));
     }
     current = lhs;
     for (const alternative of body.split('|')) {
       const symbols = alternative.trim().split(/\s+/).filter(Boolean);
-      if (!symbols.length) fail(`${lhs} 有一个空候选；空串请明确写成 ε。`);
+      if (!symbols.length) fail(T('{#0} 有一个空候选；空串请明确写成 ε。', lhs));
       const empty = symbols.length === 1 && (symbols[0] === EPSILON || symbols[0] === 'eps');
       if (!empty && symbols.some((s) => s === EPSILON || s === 'eps'))
-        fail('ε 表示“什么也没有”，只能单独作为一个候选。');
-      if (symbols.includes(END)) fail('$ 留给“输入结束”，不能写在产生式里。');
-      if (symbols.includes('->')) fail('一行只能有一个 ->。');
-      if (symbols.length > GRAMMAR_LIMITS.rhs) fail(`一个候选最多 ${GRAMMAR_LIMITS.rhs} 个符号。`);
+        fail(T('ε 表示“什么也没有”，只能单独作为一个候选。'));
+      if (symbols.includes(END)) fail(T('$ 留给“输入结束”，不能写在产生式里。'));
+      if (symbols.includes('->')) fail(T('一行只能有一个 ->。'));
+      if (symbols.length > GRAMMAR_LIMITS.rhs) fail(T('一个候选最多 {#0} 个符号。', GRAMMAR_LIMITS.rhs));
       raw.push({ lhs, rhs: empty ? [] : symbols, start: lineStart, end: lineStart + line.length });
     }
   }
   if (separator < 0)
     throw new GrammarError({
-      message: '缺少单独一行的 %%。上方写产生式，下方写要分析的输入。',
+      message: T('缺少单独一行的 %%。上方写产生式，下方写要分析的输入。'),
       start: 0,
       end: source.length,
     });
   if (!raw.length)
-    throw new GrammarError({ message: '%% 上方至少需要一条产生式。', start: 0, end: offset });
+    throw new GrammarError({ message: T('%% 上方至少需要一条产生式。'), start: 0, end: offset });
   if (raw.length > GRAMMAR_LIMITS.productions)
     throw new GrammarError({
-      message: `最多 ${GRAMMAR_LIMITS.productions} 个候选产生式。`,
+      message: T('最多 {#0} 个候选产生式。', GRAMMAR_LIMITS.productions),
       start: raw[GRAMMAR_LIMITS.productions].start,
       end: raw[GRAMMAR_LIMITS.productions].end,
     });
   const nonterminals = [...new Set(raw.map((p) => p.lhs))];
   if (nonterminals.length > GRAMMAR_LIMITS.nonterminals)
     throw new GrammarError({
-      message: `最多 ${GRAMMAR_LIMITS.nonterminals} 个非终结符。`,
+      message: T('最多 {#0} 个非终结符。', GRAMMAR_LIMITS.nonterminals),
       start: 0,
       end: offset,
     });
@@ -137,7 +138,7 @@ export function parseGrammarSpec(source: string): GrammarSpec {
     const key = `${p.lhs}->${p.rhs.join(' ')}`;
     if (seen.has(key))
       throw new GrammarError({
-        message: `产生式 ${p.lhs} -> ${p.rhs.join(' ') || EPSILON} 重复了。`,
+        message: T('产生式 {#0} -> {#1} 重复了。', p.lhs, p.rhs.join(' ') || EPSILON),
         start: p.start,
         end: p.end,
       });
@@ -177,7 +178,11 @@ export function tokenizeInput(grammar: Grammar, text: string, base = 0): InputTo
     if (!token) {
       const bad = word || digits || text[i];
       throw new GrammarError({
-        message: `输入里的「${bad}」不是文法中的终结符。${word ? '单词要和终结符同名，或在文法里使用 Id。' : digits ? '数字需要文法里有 Num。' : ''}`,
+        message: word
+          ? T('输入里的「{#0}」不是文法中的终结符。单词要和终结符同名，或在文法里使用 Id。', bad)
+          : digits
+            ? T('输入里的「{#0}」不是文法中的终结符。数字需要文法里有 Num。', bad)
+            : T('输入里的「{#0}」不是文法中的终结符。', bad),
         start: base + i,
         end: base + i + bad.length,
       });
@@ -186,7 +191,7 @@ export function tokenizeInput(grammar: Grammar, text: string, base = 0): InputTo
     i += token.text.length;
     if (tokens.length > GRAMMAR_LIMITS.input)
       throw new GrammarError({
-        message: `输入最多 ${GRAMMAR_LIMITS.input} 个 Token。`,
+        message: T('输入最多 {#0} 个 Token。', GRAMMAR_LIMITS.input),
         start: base + i,
         end: base + text.length,
       });
@@ -232,7 +237,7 @@ export function computeFirst(grammar: Grammar) {
     {
       round: 0,
       added: [],
-      reason: '开始时每个 FIRST 集合都是空的。接下来一轮轮扫描全部产生式，直到再也加不进新东西。',
+      reason: T('开始时每个 FIRST 集合都是空的。接下来一轮轮扫描全部产生式，直到再也加不进新东西。'),
       sets: snapshot(first),
     },
   ];
@@ -254,7 +259,7 @@ export function computeFirst(grammar: Grammar) {
         production: p.id,
         target: p.lhs,
         added,
-        reason: `第 ${round} 轮 · ${productionText(p)}：${firstReason(first, grammar, p)}`,
+        reason: T('第 {#0} 轮 · {#1}：{#2}', round, productionText(p), firstReason(first, grammar, p)),
         sets: snapshot(first),
       });
     }
@@ -262,7 +267,7 @@ export function computeFirst(grammar: Grammar) {
       steps.push({
         round,
         added: [],
-        reason: `第 ${round} 轮没有任何集合变化，到达不动点：FIRST 计算完成。`,
+        reason: T('第 {#0} 轮没有任何集合变化，到达不动点：FIRST 计算完成。', round),
         sets: snapshot(first),
       });
   }
@@ -270,25 +275,28 @@ export function computeFirst(grammar: Grammar) {
 }
 
 function firstReason(first: Map<string, Set<string>>, grammar: Grammar, p: Production) {
-  if (!p.rhs.length) return `右边是 ε，说明 ${p.lhs} 可以什么都不产生，FIRST(${p.lhs}) 加入 ε。`;
+  if (!p.rhs.length) return T('右边是 ε，说明 {#0} 可以什么都不产生，FIRST({#0}) 加入 ε。', p.lhs);
   const parts: string[] = [];
   for (const s of p.rhs) {
     if (!grammar.nonterminals.includes(s)) {
       parts.push(
         parts.length
-          ? `再看下一项，是终结符 ${s}，把它加进来`
-          : `以终结符 ${s} 开头，把 ${s} 加进来`,
+          ? T('再看下一项，是终结符 {#0}，把它加进来', s)
+          : T('以终结符 {#0} 开头，把 {#0} 加进来', s),
       );
-      return `${parts.join('；')}。`;
+      return T('{#0}。', parts.join(T('；')));
     }
     const set = [...first.get(s)!].filter((t) => t !== EPSILON);
+    const setLabel = set.length ? setText(set) : T('（目前还是空的）');
     parts.push(
-      `${parts.length ? '再看下一项' : '以非终结符开头'} ${s}，把 FIRST(${s}) 中的 ${set.length ? setText(set) : '（目前还是空的）'} 加进来`,
+      parts.length
+        ? T('再看下一项 {#0}，把 FIRST({#0}) 中的 {#1} 加进来', s, setLabel)
+        : T('以非终结符开头 {#0}，把 FIRST({#0}) 中的 {#1} 加进来', s, setLabel),
     );
-    if (!first.get(s)!.has(EPSILON)) return `${parts.join('；')}。`;
-    parts.push(`${s} 可以为空`);
+    if (!first.get(s)!.has(EPSILON)) return T('{#0}。', parts.join(T('；')));
+    parts.push(T('{#0} 可以为空', s));
   }
-  return `${parts.join('；')}；整条右边都可以为空，所以加入 ε。`;
+  return T('{#0}；整条右边都可以为空，所以加入 ε。', parts.join(T('；')));
 }
 
 // ---------- FOLLOW ----------
@@ -301,7 +309,10 @@ export function computeFollow(grammar: Grammar, first: Map<string, Set<string>>)
       round: 0,
       target: grammar.start,
       added: [END],
-      reason: `${grammar.start} 是开始符号，整段输入解析完以后后面就是“输入结束”，所以 FOLLOW(${grammar.start}) 先放入 $。`,
+      reason: T(
+        '{#0} 是开始符号，整段输入解析完以后后面就是“输入结束”，所以 FOLLOW({#0}) 先放入 $。',
+        grammar.start,
+      ),
       sets: snapshot(follow),
     },
   ];
@@ -326,20 +337,36 @@ export function computeFollow(grammar: Grammar, first: Map<string, Set<string>>)
         const reasons: string[] = [];
         if (fromFirst.length)
           reasons.push(
-            `${symbol} 后面是 ${rest.join(' ')}，它们能开头的 Token ${setText(fromFirst)} 可以紧跟在 ${symbol} 后面`,
+            T(
+              '{#0} 后面是 {#1}，它们能开头的 Token {#2} 可以紧跟在 {#0} 后面',
+              symbol,
+              rest.join(' '),
+              setText(fromFirst),
+            ),
           );
         if (fromParent.length)
           reasons.push(
             rest.length
-              ? `${rest.join(' ')} 可以为空，${symbol} 就可能处在 ${p.lhs} 的末尾，所以 ${p.lhs} 后面的 ${setText(fromParent)} 也能跟在 ${symbol} 后面`
-              : `${symbol} 在 ${p.lhs} 的末尾，所以 ${p.lhs} 后面的 ${setText(fromParent)} 也能跟在 ${symbol} 后面`,
+              ? T(
+                  '{#0} 可以为空，{#1} 就可能处在 {#2} 的末尾，所以 {#2} 后面的 {#3} 也能跟在 {#1} 后面',
+                  rest.join(' '),
+                  symbol,
+                  p.lhs,
+                  setText(fromParent),
+                )
+              : T(
+                  '{#0} 在 {#1} 的末尾，所以 {#1} 后面的 {#2} 也能跟在 {#0} 后面',
+                  symbol,
+                  p.lhs,
+                  setText(fromParent),
+                ),
           );
         steps.push({
           round,
           production: p.id,
           target: symbol,
           added,
-          reason: `第 ${round} 轮 · ${productionText(p)}：${reasons.join('；')}。`,
+          reason: T('第 {#0} 轮 · {#1}：{#2}。', round, productionText(p), reasons.join(T('；'))),
           sets: snapshot(follow),
         });
       });
@@ -348,7 +375,7 @@ export function computeFollow(grammar: Grammar, first: Map<string, Set<string>>)
       steps.push({
         round,
         added: [],
-        reason: `第 ${round} 轮没有任何集合变化：FOLLOW 计算完成。`,
+        reason: T('第 {#0} 轮没有任何集合变化：FOLLOW 计算完成。', round),
         sets: snapshot(follow),
       });
   }
@@ -394,13 +421,21 @@ export function buildTable(
     steps.push({
       production: p.id,
       cells,
-      reason: `${productionText(p)}：${[
-        viaFirst.length && `下一个 Token 是 ${setText(viaFirst)} 时，说明要从这条产生式开始`,
-        viaFollow.length &&
-          `右边可以为空，当下一个 Token 是 ${p.lhs} 后面可能跟着的 ${setText(viaFollow)} 时，选它（相当于 ${p.lhs} 什么也不产生）`,
-      ]
-        .filter(Boolean)
-        .join('；')}。`,
+      reason: T(
+        '{#0}：{#1}。',
+        productionText(p),
+        [
+          viaFirst.length && T('下一个 Token 是 {#0} 时，说明要从这条产生式开始', setText(viaFirst)),
+          viaFollow.length &&
+            T(
+              '右边可以为空，当下一个 Token 是 {#0} 后面可能跟着的 {#1} 时，选它（相当于 {#0} 什么也不产生）',
+              p.lhs,
+              setText(viaFollow),
+            ),
+        ]
+          .filter(Boolean)
+          .join(T('；')),
+      ),
     });
   }
   const conflicts: Conflict[] = [];
@@ -543,14 +578,19 @@ export function parseWithTable(
   const lookahead = (i: number) => (i < input.length ? input[i].type : END);
   const show = (i: number) =>
     i < input.length
-      ? `${input[i].type}${input[i].type !== input[i].text ? `「${input[i].text}」` : ''}`
-      : '$（输入结束）';
+      ? input[i].type !== input[i].text
+        ? T('{#0}「{#1}」', input[i].type, input[i].text)
+        : input[i].type
+      : T('$（输入结束）');
   steps.push({
     kind: 'start',
     stack: names(),
     position: 0,
     node: 0,
-    message: `栈里先放 $ 和开始符号 ${grammar.start}。栈顶是“接下来要认出的东西”，右边是还没读的 Token。`,
+    message: T(
+      '栈里先放 $ 和开始符号 {#0}。栈顶是“接下来要认出的东西”，右边是还没读的 Token。',
+      grammar.start,
+    ),
   });
   let i = 0;
   while (steps.length < GRAMMAR_LIMITS.parseSteps) {
@@ -562,11 +602,11 @@ export function parseWithTable(
           kind: 'accept',
           stack: names(),
           position: i,
-          message: '栈里只剩 $，输入也读完了：解析成功。',
+          message: T('栈里只剩 $，输入也读完了：解析成功。'),
         });
         return { steps, nodes, accepted: true };
       }
-      const error = `规则已经全部用完，但输入里还剩 ${show(i)}。`;
+      const error = T('规则已经全部用完，但输入里还剩 {#0}。', show(i));
       steps.push({ kind: 'error', stack: names(), position: i, message: error });
       return { steps, nodes, accepted: false, error };
     }
@@ -582,18 +622,23 @@ export function parseWithTable(
           stack: names(),
           position: i,
           node: node.id,
-          message: `栈顶 ${top.symbol} 和下一个 Token 一样：匹配成功，弹出它，读入下一个 Token。`,
+          message: T('栈顶 {#0} 和下一个 Token 一样：匹配成功，弹出它，读入下一个 Token。', top.symbol),
         });
         continue;
       }
-      const error = `这里应该是 ${top.symbol}，但读到的是 ${show(i)}。`;
+      const error = T('这里应该是 {#0}，但读到的是 {#1}。', top.symbol, show(i));
       steps.push({ kind: 'error', stack: names(), position: i, message: error });
       return { steps, nodes, accepted: false, error };
     }
     const entries = table[top.symbol][next] || [];
     if (!entries.length) {
       const expected = Object.keys(table[top.symbol]);
-      const error = `${top.symbol} 不能以 ${show(i)} 开始；查表这一格是空的。这里能接受的是 ${setText(expected)}。`;
+      const error = T(
+        '{#0} 不能以 {#1} 开始；查表这一格是空的。这里能接受的是 {#2}。',
+        top.symbol,
+        show(i),
+        setText(expected),
+      );
       steps.push({ kind: 'error', stack: names(), position: i, message: error });
       return { steps, nodes, accepted: false, error };
     }
@@ -616,11 +661,22 @@ export function parseWithTable(
       production: production.id,
       node: parent.id,
       message: production.rhs.length
-        ? `栈顶是 ${top.symbol}，下一个 Token 是 ${show(i)}：查表得到 ${productionText(production)}。把右边倒着压栈，最左边的 ${production.rhs[0]} 就到了栈顶。`
-        : `栈顶是 ${top.symbol}，下一个 Token 是 ${show(i)}，它在 FOLLOW(${top.symbol}) 里：选 ${productionText(production)}，${top.symbol} 什么也不产生，直接弹出。`,
+        ? T(
+            '栈顶是 {#0}，下一个 Token 是 {#1}：查表得到 {#2}。把右边倒着压栈，最左边的 {#3} 就到了栈顶。',
+            top.symbol,
+            show(i),
+            productionText(production),
+            production.rhs[0],
+          )
+        : T(
+            '栈顶是 {#0}，下一个 Token 是 {#1}，它在 FOLLOW({#0}) 里：选 {#2}，{#0} 什么也不产生，直接弹出。',
+            top.symbol,
+            show(i),
+            productionText(production),
+          ),
     });
   }
-  const error = `解析超过 ${GRAMMAR_LIMITS.parseSteps} 步，已停止。`;
+  const error = T('解析超过 {#0} 步，已停止。', GRAMMAR_LIMITS.parseSteps);
   steps.push({ kind: 'error', stack: names(), position: i, message: error });
   return { steps, nodes, accepted: false, error };
 }
@@ -678,7 +734,10 @@ export function analyzeGrammar(source: string): GrammarOutcome {
         notes.push({
           kind: 'terminal-guess',
           symbol: t,
-          message: `${t} 没有自己的产生式，所以被当成终结符（Token）。如果它本该是非终结符，请补上 ${t} -> …。`,
+          message: T(
+            '{#0} 没有自己的产生式，所以被当成终结符（Token）。如果它本该是非终结符，请补上 {#0} -> …。',
+            t,
+          ),
         });
     const reachable = new Set([grammar.start]);
     const queue = [grammar.start];
@@ -697,7 +756,7 @@ export function analyzeGrammar(source: string): GrammarOutcome {
         notes.push({
           kind: 'unreachable',
           symbol: n,
-          message: `从开始符号 ${grammar.start} 出发永远用不到 ${n}。开始符号是第一条产生式的左边。`,
+          message: T('从开始符号 {#0} 出发永远用不到 {#1}。开始符号是第一条产生式的左边。', grammar.start, n),
         });
     const frames: GrammarFrame[] = [
       ...firstResult.steps.map((s, index) => ({
@@ -721,7 +780,10 @@ export function analyzeGrammar(source: string): GrammarOutcome {
       frames.push({
         phase: 'table',
         index: tableSteps.length,
-        message: `分析表有 ${conflicts.length} 个格子放了不止一条产生式：只看下一个 Token 没法决定，这个文法不是 LL(1)，所以不做表驱动解析。`,
+        message: T(
+          '分析表有 {#0} 个格子放了不止一条产生式：只看下一个 Token 没法决定，这个文法不是 LL(1)，所以不做表驱动解析。',
+          conflicts.length,
+        ),
       });
     return {
       ok: true,

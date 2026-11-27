@@ -1,13 +1,5 @@
 import { highlightLine, type SnippetLanguage } from './highlight';
-
-const languageNames: Record<SnippetLanguage, string> = {
-  grammar: '文法',
-  regex: '正则',
-  c: 'C',
-  asm: '汇编',
-  shell: 'Shell',
-  text: '文本',
-};
+import { T } from '../i18n';
 
 /** A read-only code snippet styled like an IDE editor tab. */
 export function CodeBlock({
@@ -25,6 +17,14 @@ export function CodeBlock({
   className?: string;
   lineNumbers?: boolean;
 }) {
+  const languageNames: Record<SnippetLanguage, string> = {
+    grammar: T('文法'),
+    regex: T('正则'),
+    c: 'C',
+    asm: T('汇编'),
+    shell: 'Shell',
+    text: T('文本'),
+  };
   const lines = code.replace(/\n$/, '').split('\n');
   return (
     <figure className={`ide-snippet ${className}`}>
@@ -40,7 +40,7 @@ export function CodeBlock({
       <pre
         className="ide-code"
         tabIndex={0}
-        aria-label={label || title || `${languageNames[language]}代码`}
+        aria-label={label || title || T('{#0}代码', languageNames[language])}
       >
         <code>
           {lines.map((line, index) => (

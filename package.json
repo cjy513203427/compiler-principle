@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "i18n": "node scripts/i18n.mjs",
     "check": "npm run typecheck && npm test && npm run build",
     "sources:fetch": "node scripts/fetch-source.mjs"
   },

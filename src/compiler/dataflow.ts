@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import { buildCFG, type ControlFlowGraph } from './cfg';
 import { evaluateBinary } from './operations';
 import type { Instruction, Operand, Value } from './model';
@@ -115,8 +116,9 @@ export function analyzeConstants(
       kind: 'initial',
       iteration: 0,
       block: first,
-      message:
+      message: T(
         '从入口开始。⊥ 表示尚无信息，常量居中，⊤ 表示无法确定唯一常量；这里只做静态分析，不运行程序。',
+      ),
       input: {},
       output: {},
       previous: {},
@@ -181,7 +183,11 @@ export function analyzeConstants(
           kind: 'visit',
           iteration: pass,
           block: block.id,
-          message: `第 ${pass} 轮处理 ${block.id}：合并当前可能执行的前驱 OUT，得到 IN，再顺序执行传递函数得到 OUT。`,
+          message: T(
+            '第 {#0} 轮处理 {#1}：合并当前可能执行的前驱 OUT，得到 IN，再顺序执行传递函数得到 OUT。',
+            pass,
+            block.id,
+          ),
           input: { ...input },
           output: { ...output },
           previous: { ...previous.output },
@@ -211,8 +217,16 @@ export function analyzeConstants(
     iteration: iterations,
     block: first,
     message: converged
-      ? `已在 ${iterations} 轮后达到不动点。再处理各块不会改变事实或可执行边；这不是运行时的变量快照。${traceTruncated ? '中间回放仅保留前 240 次处理，最终表仍显示完整收敛结果。' : ''}`
-      : '分析在限定轮数内尚未完成；不能把未分析到的路径当成不可达，优化器将保留原始 IR。',
+      ? traceTruncated
+        ? T(
+            '已在 {#0} 轮后达到不动点。再处理各块不会改变事实或可执行边；这不是运行时的变量快照。中间回放仅保留前 240 次处理，最终表仍显示完整收敛结果。',
+            iterations,
+          )
+        : T(
+            '已在 {#0} 轮后达到不动点。再处理各块不会改变事实或可执行边；这不是运行时的变量快照。',
+            iterations,
+          )
+      : T('分析在限定轮数内尚未完成；不能把未分析到的路径当成不可达，优化器将保留原始 IR。'),
     input: { ...blocks[first].input },
     output: { ...blocks[first].output },
     previous: {},

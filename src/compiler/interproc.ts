@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import { compileFunctions, MAIN_FUNCTION, type CallProgram } from './functions';
 import { executeFunctions, MAX_CALL_DEPTH, MAX_CALL_STEPS } from './functions-vm';
 import { analyzeConstants, joinFact, sameFact, factText, type Fact } from './dataflow';
@@ -45,7 +46,7 @@ export function lowerProgram(program: CallProgram): PProgram {
     let temp = 0;
     const pop = () => {
       const value = stack.pop();
-      if (!value) throw new Error(`${fn.name} 的字节码栈不平衡。`);
+      if (!value) throw new Error(T('{#0} 的字节码栈不平衡。', fn.name));
       return value;
     };
     fn.code.forEach((instruction, pc) => {
@@ -105,19 +106,19 @@ export function runProgram(program: PProgram, main = MAIN_FUNCTION, budget = MAX
     const instruction = frame.fn.code[frame.pc];
     if (!instruction) {
       if (frames.length === 1) return result({ halted: true });
-      return result({ error: { message: `执行到 ${frame.fn.name} 末尾，缺少 return。`, pc: frame.pc } });
+      return result({ error: { message: T('执行到 {#0} 末尾，缺少 return。', frame.fn.name), pc: frame.pc } });
     }
     if (instruction.op === 'label') { frame.pc++; continue; }
     if (executed >= budget) return result({ limited: true });
     executed++;
     const read = (operand: Operand): Value => {
       if (operand.kind === 'constant') return operand.value;
-      if (!frame.env.has(operand.name)) throw new Error(`读取未初始化局部变量 ${operand.name}。`);
+      if (!frame.env.has(operand.name)) throw new Error(T('读取未初始化局部变量 {#0}。', operand.name));
       return frame.env.get(operand.name)!;
     };
     const jump = (target: string) => {
       const index = labels.get(frame.fn.name)!.get(target);
-      if (index === undefined) throw new Error(`不存在的标签 ${target}。`);
+      if (index === undefined) throw new Error(T('不存在的标签 {#0}。', target));
       return index;
     };
     try {
@@ -129,14 +130,14 @@ export function runProgram(program: PProgram, main = MAIN_FUNCTION, budget = MAX
         case 'jump': next = jump(instruction.target); break;
         case 'branch': {
           const condition = read(instruction.condition);
-          if (typeof condition !== 'boolean') throw new Error('条件跳转需要 bool 值。');
+          if (typeof condition !== 'boolean') throw new Error(T('条件跳转需要 bool 值。'));
           if (!condition) next = jump(instruction.target);
           break;
         }
         case 'call': {
           if (frames.length >= MAX_CALL_DEPTH) return result({ limited: true });
           const callee = program.get(instruction.name);
-          if (!callee) throw new Error(`函数 ${instruction.name} 不存在。`);
+          if (!callee) throw new Error(T('函数 {#0} 不存在。', instruction.name));
           const args = instruction.args.map(read);
           frame.pc = next;
           frames.push({ fn: callee, pc: 0, env: new Map(callee.params.map((param, index) => [param, args[index]])), dest: instruction.dest });
@@ -148,7 +149,7 @@ export function runProgram(program: PProgram, main = MAIN_FUNCTION, budget = MAX
           const value = read(instruction.value);
           frames.pop();
           const caller = frames.at(-1);
-          if (!caller) throw new Error('return 没有调用者。');
+          if (!caller) throw new Error(T('return 没有调用者。'));
           if (frame.dest) caller.env.set(frame.dest, value);
           continue;
         }
@@ -214,7 +215,7 @@ export function summarizeEffects(program: PProgram, graph: CallGraph): Record<st
       const labels = new Map(code.flatMap((instruction, index) => (instruction.op === 'label' ? [[instruction.name, index] as const] : [])));
       const reasons: string[] = [];
       const prints = code.some((instruction) => instruction.op === 'print');
-      if (prints) reasons.push('直接 print');
+      if (prints) reasons.push(T('直接 print'));
       const unsafe = code.filter((instruction) => {
         if (instruction.op !== 'binary' || !ARITHMETIC.has(instruction.operator)) return false;
         // Unary minus is lowered to 0 - x; safe integers are symmetric, so it never overflows.
@@ -224,11 +225,11 @@ export function summarizeEffects(program: PProgram, graph: CallGraph): Record<st
         if (instruction.left.kind !== 'constant' || instruction.right.kind !== 'constant') return true;
         try { evaluateBinary(instruction.operator, instruction.left.value, instruction.right.value); return false; } catch { return true; }
       });
-      if (unsafe.some((instruction) => instruction.op === 'binary' && instruction.operator === '/')) reasons.push('除法可能除零');
-      if (unsafe.some((instruction) => instruction.op === 'binary' && instruction.operator !== '/')) reasons.push('加减乘可能溢出');
+      if (unsafe.some((instruction) => instruction.op === 'binary' && instruction.operator === '/')) reasons.push(T('除法可能除零'));
+      if (unsafe.some((instruction) => instruction.op === 'binary' && instruction.operator !== '/')) reasons.push(T('加减乘可能溢出'));
       const loops = code.some((instruction, index) => (instruction.op === 'jump' || instruction.op === 'branch') && (labels.get(instruction.target) ?? Infinity) < index);
-      if (loops) reasons.push('含循环，可能不终止');
-      if (recursive) reasons.push('处在递归环里，调用深度可能达到上限');
+      if (loops) reasons.push(T('含循环，可能不终止'));
+      if (recursive) reasons.push(T('处在递归环里，调用深度可能达到上限'));
       return { name, prints, traps: unsafe.length > 0, diverges: loops || recursive, recursive, reasons };
     });
     // Members of one SCC reach each other, so they share every effect.
@@ -244,10 +245,10 @@ export function summarizeEffects(program: PProgram, graph: CallGraph): Record<st
       const reasons = [...item.reasons];
       for (const callee of callees) {
         const summary = summaries[callee];
-        const kinds = [summary.prints && '输出', summary.traps && '报错', summary.diverges && '不终止'].filter(Boolean);
-        if (kinds.length) reasons.push(`调用 ${callee}（可能${kinds.join('、')}）`);
+        const kinds = [summary.prints && T('产生输出'), summary.traps && T('报错'), summary.diverges && T('不终止')].filter(Boolean);
+        if (kinds.length) reasons.push(T('调用 {#0}（可能{#1}）', callee, kinds.join(T('、'))));
       }
-      if (component.length > 1) reasons.push(`与 ${component.filter((name) => name !== item.name).join('、')} 相互递归`);
+      if (component.length > 1) reasons.push(T('与 {#0} 相互递归', component.filter((name) => name !== item.name).join(T('、'))));
       const effects = component.length > 1 ? shared : {
         prints: item.prints || inherited.some((summary) => summary.prints),
         traps: item.traps || inherited.some((summary) => summary.traps),
@@ -413,7 +414,7 @@ export function transformProgram(program: PProgram, ipcp: IpcpResult, summaries:
   const events: TransformEvent[] = [];
   for (const [name, fn] of program) {
     if (!ipcp.analyzed.includes(name)) {
-      events.push({ kind: 'dead-function', fn: name, text: `${name} 从 main 出发的调用都没有执行到，整个函数删除。` });
+      events.push({ kind: 'dead-function', fn: name, text: T('{#0} 从 main 出发的调用都没有执行到，整个函数删除。', name) });
       continue;
     }
     const facts = ipcp.facts[name];
@@ -425,7 +426,7 @@ export function transformProgram(program: PProgram, ipcp: IpcpResult, summaries:
     let code: PInstruction[] = [];
     fn.code.forEach((instruction, index) => {
       if (instruction.op === 'label') { code.push(instruction); return; }
-      if (!facts.executable[index]) { events.push({ kind: 'unreachable', fn: name, text: `删除不可达的 ${pInstructionText(instruction)}` }); return; }
+      if (!facts.executable[index]) { events.push({ kind: 'unreachable', fn: name, text: T('删除不可达的 {#0}', pInstructionText(instruction)) }); return; }
       const env = facts.before[index];
       const before = pInstructionText(instruction);
       let next: PInstruction;
@@ -440,12 +441,12 @@ export function transformProgram(program: PProgram, ipcp: IpcpResult, summaries:
       if (next.op === 'binary' && next.left.kind === 'constant' && next.right.kind === 'constant') {
         try {
           const value = evaluateBinary(next.operator, next.left.value, next.right.value);
-          events.push({ kind: 'fold', fn: name, text: `${pInstructionText(next)} 折叠为 ${next.dest} = ${value}` });
+          events.push({ kind: 'fold', fn: name, text: T('{#0} 折叠为 {#1} = {#2}', pInstructionText(next), next.dest, value) });
           next = { op: 'move', dest: next.dest, value: constant(value), nodeId: next.nodeId };
         } catch { /* keep the trap at run time */ }
       }
       if (next.op === 'branch' && next.condition.kind === 'constant') {
-        events.push({ kind: 'branch', fn: name, text: `${pInstructionText(next)}：条件恒为 ${next.condition.value}` });
+        events.push({ kind: 'branch', fn: name, text: T('{#0}：条件恒为 {#1}', pInstructionText(next), next.condition.value) });
         if (next.condition.value) return;
         next = { op: 'jump', target: next.target, nodeId: next.nodeId };
       }
@@ -453,13 +454,13 @@ export function transformProgram(program: PProgram, ipcp: IpcpResult, summaries:
         const summary = summaries[next.name], result = ipcp.returns[next.name];
         if (summary.pure && result?.kind === 'constant') {
           if (!next.dest) {
-            events.push({ kind: 'dead-call', fn: name, text: `${pInstructionText(next)}：结果没人用，${next.name} 是纯函数，删除调用` });
+            events.push({ kind: 'dead-call', fn: name, text: T('{#0}：结果没人用，{#1} 是纯函数，删除调用', pInstructionText(next), next.name) });
             return;
           }
-          events.push({ kind: 'fold-call', fn: name, text: `${pInstructionText(next)}：${next.name} 是纯函数且总返回 ${result.value}，调用换成常量` });
+          events.push({ kind: 'fold-call', fn: name, text: T('{#0}：{#1} 是纯函数且总返回 {#2}，调用换成常量', pInstructionText(next), next.name, result.value) });
           next = { op: 'move', dest: next.dest, value: constant(result.value), nodeId: next.nodeId };
         } else if (result?.kind === 'constant')
-          events.push({ kind: 'kept-call', fn: name, text: `${pInstructionText(next)}：返回值总是 ${result.value}，结果可以传播，但 ${next.name} ${summary.reasons.join('、')}，调用必须保留` });
+          events.push({ kind: 'kept-call', fn: name, text: T('{#0}：返回值总是 {#1}，结果可以传播，但 {#2} {#3}，调用必须保留', pInstructionText(next), result.value, next.name, summary.reasons.join(T('、'))) });
       }
       code.push(next);
     });
@@ -470,17 +471,17 @@ export function transformProgram(program: PProgram, ipcp: IpcpResult, summaries:
       code = code.filter((instruction) => {
         const dest = destOf(instruction);
         if (instruction.op === 'call' && summaries[instruction.name].pure && (!dest || !used.has(dest))) {
-          events.push({ kind: 'dead-call', fn: name, text: `${pInstructionText(instruction)}：结果没人用，${instruction.name} 是纯函数，删除调用` });
+          events.push({ kind: 'dead-call', fn: name, text: T('{#0}：结果没人用，{#1} 是纯函数，删除调用', pInstructionText(instruction), instruction.name) });
           changed = true; return false;
         }
         if (instruction.op === 'call' && dest && !used.has(dest)) {
-          events.push({ kind: 'kept-call', fn: name, text: `${pInstructionText(instruction)}：结果没人用，但 ${instruction.name} ${summaries[instruction.name].reasons.join('、')}，只丢掉结果，调用保留` });
+          events.push({ kind: 'kept-call', fn: name, text: T('{#0}：结果没人用，但 {#1} {#2}，只丢掉结果，调用保留', pInstructionText(instruction), instruction.name, summaries[instruction.name].reasons.join(T('、'))) });
           delete (instruction as { dest?: string }).dest;
           changed = true; return true;
         }
         const pure = instruction.op === 'move' || (instruction.op === 'binary' && !ARITHMETIC.has(instruction.operator));
         if (pure && dest && !used.has(dest)) {
-          events.push({ kind: 'dead-code', fn: name, text: `${pInstructionText(instruction)}：写入的值之后没人读取，删除` });
+          events.push({ kind: 'dead-code', fn: name, text: T('{#0}：写入的值之后没人读取，删除', pInstructionText(instruction)) });
           changed = true; return false;
         }
         return true;
@@ -505,9 +506,9 @@ export function inlineProgram(program: PProgram, graph: CallGraph, limit = INLIN
       if (instruction.op !== 'call') { code.push(instruction); continue; }
       const callee = result.get(instruction.name)!;
       const size = realSize(callee.code);
-      const reason = graph.recursive.includes(instruction.name) ? '递归函数不能完全展开'
-        : size > limit ? `${size} 条超过内联上限 ${limit}`
-          : code.length + size > MAX_PROGRAM ? '展开后代码过大' : undefined;
+      const reason = graph.recursive.includes(instruction.name) ? T('递归函数不能完全展开')
+        : size > limit ? T('{#0} 条超过内联上限 {#1}', size, limit)
+          : code.length + size > MAX_PROGRAM ? T('展开后代码过大') : undefined;
       if (reason) { events.push({ caller: name, callee: instruction.name, instance: 0, size, reason, inlined: false }); code.push(instruction); continue; }
       const id = ++instance;
       const prefix = `${instruction.name}@${id}.`;
@@ -574,9 +575,9 @@ export interface InterprocAnalysis {
 const allOn = { fold: true, propagate: true, dead: true };
 const programText = (program: PProgram) => [...program].map(([name, fn]) => `${name}:${fn.code.map(pInstructionText).join(';')}`).join('|');
 const eventText = (event: IpcpEvent) => event.kind === 'param'
-  ? `调用点 ${event.site.caller} 第 ${event.site.index} 条把实参合入 ${event.fn} 的形参 ${event.param}：现在是 ${factText(event.fact)}。`
-  : `${event.fn} 的所有 return 合并后，返回值现在是 ${factText(event.fact)}。`;
-const factLabel = (fact: Fact | undefined) => (fact ? factText(fact) : '⊥（没被调用）');
+  ? T('调用点 {#0} 第 {#1} 条把实参合入 {#2} 的形参 {#3}：现在是 {#4}。', event.site.caller, event.site.index, event.fn, event.param, factText(event.fact))
+  : T('{#0} 的所有 return 合并后，返回值现在是 {#1}。', event.fn, factText(event.fact));
+const factLabel = (fact: Fact | undefined) => (fact ? factText(fact) : T('⊥（没被调用）'));
 
 export function analyzeInterprocedural(program: CallProgram): InterprocAnalysis {
   const lowered = lowerProgram(program);
@@ -614,52 +615,67 @@ export function analyzeInterprocedural(program: CallProgram): InterprocAnalysis 
   const compare = (execution: PExecution | Execution) => compareExecutions(baseline, execution);
   const lowerRun = runProgram(lowered), optimizedRun = runProgram(optimized), inlinedRun = runProgram(inlined);
   const runs: RunRow[] = [
-    { id: 'vm', label: '实验 16 · 函数字节码 VM', execution: { ...baseline, maxDepth: vm.maxDepth }, outcome: 'same', note: '对照基线' },
-    { id: 'ir', label: '降低后的三地址 IR', execution: lowerRun, outcome: compare(lowerRun) },
-    { id: 'ipcp', label: '跨过程常量传播与清理后', execution: optimizedRun, outcome: compare(optimizedRun) },
-    { id: 'inline', label: '内联后', execution: inlinedRun, outcome: compare(inlinedRun) },
+    { id: 'vm', label: T('实验 16 · 函数字节码 VM'), execution: { ...baseline, maxDepth: vm.maxDepth }, outcome: 'same', note: T('对照基线') },
+    { id: 'ir', label: T('降低后的三地址 IR'), execution: lowerRun, outcome: compare(lowerRun) },
+    { id: 'ipcp', label: T('跨过程常量传播与清理后'), execution: optimizedRun, outcome: compare(optimizedRun) },
+    { id: 'inline', label: T('内联后'), execution: inlinedRun, outcome: compare(inlinedRun) },
     minic
-      ? { id: 'minic', label: '内联后的 main → 实验 05 优化器 → 栈式 VM', execution: { ...minic.execution, executed: minic.execution.steps.length - 1, calls: 0, maxDepth: 1 }, outcome: compare(minic.execution) }
-      : { id: 'minic', label: '内联后的 main → 实验 05 优化器 → 栈式 VM', outcome: 'skipped', note: `main 仍调用 ${remainingCalls.join('、')}，旧优化器没有给 call 建模，不交给它` },
+      ? { id: 'minic', label: T('内联后的 main → 实验 05 优化器 → 栈式 VM'), execution: { ...minic.execution, executed: minic.execution.steps.length - 1, calls: 0, maxDepth: 1 }, outcome: compare(minic.execution) }
+      : { id: 'minic', label: T('内联后的 main → 实验 05 优化器 → 栈式 VM'), outcome: 'skipped', note: T('main 仍调用 {#0}，旧优化器没有给 call 建模，不交给它', remainingCalls.join(T('、'))) },
   ];
   const frames: InterprocFrame[] = [];
   let traceTruncated = false;
   const push = (frame: InterprocFrame) => { if (frames.length < MAX_FRAMES) frames.push(frame); else traceTruncated = true; };
   for (const [name, fn] of lowered)
-    push({ kind: 'lower', fn: name, message: `把 ${name === MAIN_FUNCTION ? '顶层程序' : name} 的栈式字节码翻译成三地址 IR：用一个符号栈记住每个值来自常量、变量还是临时值；CALL 变成 call 指令，结果放进新临时值。共 ${realSize(fn.code)} 条。` });
-  push({ kind: 'graph', message: `调用图：${graph.edges.length} 条调用边，${graph.sites.length} 个调用点。${graph.recursive.length ? `递归环：${graph.sccs.filter((component) => component.some((name) => graph.recursive.includes(name))).map((component) => component.join(' ⇄ ')).join('；')}。` : '没有递归。'}${graph.functions.length > graph.reachable.length ? `从 main 到不了：${graph.functions.filter((name) => !graph.reachable.includes(name)).join('、')}。` : ''}按强连通分量自底向上，先总结被调函数，再总结调用者。` });
+    push({ kind: 'lower', fn: name, message: T('把 {#0} 的栈式字节码翻译成三地址 IR：用一个符号栈记住每个值来自常量、变量还是临时值；CALL 变成 call 指令，结果放进新临时值。共 {#1} 条。', name === MAIN_FUNCTION ? T('顶层程序') : name, realSize(fn.code)) });
+  const recursiveText = graph.recursive.length
+    ? T('递归环：{#0}。', graph.sccs.filter((component) => component.some((name) => graph.recursive.includes(name))).map((component) => component.join(' ⇄ ')).join(T('；')))
+    : T('没有递归。');
+  const unreachableText = graph.functions.length > graph.reachable.length
+    ? T('从 main 到不了：{#0}。', graph.functions.filter((name) => !graph.reachable.includes(name)).join(T('、')))
+    : '';
+  push({ kind: 'graph', message: T('调用图：{#0} 条调用边，{#1} 个调用点。{#2}{#3}按强连通分量自底向上，先总结被调函数，再总结调用者。', graph.edges.length, graph.sites.length, recursiveText, unreachableText) });
   for (const name of graph.sccs.flat()) {
     const summary = summaries[name];
-    push({ kind: 'summary', fn: name, message: `${name}：${summary.pure ? '纯函数——不输出、不会报错、一定返回，没人用结果时可以删掉调用' : summary.reasons.join('；')}。` });
+    push({ kind: 'summary', fn: name, message: summary.pure
+      ? T('{#0}：纯函数——不输出、不会报错、一定返回，没人用结果时可以删掉调用。', name)
+      : T('{#0}：{#1}。', name, summary.reasons.join(T('；'))) });
   }
   ipcp.events.forEach((event, index) => push({ kind: 'ipcp', event: index, message: eventText(event) }));
-  push({ kind: 'transform', fn: MAIN_FUNCTION, message: `过程间常量传播${ipcp.converged ? `在 ${ipcp.rounds} 轮后收敛` : '没有收敛，变换只用已得到的保守结果'}。${Object.entries(ipcp.params).filter(([name, facts]) => facts.length && ipcp.analyzed.includes(name)).map(([name, facts]) => `${name}(${facts.map(factLabel).join(', ')})`).join('，') || '没有带形参的函数被调用'}。接下来按这些事实改写每个函数：替换常量、折叠、删除不可达代码；只有纯函数的调用才能删除或换成常量。` });
+  const paramSummary = Object.entries(ipcp.params).filter(([name, facts]) => facts.length && ipcp.analyzed.includes(name)).map(([name, facts]) => `${name}(${facts.map(factLabel).join(', ')})`).join(T('，')) || T('没有带形参的函数被调用');
+  push({ kind: 'transform', fn: MAIN_FUNCTION, message: ipcp.converged
+    ? T('过程间常量传播在 {#0} 轮后收敛。{#1}。接下来按这些事实改写每个函数：替换常量、折叠、删除不可达代码；只有纯函数的调用才能删除或换成常量。', ipcp.rounds, paramSummary)
+    : T('过程间常量传播没有收敛，变换只用已得到的保守结果。{#0}。接下来按这些事实改写每个函数：替换常量、折叠、删除不可达代码；只有纯函数的调用才能删除或换成常量。', paramSummary) });
   for (let round = 1; round <= rounds; round++) {
     if (round > 1) {
       const purer = Object.keys(finalSummaries).filter((name) => !summaries[name]?.pure && finalSummaries[name].pure);
       const own = transformEvents.filter((event) => event.round === round);
       if (!own.length) break;
-      push({ kind: 'transform', fn: MAIN_FUNCTION, message: `第 ${round} 轮：改写后的函数重新总结效果、重新传播常量。${purer.length ? `${purer.join('、')} 的可能报错或输出的代码已被常量折叠掉，现在是纯函数，调用它们也可以删除或折叠。` : ''}` });
+      push({ kind: 'transform', fn: MAIN_FUNCTION, message: purer.length
+        ? T('第 {#0} 轮：改写后的函数重新总结效果、重新传播常量。{#1} 的可能报错或输出的代码已被常量折叠掉，现在是纯函数，调用它们也可以删除或折叠。', round, purer.join(T('、')))
+        : T('第 {#0} 轮：改写后的函数重新总结效果、重新传播常量。', round) });
     }
     for (const [name] of lowered) {
       const own = transformEvents.filter((event) => event.fn === name && event.round === round);
-      if (own.length) push({ kind: 'transform', fn: name, message: `${name}：${own.length} 处改写。${own.slice(0, 3).map((event) => event.text).join('；')}${own.length > 3 ? '……' : ''}。` });
+      if (own.length) push({ kind: 'transform', fn: name, message: own.length > 3
+        ? T('{#0}：{#1} 处改写。{#2}……。', name, own.length, own.slice(0, 3).map((event) => event.text).join(T('；')))
+        : T('{#0}：{#1} 处改写。{#2}。', name, own.length, own.slice(0, 3).map((event) => event.text).join(T('；'))) });
     }
   }
   inlineEvents.forEach((event, index) => push({ kind: 'inline', event: index, message: event.inlined
-    ? `在 ${event.caller} 中内联 ${event.callee}（第 ${event.instance} 份，${event.size} 条）：形参变成复制 ${event.callee}@${event.instance}.形参 = 实参，局部变量和标签加上前缀，return 变成“写结果 + 跳到结尾”。`
-    : `不内联 ${event.caller} 里对 ${event.callee} 的调用：${event.reason}。` }));
+    ? T('在 {#0} 中内联 {#1}（第 {#2} 份，{#3} 条）：形参变成复制 {#1}@{#2}.形参 = 实参，局部变量和标签加上前缀，return 变成“写结果 + 跳到结尾”。', event.caller, event.callee, event.instance, event.size)
+    : T('不内联 {#0} 里对 {#1} 的调用：{#2}。', event.caller, event.callee, event.reason) }));
   push({ kind: 'minic', message: minic
-    ? `内联后 main 不再有 call，正好是实验 04 的 IR 形状，交给实验 05 的优化器（传播、折叠、分支简化、清理）：${realSize(mainCode)} 条 → ${realSize(minic.steps.at(-1)!.instructions)} 条，再生成栈式字节码执行。`
-    : `main 仍调用 ${remainingCalls.join('、')}。实验 05 的优化器没有给 call 建模（输出、报错、不终止），不能把它当作纯表达式处理，所以这一步跳过。` });
+    ? T('内联后 main 不再有 call，正好是实验 04 的 IR 形状，交给实验 05 的优化器（传播、折叠、分支简化、清理）：{#0} 条 → {#1} 条，再生成栈式字节码执行。', realSize(mainCode), realSize(minic.steps.at(-1)!.instructions))
+    : T('main 仍调用 {#0}。实验 05 的优化器没有给 call 建模（输出、报错、不终止），不能把它当作纯表达式处理，所以这一步跳过。', remainingCalls.join(T('、'))) });
   const failed = runs.filter((row) => row.outcome === 'different');
   push({ kind: 'complete', message: failed.length
-    ? `发现行为差异：${failed.map((row) => row.label).join('、')}。`
+    ? T('发现行为差异：{#0}。', failed.map((row) => row.label).join(T('、')))
     : runs.some((row) => row.outcome === 'unknown')
-      ? '有执行达到上限，相关版本暂不能判定一致；其余版本与实验 16 的 VM 输出和错误一致。'
+      ? T('有执行达到上限，相关版本暂不能判定一致；其余版本与实验 16 的 VM 输出和错误一致。')
       : runs.some((row) => row.outcome === 'skipped')
-        ? '除了跳过的实验 05 一行，其余版本都实际执行，输出和错误与实验 16 的函数字节码 VM 一致。'
-        : '每个版本都实际执行，输出和错误与实验 16 的函数字节码 VM 一致。' });
+        ? T('除了跳过的实验 05 一行，其余版本都实际执行，输出和错误与实验 16 的函数字节码 VM 一致。')
+        : T('每个版本都实际执行，输出和错误与实验 16 的函数字节码 VM 一致。') });
   return { program, lowered, graph, summaries, finalSummaries, ipcp, rounds, optimized, transformEvents, inlined, inlineEvents, minic, remainingCalls, runs, baseline, frames, traceTruncated };
 }
 

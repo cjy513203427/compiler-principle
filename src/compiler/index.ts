@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import { tokenize } from './lexer';
 import { parse } from './parser';
 import { analyze } from './semantic';
@@ -81,8 +82,9 @@ export function compile(source: string, options: OptimizationOptions, settings: 
     else if (execution.limited)
       diagnostic = {
         stage: 'vm',
-        message:
+        message: T(
           '达到 2000 条指令的回放上限，已暂停执行。请缩小循环次数，或检查循环条件和变量更新。',
+        ),
         start: 0,
         end: 0,
       };

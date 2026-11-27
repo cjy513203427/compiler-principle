@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import type { ControlEdge, ControlFlowGraph } from './cfg';
 import {
   factText,
@@ -239,7 +240,7 @@ export function runSCCP(
       merged,
       blockId,
       'phi',
-      `${phiText(phi)} 只合并可执行入边（${activeInputs.join('，') || '无'}），得到 ${factText(merged)}。`,
+      T('{#0} 只合并可执行入边（{#1}），得到 {#2}。', phiText(phi), activeInputs.join(T('，')) || T('无'), factText(merged)),
     );
   };
 
@@ -252,7 +253,7 @@ export function runSCCP(
         next,
         blockId,
         'inst',
-        `${instructionText(instruction)} → ${instruction.dest} 的格值更新为 ${factText(next)}。`,
+        T('{#0} → {#1} 的格值更新为 {#2}。', instructionText(instruction), instruction.dest, factText(next)),
       );
     } else if (instruction.op === 'binary') {
       const left = operandFact(instruction.left, values);
@@ -273,8 +274,8 @@ export function runSCCP(
         blockId,
         'inst',
         next?.kind === 'constant'
-          ? `${instructionText(instruction)} 两侧均为常量，折叠得到 ${factText(next)}。`
-          : `${instructionText(instruction)} 的格值更新为 ${factText(next)}。`,
+          ? T('{#0} 两侧均为常量，折叠得到 {#1}。', instructionText(instruction), factText(next))
+          : T('{#0} 的格值更新为 {#1}。', instructionText(instruction), factText(next)),
       );
     } else if (instruction.op === 'branch') {
       const cond = operandFact(instruction.condition, values);
@@ -287,7 +288,7 @@ export function runSCCP(
             kind: 'branch',
             block: blockId,
             target: chosen.to,
-            detail: `条件 ${operandText(instruction.condition)} 已知为 ${cond.value}：仅激活 ${blockId} → ${chosen.to}，另一条分支保持不可达。`,
+            detail: T('条件 {#0} 已知为 {#1}：仅激活 {#2} → {#3}，另一条分支保持不可达。', operandText(instruction.condition), cond.value, blockId, chosen.to),
           });
         }
       } else if (cond?.kind === 'overdefined') {
@@ -302,8 +303,8 @@ export function runSCCP(
           events.push({
             kind: 'branch',
             block: blockId,
-            target: added.join('、'),
-            detail: `条件 ${operandText(instruction.condition)} 为 ⊤：保守激活两条出边（${added.join('、')}）。`,
+            target: added.join(T('、')),
+            detail: T('条件 {#0} 为 ⊤：保守激活两条出边（{#1}）。', operandText(instruction.condition), added.join(T('、'))),
           });
         }
       }
@@ -324,8 +325,10 @@ export function runSCCP(
         target,
         detail:
           'entry' in item
-            ? `从入口块 ${target} 启动稀疏工作表，无需先扫描不可达的基本块。`
-            : `标记控制流边 ${item.from} → ${target} 为可执行${firstVisit ? `，首次进入 ${target}` : `，重新求值 ${target} 的 φ`}。`,
+            ? T('从入口块 {#0} 启动稀疏工作表，无需先扫描不可达的基本块。', target)
+            : firstVisit
+              ? T('标记控制流边 {#0} → {#1} 为可执行，首次进入 {#1}。', item.from, target)
+              : T('标记控制流边 {#0} → {#1} 为可执行，重新求值 {#1} 的 φ。', item.from, target),
       });
       const block = byId.get(target)!;
       for (const phi of block.phis) evalPhi(target, phi);
@@ -670,7 +673,7 @@ function rewriteAndPruneSSA(
         block: block.id,
         kind: 'phi',
         text: phiText(phi),
-        reason: `${phi.dest} 不影响任何 print、分支条件或可能报错的运算，稀疏死代码删除直接移除了这个 φ。`,
+        reason: T('{#0} 不影响任何 print、分支条件或可能报错的运算，稀疏死代码删除直接移除了这个 φ。', phi.dest),
       });
       return false;
     });
@@ -680,7 +683,7 @@ function rewriteAndPruneSSA(
         block: block.id,
         kind: 'inst',
         text: instructionText(inst),
-        reason: `${'dest' in inst ? inst.dest : ''} 既无后续使用也不会触发运行时异常，直接清理。`,
+        reason: T('{#0} 既无后续使用也不会触发运行时异常，直接清理。', 'dest' in inst ? inst.dest : ''),
       });
       return false;
     });
@@ -765,10 +768,10 @@ function findConflictInstruction(
     if (!dest) continue;
     const copySrc = isCopyMove(inst) ? inst.value.name : undefined;
     if (dest === a && copySrc !== b && liveOut[i].includes(b)) {
-      return `在 #${i}（${instructionText(inst)}）写入 ${a} 时，${b} 之后还要被读取`;
+      return T('在 #{#0}（{#1}）写入 {#2} 时，{#3} 之后还要被读取', i, instructionText(inst), a, b);
     }
     if (dest === b && copySrc !== a && liveOut[i].includes(a)) {
-      return `在 #${i}（${instructionText(inst)}）写入 ${b} 时，${a} 之后还要被读取`;
+      return T('在 #{#0}（{#1}）写入 {#2} 时，{#3} 之后还要被读取', i, instructionText(inst), b, a);
     }
   }
   return undefined;
@@ -814,8 +817,8 @@ export function coalesceCopies(instructions: Instruction[]): {
             status: 'interferes',
             conflict,
             reason: conflict
-              ? `拒绝合并 ${dest} ← ${source}：两者存在干涉（${conflict}），合并会破坏旧值！`
-              : `拒绝合并 ${dest} ← ${source}：两者同时活跃，不能共享同一变量位置。`,
+              ? T('拒绝合并 {#0} ← {#1}：两者存在干涉（{#2}），合并会破坏旧值！', dest, source, conflict)
+              : T('拒绝合并 {#0} ← {#1}：两者同时活跃，不能共享同一变量位置。', dest, source),
           });
         }
         continue;
@@ -829,7 +832,7 @@ export function coalesceCopies(instructions: Instruction[]): {
         source,
         status: 'merged',
         mergedName: keep,
-        reason: `${dest} 与 ${source} 在干涉图中无边：合并为 ${keep}，复制 ${dest} ← ${source} 变为自身复制并删去。`,
+        reason: T('{#0} 与 {#1} 在干涉图中无边：合并为 {#2}，复制 {#0} ← {#1} 变为自身复制并删去。', dest, source, keep),
       });
       mergedThisRound = true;
       break;
@@ -892,21 +895,22 @@ export function optimizeSSA(
   };
 
   if (!ssa.valid || !dominance.converged) {
-    return fail('输入 SSA 或支配分析未通过校验，不进行 SSA 优化与复制合并。');
+    return fail(T('输入 SSA 或支配分析未通过校验，不进行 SSA 优化与复制合并。'));
   }
 
   const denseVisits = dataflow ? dataflow.steps.filter((step) => step.kind === 'visit').length : undefined;
   push({
     kind: 'initial',
     block: dominance.entry,
-    message:
+    message: T(
       '从校验通过的标量 SSA 出发：先用稀疏条件常量传播（SCCP）沿可执行边和 def-use 链求解，再做复制传播与稀疏死代码删除，最后在消除 φ 时做干涉图保护的保守复制合并。',
+    ),
   });
 
   const sccp = runSCCP(ssa, dominance, denseVisits);
   result.sccp = sccp;
   if (!sccp.converged) {
-    return fail('稀疏条件常量传播超过步数上限，保留原始 SSA。');
+    return fail(T('稀疏条件常量传播超过步数上限，保留原始 SSA。'));
   }
 
   sccp.events.forEach((event, index) =>
@@ -926,27 +930,36 @@ export function optimizeSSA(
   push({
     kind: 'rewrite',
     block: dominance.entry,
-    message: `按 SCCP 改写并做 SSA 复制传播：裁剪 ${rewritten.removedBlocks.length} 个不可达块、化简 ${rewritten.simplifiedPhis} 个 φ、折叠 ${rewritten.foldedConstants} 处常量、传播 ${rewritten.propagatedCopies} 次复制。`,
+    message: T(
+      '按 SCCP 改写并做 SSA 复制传播：裁剪 {#0} 个不可达块、化简 {#1} 个 φ、折叠 {#2} 处常量、传播 {#3} 次复制。',
+      rewritten.removedBlocks.length,
+      rewritten.simplifiedPhis,
+      rewritten.foldedConstants,
+      rewritten.propagatedCopies,
+    ),
   });
 
   if (rewritten.dceRemovals.length) {
     push({
       kind: 'dce',
       block: rewritten.dceRemovals[0].block,
-      message: `稀疏死代码删除：从 print、分支和可能报错的算术反向沿唯一定义标记，清理了 ${rewritten.dceRemovals.length} 条无用定义或 φ。`,
+      message: T(
+        '稀疏死代码删除：从 print、分支和可能报错的算术反向沿唯一定义标记，清理了 {#0} 条无用定义或 φ。',
+        rewritten.dceRemovals.length,
+      ),
     });
   } else {
     push({
       kind: 'dce',
       block: dominance.entry,
-      message: '稀疏死代码删除：剩余指令与 φ 全部影响输出、控制流或可能报错的运算，没有可删除项。',
+      message: T('稀疏死代码删除：剩余指令与 φ 全部影响输出、控制流或可能报错的运算，没有可删除项。'),
     });
   }
 
   const optIssues = validateSSA(rewritten.blocks, rewritten.optDominance);
   result.optimizedValidationIssues = optIssues;
   if (optIssues.length) {
-    return fail(`优化后的 SSA 校验失败：${optIssues.join(' ')}`);
+    return fail(T('优化后的 SSA 校验失败：{#0}', optIssues.join(' ')));
   }
 
   result.optimizedSsaExecution = executeSSA(rewritten.blocks, rewritten.optDominance);
@@ -955,7 +968,7 @@ export function optimizeSSA(
   const optLowered = lowerSSA({ valid: true, blocks: rewritten.blocks }, rewritten.optDominance);
   result.optimizedLowered = optLowered;
   if (!optLowered.valid) {
-    return fail(`优化后 SSA 消除失败：${optLowered.issues.join(' ')}`);
+    return fail(T('优化后 SSA 消除失败：{#0}', optLowered.issues.join(' ')));
   }
 
   result.uncoalescedRun = runIr(optLowered.instructions);
@@ -966,7 +979,7 @@ export function optimizeSSA(
 
   const finalLiveness = instructionLiveness(coalesced.code);
   if (!finalLiveness.converged || finalLiveness.liveIn[0]?.length) {
-    return fail(`复制合并后入口出现未定义读取（${finalLiveness.liveIn[0]?.join(', ') || '未收敛'}），撤销结果。`);
+    return fail(T('复制合并后入口出现未定义读取（{#0}），撤销结果。', finalLiveness.liveIn[0]?.join(', ') || T('未收敛')));
   }
 
   coalesced.decisions.forEach((decision, index) =>
@@ -975,7 +988,7 @@ export function optimizeSSA(
   if (!coalesced.decisions.length) {
     push({
       kind: 'coalesce',
-      message: '消除 φ 后没有多余的变量间复制需要合并。',
+      message: T('消除 φ 后没有多余的变量间复制需要合并。'),
     });
   }
 
@@ -985,7 +998,13 @@ export function optimizeSSA(
   const baseMoves = result.baseLowered.valid ? countCopyMoves(result.baseLowered.instructions) : 0;
   push({
     kind: 'execute',
-    message: `交给 SSA 解释器与原栈式 VM 真实执行：变量间复制从基础消除的 ${baseMoves} 条降至合并后的 ${result.coalescedRun.moveCount} 条（合并 ${coalesced.mergedPairs} 对，因干涉拒绝 ${coalesced.blockedPairs} 对）。`,
+    message: T(
+      '交给 SSA 解释器与原栈式 VM 真实执行：变量间复制从基础消除的 {#0} 条降至合并后的 {#1} 条（合并 {#2} 对，因干涉拒绝 {#3} 对）。',
+      baseMoves,
+      result.coalescedRun.moveCount,
+      coalesced.mergedPairs,
+      coalesced.blockedPairs,
+    ),
   });
 
   const limited =
@@ -996,10 +1015,10 @@ export function optimizeSSA(
   result.frames.push({
     kind: 'complete',
     message: limited
-      ? '至少一个版本达到 2000 步执行上限；只比较输出前缀，暂不能判定行为一致。'
+      ? T('至少一个版本达到 2000 步执行上限；只比较输出前缀，暂不能判定行为一致。')
       : err
-        ? `执行停止：${err}。各版本均在相同位置保留了该错误。`
-        : '四版本执行结束：可以对照稀疏工作量、优化后 SSA、复制合并决策与 VM 输出。',
+        ? T('执行停止：{#0}。各版本均在相同位置保留了该错误。', err)
+        : T('四版本执行结束：可以对照稀疏工作量、优化后 SSA、复制合并决策与 VM 输出。'),
   });
 
   return result;

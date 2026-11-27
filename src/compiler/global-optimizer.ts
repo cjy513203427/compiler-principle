@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import {
   analyzeConstants,
   analyzeLiveness,
@@ -21,8 +22,8 @@ export function optimizeControlFlow(
 ): OptimizationStep[] {
   const steps: OptimizationStep[] = [
     {
-      title: '原始三地址代码',
-      detail: '以未改写的 IR 为基线，先求解原始 CFG 上的常量事实。',
+      title: T('原始三地址代码'),
+      detail: T('以未改写的 IR 为基线，先求解原始 CFG 上的常量事实。'),
       instructions: original,
     },
   ];
@@ -30,8 +31,8 @@ export function optimizeControlFlow(
     return [
       ...steps,
       {
-        title: '分析尚未完成',
-        detail: '没有取得完整不动点；保留原始 IR，不删除尚未分析的路径。',
+        title: T('分析尚未完成'),
+        detail: T('没有取得完整不动点；保留原始 IR，不删除尚未分析的路径。'),
         instructions: original,
       },
     ];
@@ -82,8 +83,13 @@ export function optimizeControlFlow(
     }
   }
   steps.push({
-    title: '跨块传播与折叠',
-    detail: `使用 ${analysis.iterations} 轮求得的固定事实，替换 ${replacements} 处常量，折叠 ${folds} 个表达式。分析不依赖本次 VM 走过的路径。`,
+    title: T('跨块传播与折叠'),
+    detail: T(
+      '使用 {#0} 轮求得的固定事实，替换 {#1} 处常量，折叠 {#2} 个表达式。分析不依赖本次 VM 走过的路径。',
+      analysis.iterations,
+      replacements,
+      folds,
+    ),
     instructions: rewritten,
   });
   let reachable = rewritten;
@@ -116,10 +122,14 @@ export function optimizeControlFlow(
     }
   }
   steps.push({
-    title: '简化分支与不可达块',
+    title: T('简化分支与不可达块'),
     detail: options.dead
-      ? `证明条件后简化 ${simplified} 个跳转，移除 ${removedBlocks} 个不可达块。执行器本次未经过一条边，并不能成为删除它的依据。`
-      : '清理选项未启用：保留分支和所有块。',
+      ? T(
+          '证明条件后简化 {#0} 个跳转，移除 {#1} 个不可达块。执行器本次未经过一条边，并不能成为删除它的依据。',
+          simplified,
+          removedBlocks,
+        )
+      : T('清理选项未启用：保留分支和所有块。'),
     instructions: reachable,
   });
   let final = reachable;
@@ -160,10 +170,14 @@ export function optimizeControlFlow(
     );
   }
   steps.push({
-    title: '跨块活跃性与清理',
+    title: T('跨块活跃性与清理'),
     detail: options.dead
-      ? `逆向求解活跃变量，累计 ${livenessRounds} 轮，去掉 ${reachable.length - final.length} 条无用复制或标签。未折叠的算术仍保留，以维持异常和输出顺序。`
-      : '清理选项未启用，保留全部写入。',
+      ? T(
+          '逆向求解活跃变量，累计 {#0} 轮，去掉 {#1} 条无用复制或标签。未折叠的算术仍保留，以维持异常和输出顺序。',
+          livenessRounds,
+          reachable.length - final.length,
+        )
+      : T('清理选项未启用，保留全部写入。'),
     instructions: final,
   });
   return steps;

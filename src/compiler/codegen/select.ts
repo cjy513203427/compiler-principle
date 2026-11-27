@@ -1,3 +1,4 @@
+import { T } from '../../i18n';
 import type { DataType, Instruction, Operand, Value } from '../model';
 import { operandText } from '../ir';
 import {
@@ -31,13 +32,13 @@ export interface Selection {
 export const DIV_TRAP = '.Ltrap_div';
 export const RANGE_TRAP = '.Ltrap_range';
 export const ruleNames: Record<string, string> = {
-  'lea': 'lea 三地址加法', 'lea-imm': 'lea 基址 + 立即数', 'mov-add': 'mov + add', 'mov-sub': 'mov + sub',
-  'neg': '0 − x → neg', 'imul-imm': 'imul 三操作数立即数', 'mov-imul': 'mov + imul', 'idiv': 'cqo + idiv（rax/rdx 预着色）',
-  'idiv-const': '常量除数省去除零检查', 'cmp-set': 'xor + cmp + setcc', 'cmp-jcc': 'cmp + 反条件跳转（融合）',
-  'test-je': 'test + je', 'const-true': '条件恒真：不产生指令', 'const-false': '条件恒假：jmp',
-  'mov': 'mov 寄存器复制', 'mov-imm': 'mov 32 位立即数', 'movabs': 'movabs 64 位立即数', 'xor-zero': 'xor 清零',
-  'target': '结果直接写入变量的寄存器', 'print': 'rdi 传参 + call', 'range': '安全整数范围检查', 'overflow': 'jo 检查 64 位溢出',
-  'div-zero': 'test + je 除零检查', 'swap': '常量在左：交换比较方向', 'jmp': 'jmp', 'label': '标签',
+  'lea': T('lea 三地址加法'), 'lea-imm': T('lea 基址 + 立即数'), 'mov-add': 'mov + add', 'mov-sub': 'mov + sub',
+  'neg': '0 − x → neg', 'imul-imm': T('imul 三操作数立即数'), 'mov-imul': 'mov + imul', 'idiv': T('cqo + idiv（rax/rdx 预着色）'),
+  'idiv-const': T('常量除数省去除零检查'), 'cmp-set': 'xor + cmp + setcc', 'cmp-jcc': T('cmp + 反条件跳转（融合）'),
+  'test-je': 'test + je', 'const-true': T('条件恒真：不产生指令'), 'const-false': T('条件恒假：jmp'),
+  'mov': T('mov 寄存器复制'), 'mov-imm': T('mov 32 位立即数'), 'movabs': T('movabs 64 位立即数'), 'xor-zero': T('xor 清零'),
+  'target': T('结果直接写入变量的寄存器'), 'print': T('rdi 传参 + call'), 'range': T('安全整数范围检查'), 'overflow': T('jo 检查 64 位溢出'),
+  'div-zero': T('test + je 除零检查'), 'swap': T('常量在左：交换比较方向'), 'jmp': 'jmp', 'label': T('标签'),
 };
 const opNames: Record<string, string> = { '+': 'Add', '-': 'Sub', '*': 'Mul', '/': 'Div', '<': 'Lt', '<=': 'Le', '>': 'Gt', '>=': 'Ge', '==': 'Eq', '!=': 'Ne' };
 const comparison = (op: string) => op in conditionOf;
@@ -289,7 +290,7 @@ export function selectInstructions(ir: Instruction[], strategy: Strategy): Selec
         copyInto(preg('rdi'), result, 'abi');
         const type = node.kind === 'const' ? (typeof node.value === 'boolean' ? 'bool' : 'int')
           : node.kind === 'var' ? types[node.name] : comparison(node.op) ? 'bool' : 'int';
-        if (!type) issues.push(`无法确定 ${operandText(instruction.value)} 的类型。`);
+        if (!type) issues.push(T('无法确定 {#0} 的类型。', operandText(instruction.value)));
         const target: RuntimeFunction = type === 'bool' ? '__mc_print_bool' : '__mc_print_int';
         emit({ op: 'call', target }, 'abi', 'print');
         break;
@@ -334,8 +335,8 @@ export function selectInstructions(ir: Instruction[], strategy: Strategy): Selec
   for (const [label, codeNumber] of [[DIV_TRAP, 1n], [RANGE_TRAP, 2n]] as const) {
     if (!used(label)) continue;
     code.push({ op: 'label', name: label, origin: -1, role: 'check' });
-    code.push({ op: 'mov', dst: preg('rdi'), src: imm(codeNumber), origin: -1, role: 'check', note: '错误码作为第一个参数' });
-    code.push({ op: 'call', target: '__mc_trap', origin: -1, role: 'check', note: '运行时报告错误并终止，不返回' });
+    code.push({ op: 'mov', dst: preg('rdi'), src: imm(codeNumber), origin: -1, role: 'check', note: T('错误码作为第一个参数') });
+    code.push({ op: 'call', target: '__mc_trap', origin: -1, role: 'check', note: T('运行时报告错误并终止，不返回') });
   }
   return { strategy, code, decisions, types, inlined, issues };
 

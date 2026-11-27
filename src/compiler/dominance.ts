@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import type { ControlFlowGraph } from './cfg';
 
 export interface DominanceStep {
@@ -90,7 +91,7 @@ export function analyzeDominance(
   settings: { maxPasses?: number; reverse?: boolean } = {},
 ): DominanceAnalysis {
   const ids = graph.blocks.map((block) => block.id);
-  if (!ids.length) throw new Error('支配分析需要一个入口块。');
+  if (!ids.length) throw new Error(T('支配分析需要一个入口块。'));
   const entry = ids[0];
   const predecessors = Object.fromEntries(
     ids.map((id) => [
@@ -125,7 +126,10 @@ export function analyzeDominance(
       current: [entry],
       removed: [],
       predecessors: [],
-      message: `入口 ${entry} 只由自身支配。其余入口可达块从全部可达块开始，逐轮取前驱集合的交集。`,
+      message: T(
+        '入口 {#0} 只由自身支配。其余入口可达块从全部可达块开始，逐轮取前驱集合的交集。',
+        entry,
+      ),
     },
   ];
   let iterations = 0;
@@ -160,7 +164,20 @@ export function analyzeDominance(
           current: ordered(next),
           removed,
           predecessors: inputs,
-          message: `第 ${pass} 轮处理 ${block}：合并 ${incoming.join('、')} 的支配集合，再加入 ${block}。${removed.length ? `移除候选 ${removed.join('、')}。` : '集合不变。'}`,
+          message: removed.length
+            ? T(
+                '第 {#0} 轮处理 {#1}：合并 {#2} 的支配集合，再加入 {#1}。移除候选 {#3}。',
+                pass,
+                block,
+                incoming.join(T('、')),
+                removed.join(T('、')),
+              )
+            : T(
+                '第 {#0} 轮处理 {#1}：合并 {#2} 的支配集合，再加入 {#1}。集合不变。',
+                pass,
+                block,
+                incoming.join(T('、')),
+              ),
         });
       else traceTruncated = true;
     }
@@ -264,8 +281,12 @@ export function analyzeDominance(
     removed: [],
     predecessors: [],
     message: converged
-      ? `支配集合在 ${iterations} 轮后收敛。识别到 ${loops.length} 个自然循环；现在可以检查支配树、绕行路径和 φ 候选位置。`
-      : `达到 ${limit} 轮分析上限，尚未收敛；不发布直接支配、循环与 φ 候选结论。`,
+      ? T(
+          '支配集合在 {#0} 轮后收敛。识别到 {#1} 个自然循环；现在可以检查支配树、绕行路径和 φ 候选位置。',
+          iterations,
+          loops.length,
+        )
+      : T('达到 {#0} 轮分析上限，尚未收敛；不发布直接支配、循环与 φ 候选结论。', limit),
   });
   return {
     graph,

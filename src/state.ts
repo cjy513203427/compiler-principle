@@ -1,4 +1,5 @@
 import { lessons, presets, flowPresets, dataflowPresets, defaultOptions } from './content/lessons';
+import { T } from './i18n';
 import type { Stage, OptimizationOptions } from './compiler/model';
 import { assemblyTopics } from './content/assembly';
 import type { AssemblyNoteId } from './compiler/assembly/model';
@@ -119,7 +120,7 @@ export interface Notebook {
 }
 export const emptyNotebook = (): Notebook => ({ version: 1, notes: {}, completed: [] });
 export function validateNotebook(value: unknown): Notebook {
-  if (!value || typeof value !== 'object') throw new Error('笔记文件格式不正确。');
+  if (!value || typeof value !== 'object') throw new Error(T('笔记文件格式不正确。'));
   const data = value as Partial<Notebook>;
   if (
     data.version !== 1 ||
@@ -128,13 +129,13 @@ export function validateNotebook(value: unknown): Notebook {
     Array.isArray(data.notes) ||
     !Array.isArray(data.completed)
   )
-    throw new Error('笔记版本或内容不正确。');
+    throw new Error(T('笔记版本或内容不正确。'));
   const notes: Notebook['notes'] = {};
   const ids: NoteId[] = [...lessons.map((l) => l.id), ...assemblyTopics.map((l) => l.noteId)];
   for (const id of ids) {
     const text = data.notes[id];
     if (text !== undefined && (typeof text !== 'string' || text.length > 20000))
-      throw new Error('单篇笔记需要是 20,000 字以内的文本。');
+      throw new Error(T('单篇笔记需要是 20,000 字以内的文本。'));
     if (text !== undefined) notes[id] = text;
   }
   return {

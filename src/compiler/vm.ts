@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import { evaluateBinary } from './operations';
 import { type Instruction, type Operand, type Bytecode, type VmStep, type Value } from './model';
 
@@ -60,7 +61,7 @@ export function generateBytecode(instructions: Instruction[]): Bytecode[] {
   });
   for (const fixup of unresolved) {
     const target = labels.get(fixup.target);
-    if (target === undefined) throw new Error(`不存在的跳转标签 ${fixup.target}。`);
+    if (target === undefined) throw new Error(T('不存在的跳转标签 {#0}。', fixup.target));
     (code[fixup.index] as Extract<Bytecode, { target: number }>).target = target;
   }
   code.push({ op: 'HALT', irIndex: instructions.length });
@@ -93,14 +94,14 @@ export function execute(code: Bytecode[], budget = MAX_VM_STEPS): Execution {
     {
       pc: -1,
       nextPc: 0,
-      message: '虚拟机就绪：操作数栈与局部变量表均为空。',
+      message: T('虚拟机就绪：操作数栈与局部变量表均为空。'),
       stack: [],
       memory: {},
       output: [],
     },
   ];
   const pop = (): Value => {
-    if (!stack.length) throw new Error('操作数栈下溢。');
+    if (!stack.length) throw new Error(T('操作数栈下溢。'));
     return stack.pop()!;
   };
   let pc = 0;
@@ -110,7 +111,7 @@ export function execute(code: Bytecode[], budget = MAX_VM_STEPS): Execution {
     const previousStack = [...stack];
     let nextPc = pc + 1;
     let conditionResult: boolean | undefined;
-    let message = `执行 ${bytecodeText(instruction)}。`;
+    let message = T('执行 {#0}。', bytecodeText(instruction));
     try {
       switch (instruction.op) {
         case 'PUSH':
@@ -118,7 +119,7 @@ export function execute(code: Bytecode[], budget = MAX_VM_STEPS): Execution {
           break;
         case 'LOAD':
           if (!(instruction.name in memory))
-            throw new Error(`读取未初始化变量 ${instruction.name}。`);
+            throw new Error(T('读取未初始化变量 {#0}。', instruction.name));
           stack.push(memory[instruction.name]);
           break;
         case 'STORE':
@@ -134,24 +135,26 @@ export function execute(code: Bytecode[], budget = MAX_VM_STEPS): Execution {
           break;
         case 'BR_FALSE': {
           const condition = pop();
-          if (typeof condition !== 'boolean') throw new Error('条件跳转需要 bool 值。');
+          if (typeof condition !== 'boolean') throw new Error(T('条件跳转需要 bool 值。'));
           conditionResult = condition;
           if (!condition) nextPc = instruction.target;
-          message += `条件为 ${condition}，${condition ? '顺序进入真分支' : `跳转到 PC ${nextPc}`}。`;
+          message += condition
+            ? T('条件为 {#0}，顺序进入真分支。', condition)
+            : T('条件为 {#0}，跳转到 PC {#1}。', condition, nextPc);
           break;
         }
         case 'HALT':
-          message = '执行 HALT，程序结束。';
+          message = T('执行 HALT，程序结束。');
           break;
         default: {
           const right = pop();
           const left = pop();
           stack.push(evaluateBinary(operators[instruction.op], left, right));
           if (instruction.op === 'SUB' || instruction.op === 'DIV')
-            message += '先弹出右操作数，再弹出左操作数。';
+            message += T('先弹出右操作数，再弹出左操作数。');
         }
       }
-      if (nextPc < 0 || nextPc > code.length) throw new Error('跳转地址越界。');
+      if (nextPc < 0 || nextPc > code.length) throw new Error(T('跳转地址越界。'));
       steps.push({
         pc,
         nextPc,
@@ -168,7 +171,7 @@ export function execute(code: Bytecode[], budget = MAX_VM_STEPS): Execution {
       steps.push({
         pc,
         nextPc: pc,
-        message: `运行时错误：${message}`,
+        message: T('运行时错误：{#0}', message),
         stack: previousStack,
         memory: { ...memory },
         output: [...output],
@@ -178,7 +181,7 @@ export function execute(code: Bytecode[], budget = MAX_VM_STEPS): Execution {
   }
   if (pc < code.length) {
     steps.at(-1)!.message +=
-      ` 已达到 ${limit} 条指令的回放上限，执行被暂停；这不等于证明程序不会终止。`;
+      ' ' + T('已达到 {#0} 条指令的回放上限，执行被暂停；这不等于证明程序不会终止。', limit);
     return { steps, output, halted: false, limited: true };
   }
   return { steps, output, halted: false, limited: false };

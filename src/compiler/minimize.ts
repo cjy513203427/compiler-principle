@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import {
   AUTOMATA_LIMITS,
   AutomataError,
@@ -62,7 +63,7 @@ function alphabetClasses(dfa: Dfa): CharRange[] {
 
 export function completeMachine(dfa: Dfa): TotalMachine {
   if (!dfa.complete || !dfa.states.length || dfa.states.length > AUTOMATA_LIMITS.dfaStates)
-    throw new Error('只对完整构造且不超过 64 个状态的 DFA 求最小化。');
+    throw new Error(T('只对完整构造且不超过 64 个状态的 DFA 求最小化。'));
   const alphabet = alphabetClasses(dfa);
   const states = [0];
   const seen = new Set(states);
@@ -94,7 +95,9 @@ export function minimizeDfa(dfa: Dfa): DfaMinimization {
   const copy = () => groups.map((group) => [...group]);
   const frames: RefinementFrame[] = [{
     kind: 'initial', groups: copy(),
-    message: `先删除 ${machine.unreachable.length} 个入口不可达状态，按“拒绝 / 获胜规则编号”分成 ${groups.length} 组。${machine.states.includes(DEAD) ? '缺失转换补到 Dead，它对所有字符回到自身。' : '全部转换已定义，Dead 不可达，无需加入。'}`,
+    message: machine.states.includes(DEAD)
+      ? T('先删除 {#0} 个入口不可达状态，按“拒绝 / 获胜规则编号”分成 {#1} 组。缺失转换补到 Dead，它对所有字符回到自身。', machine.unreachable.length, groups.length)
+      : T('先删除 {#0} 个入口不可达状态，按“拒绝 / 获胜规则编号”分成 {#1} 组。全部转换已定义，Dead 不可达，无需加入。', machine.unreachable.length, groups.length),
   }];
   for (;;) {
     const groupOf = new Map(groups.flatMap((group, index) => group.map((state) => [state, index] as const)));
@@ -118,7 +121,7 @@ export function minimizeDfa(dfa: Dfa): DfaMinimization {
         evidence: { left, right, code: machine.alphabet[character][0],
           leftGroup: groupOf.get(machine.transitions[left][character])!,
           rightGroup: groupOf.get(machine.transitions[right][character])! },
-        message: `拆开第 ${index + 1} 组：${group.map(stateText).join('、')} 的后继分组签名不相同，分为 ${pieces.length} 组。分组只会细化，不会重新合并。` });
+        message: T('拆开第 {#0} 组：{#1} 的后继分组签名不相同，分为 {#2} 组。分组只会细化，不会重新合并。', index + 1, group.map(stateText).join(T('、')), pieces.length) });
       changed = true;
       break; // Recompute all signatures against the new partition.
     }
@@ -141,18 +144,18 @@ export function minimizeDfa(dfa: Dfa): DfaMinimization {
       const target = machine.transitions[representative][index];
       if (deadGroup?.includes(target)) return;
       const to = mapping[target];
-      if (to === undefined) throw new Error('最小化结果缺少后继分组。');
+      if (to === undefined) throw new Error(T('最小化结果缺少后继分组。'));
       if (!edges.has(to)) edges.set(to, []);
       edges.get(to)!.push(range);
     });
     for (const [to, ranges] of edges) minimized.edges.push({ from: id, to, ranges: normalizeRanges(ranges) });
   });
   const removed = deadGroup?.filter((state) => state !== DEAD && !kept.includes(deadGroup)) || [];
-  const exportMessage = !deadGroup ? '不存在可达 Dead，直接导出稳定组'
-    : deadGroup.includes(0) ? 'Dead 类包含入口，保留一个拒绝入口并省略失败边'
-      : '导出扫描器时省略 Dead 类和指向它的边';
+  const exportMessage = !deadGroup ? T('不存在可达 Dead，直接导出稳定组')
+    : deadGroup.includes(0) ? T('Dead 类包含入口，保留一个拒绝入口并省略失败边')
+      : T('导出扫描器时省略 Dead 类和指向它的边');
   frames.push({ kind: 'complete', groups: copy(),
-    message: `分组稳定：每组对每类字符都进入同一个后继组。完整机有 ${groups.length} 个等价类；${exportMessage}，保留 ${minimized.states.length} 个状态。` });
+    message: T('分组稳定：每组对每类字符都进入同一个后继组。完整机有 {#0} 个等价类；{#1}，保留 {#2} 个状态。', groups.length, exportMessage, minimized.states.length) });
   return { machine, frames, groups, minimized, mapping, members: kept.map((group) => group.filter((state) => state !== DEAD)), removed };
 }
 
@@ -190,7 +193,7 @@ function searchPairs(
 }
 
 export function distinguishStates(machine: TotalMachine, left: number, right: number): Distinction {
-  if (!machine.states.includes(left) || !machine.states.includes(right)) throw new Error('请选择可达状态。');
+  if (!machine.states.includes(left) || !machine.states.includes(right)) throw new Error(T('请选择可达状态。'));
   const codes = machine.alphabet.map(([code]) => code);
   const column = new Map(codes.map((code, index) => [code, index]));
   const next = (state: number, code: number) => machine.transitions[state][column.get(code)!];
@@ -199,7 +202,7 @@ export function distinguishStates(machine: TotalMachine, left: number, right: nu
 
 /** Independent equivalence check over every supported character, without using the partition. */
 export function verifyDfaEquivalence(left: Dfa, right: Dfa): Distinction {
-  if (!left.complete || !right.complete) throw new Error('不能校验尚未完整构造的 DFA。');
+  if (!left.complete || !right.complete) throw new Error(T('不能校验尚未完整构造的 DFA。'));
   const codes = UNIVERSE.flatMap(([lo, hi]) => Array.from({ length: hi - lo + 1 }, (_, index) => lo + index));
   const output = (dfa: Dfa, state: number) => state === DEAD ? undefined : dfa.states[state].accept;
   const next = (dfa: Dfa, state: number, code: number) => state === DEAD ? DEAD : dfaNext(dfa, state, code) ?? DEAD;
@@ -232,7 +235,7 @@ export function analyzeMinimization(source: string): MinimizationOutcome {
     const { nfa } = buildNfa(spec.rules);
     const { dfa: original } = buildDfa(nfa, spec.rules);
     if (!original.complete) return { ok: true, analysis: { spec, original, frames: [{
-      kind: 'limit', groups: [], message: '子集构造达到 64 个状态上限，当前图尚未完整。不进行最小化、等价校验或扫描；请缩小规则。',
+      kind: 'limit', groups: [], message: T('子集构造达到 64 个状态上限，当前图尚未完整。不进行最小化、等价校验或扫描；请缩小规则。'),
     }] } };
     const result = minimizeDfa(original);
     const verification = verifyDfaEquivalence(original, result.minimized);

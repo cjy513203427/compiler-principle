@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import { referencedVariables, MAX_ANALYSIS_PASSES } from './dataflow';
 import { evaluateBinary } from './operations';
 import { instructionText } from './ir';
@@ -10,7 +11,7 @@ export interface RegisterSettings { count: number; algorithm: AllocationAlgorith
 export const MIN_REGISTERS = 2;
 export const MAX_REGISTERS = 8;
 export const defaultRegisterSettings: RegisterSettings = { count: 3, algorithm: 'color' };
-export const algorithmNames: Record<AllocationAlgorithm, string> = { color: '图着色', linear: '线性扫描' };
+export const algorithmNames: Record<AllocationAlgorithm, string> = { color: T('图着色'), linear: T('线性扫描') };
 export function normalizeRegisterSettings(count: unknown, algorithm: unknown): RegisterSettings {
   const number = Number(count);
   return {
@@ -51,7 +52,7 @@ export function instructionLiveness(code: AllocInstruction[]): InstructionLivene
   code.forEach((instruction, index) => { if (instruction.op === 'label') labels.set(instruction.name, index); });
   const target = (name: string) => {
     const index = labels.get(name);
-    if (index === undefined) throw new Error(`寄存器分配缺少标签 ${name}。`);
+    if (index === undefined) throw new Error(T('寄存器分配缺少标签 {#0}。', name));
     return index;
   };
   const successors = code.map((instruction, index) => {
@@ -135,7 +136,7 @@ export function liveIntervals(code: AllocInstruction[], liveness: InstructionLiv
   return [...range].map(([name, [start, end]]) => ({ name, start, end }))
     .sort((a, b) => a.start - b.start || rank.get(a.name)! - rank.get(b.name)!);
 }
-export const pointText = (point: number) => `${point % 2 ? '后' : '前'} #${Math.floor(point / 2)}`;
+export const pointText = (point: number) => (point % 2 ? T('后 #{#0}', Math.floor(point / 2)) : T('前 #{#0}', Math.floor(point / 2)));
 
 export type AllocationEvent =
   | { kind: 'simplify'; node: string; degree: number }
@@ -183,7 +184,7 @@ function colorRound(graph: InterferenceGraph, count: number, costs: Record<strin
       if (score < bestScore) best = name;
     }
     if (!best) return { events, assignment: {}, spilled: [],
-      failure: `剩余的值都是溢出产生的短临时值，${count} 个寄存器仍不够同时容纳它们。` };
+      failure: T('剩余的值都是溢出产生的短临时值，{#0} 个寄存器仍不够同时容纳它们。', count) };
     events.push({ kind: 'potential', node: best, degree: degree.get(best)!, cost: costs[best] });
     remove(best);
   }
@@ -243,7 +244,7 @@ function linearRound(intervals: LiveInterval[], count: number, unspillable: Set<
       spilled.push(current.name);
       events.push({ kind: 'spill', node: current.name, start: current.start, end: current.end });
     } else return { events, assignment: {}, spilled: [],
-      failure: `活跃区间里都是溢出产生的短临时值，${count} 个寄存器仍不够同时容纳它们。` };
+      failure: T('活跃区间里都是溢出产生的短临时值，{#0} 个寄存器仍不够同时容纳它们。', count) };
   }
   return { events, assignment, spilled };
 }
@@ -290,21 +291,21 @@ export function registerInstructionText(instruction: RegisterInstruction): strin
 export function checkAssignment(code: AllocInstruction[], assignment: Record<string, number>, count: number): string[] {
   const issues: string[] = [];
   const liveness = instructionLiveness(code);
-  if (!liveness.converged) return ['逐条活跃性没有收敛，无法核对分配。'];
+  if (!liveness.converged) return [T('逐条活跃性没有收敛，无法核对分配。')];
   const names = new Set(code.flatMap((instruction) => [...usesOf(instruction), ...(defOf(instruction) ? [defOf(instruction)!] : [])]));
   for (const name of names) {
     const register = assignment[name];
-    if (register === undefined) issues.push(`${name} 没有寄存器。`);
-    else if (!Number.isInteger(register) || register < 0 || register >= count) issues.push(`${name} 使用了不存在的寄存器。`);
+    if (register === undefined) issues.push(T('{#0} 没有寄存器。', name));
+    else if (!Number.isInteger(register) || register < 0 || register >= count) issues.push(T('{#0} 使用了不存在的寄存器。', name));
   }
-  if (liveness.liveIn[0]?.length) issues.push(`入口处仍有未定义就使用的值：${liveness.liveIn[0].join(', ')}。`);
+  if (liveness.liveIn[0]?.length) issues.push(T('入口处仍有未定义就使用的值：{#0}。', liveness.liveIn[0].join(', ')));
   code.forEach((instruction, index) => {
     const def = defOf(instruction);
     if (!def) return;
     const source = moveSource(instruction);
     for (const name of liveness.liveOut[index])
       if (name !== def && name !== source && assignment[name] === assignment[def])
-        issues.push(`#${index} 写入 ${def} 会覆盖仍要使用的 ${name}（同在 ${registerText(assignment[def])}）。`);
+        issues.push(T('#{#0} 写入 {#1} 会覆盖仍要使用的 {#2}（同在 {#3}）。', index, def, name, registerText(assignment[def])));
   });
   return issues;
 }
@@ -349,19 +350,19 @@ export function executeRegisters(code: RegisterInstruction[], count: number, slo
   const registers: (Value | undefined)[] = Array(count).fill(undefined);
   const slots: (Value | undefined)[] = Array(slotCount).fill(undefined);
   const output: Value[] = [];
-  const steps: RegisterStep[] = record ? [{ pc: -1, nextPc: 0, message: `寄存器机就绪：${count} 个寄存器、${slotCount} 个栈槽，全部尚未写入。`,
+  const steps: RegisterStep[] = record ? [{ pc: -1, nextPc: 0, message: T('寄存器机就绪：{#0} 个寄存器、{#1} 个栈槽，全部尚未写入。', count, slotCount),
     registers: [...registers], slots: [...slots], output: [] }] : [];
   const labels = new Map<string, number>();
   code.forEach((instruction, index) => { if (instruction.op === 'label') labels.set(instruction.name, index); });
   const read = (operand: RegOperand): Value => {
     if (operand.kind === 'constant') return operand.value;
     const value = registers[operand.index];
-    if (value === undefined) throw new Error(`读取未写入的寄存器 ${registerText(operand.index)}。`);
+    if (value === undefined) throw new Error(T('读取未写入的寄存器 {#0}。', registerText(operand.index)));
     return value;
   };
   const jump = (name: string) => {
     const target = labels.get(name);
-    if (target === undefined) throw new Error(`不存在的跳转标签 ${name}。`);
+    if (target === undefined) throw new Error(T('不存在的跳转标签 {#0}。', name));
     return target;
   };
   let pc = 0, executed = 0, loads = 0, stores = 0;
@@ -393,7 +394,7 @@ export function executeRegisters(code: RegisterInstruction[], count: number, slo
       ...(latency ? { cycles: nextIssue, stalls } : {}), ...extra });
   while (pc < code.length) {
     if (executed >= limit) {
-      if (record) steps.at(-1)!.message += ` 已达到 ${limit} 条指令的回放上限，执行被暂停；这不等于证明程序不会终止。`;
+      if (record) steps.at(-1)!.message += T(' 已达到 {#0} 条指令的回放上限，执行被暂停；这不等于证明程序不会终止。', limit);
       return finish({ limited: true });
     }
     const instruction = code[pc];
@@ -402,51 +403,53 @@ export function executeRegisters(code: RegisterInstruction[], count: number, slo
     const timing = issue(instruction);
     try {
       switch (instruction.op) {
-        case 'label': message = `到达标签 ${instruction.name}。`; break;
-        case 'jump': nextPc = jump(instruction.target); message = `跳转到 ${instruction.target}。`; break;
+        case 'label': message = T('到达标签 {#0}。', instruction.name); break;
+        case 'jump': nextPc = jump(instruction.target); message = T('跳转到 {#0}。', instruction.target); break;
         case 'branch': {
           const condition = read(instruction.condition);
-          if (typeof condition !== 'boolean') throw new Error('条件跳转需要 bool 值。');
+          if (typeof condition !== 'boolean') throw new Error(T('条件跳转需要 bool 值。'));
           if (!condition) nextPc = jump(instruction.target);
-          message = `条件为 ${condition}，${condition ? '顺序进入下一条' : `跳转到 ${instruction.target}`}。`;
+          message = condition
+            ? T('条件为 {#0}，顺序进入下一条。', condition)
+            : T('条件为 {#0}，跳转到 {#1}。', condition, instruction.target);
           break;
         }
-        case 'print': { const value = read(instruction.value); output.push(value); message = `输出 ${value}。`; break; }
+        case 'print': { const value = read(instruction.value); output.push(value); message = T('输出 {#0}。', value); break; }
         case 'move': case 'binary': {
           const value = instruction.op === 'move' ? read(instruction.value)
             : evaluateBinary(instruction.operator, read(instruction.left), read(instruction.right));
           registers[instruction.dest] = value;
           written = registerText(instruction.dest);
-          message = `写入 ${written} = ${value}。`;
+          message = T('写入 {#0} = {#1}。', written, value);
           break;
         }
         case 'load': {
           const value = slots[instruction.slot];
-          if (value === undefined) throw new Error(`读取未写入的栈槽 ${slotText(instruction.slot)}。`);
+          if (value === undefined) throw new Error(T('读取未写入的栈槽 {#0}。', slotText(instruction.slot)));
           registers[instruction.dest] = value;
           loads++; memory = 'load'; written = registerText(instruction.dest);
-          message = `内存读取：从 ${slotText(instruction.slot)} 取回 ${value} 放入 ${written}。`;
+          message = T('内存读取：从 {#0} 取回 {#1} 放入 {#2}。', slotText(instruction.slot), value, written);
           break;
         }
         case 'store': {
           const value = registers[instruction.value];
-          if (value === undefined) throw new Error(`读取未写入的寄存器 ${registerText(instruction.value)}。`);
+          if (value === undefined) throw new Error(T('读取未写入的寄存器 {#0}。', registerText(instruction.value)));
           slots[instruction.slot] = value;
           stores++; memory = 'store'; written = slotText(instruction.slot);
-          message = `内存写入：把 ${registerText(instruction.value)} 的 ${value} 存进 ${written}。`;
+          message = T('内存写入：把 {#0} 的 {#1} 存进 {#2}。', registerText(instruction.value), value, written);
           break;
         }
       }
-      if (record) steps.push({ pc, nextPc, message: `执行 ${registerInstructionText(instruction)}：${message}`,
+      if (record) steps.push({ pc, nextPc, message: T('执行 {#0}：{#1}', registerInstructionText(instruction), message),
         registers: [...registers], slots: [...slots], output: [...output], written, memory, ...timing });
       pc = nextPc;
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
-      if (record) steps.push({ pc, nextPc: pc, message: `运行时错误：${text}`, registers: [...registers], slots: [...slots], output: [...output] });
+      if (record) steps.push({ pc, nextPc: pc, message: T('运行时错误：{#0}', text), registers: [...registers], slots: [...slots], output: [...output] });
       return finish({ error: { message: text, pc } });
     }
   }
-  if (record) steps.push({ pc, nextPc: pc, message: '执行到程序末尾，结束。', registers: [...registers], slots: [...slots], output: [...output] });
+  if (record) steps.push({ pc, nextPc: pc, message: T('执行到程序末尾，结束。'), registers: [...registers], slots: [...slots], output: [...output] });
   return finish({ halted: true });
 }
 
@@ -480,18 +483,18 @@ const MAX_CODE = 10000;
 
 function eventMessage(event: AllocationEvent, count: number, costs: Record<string, number>): string {
   switch (event.kind) {
-    case 'simplify': return `${event.node} 当前只有 ${event.degree} 个未移出的邻居，少于 K = ${count}：之后一定能找到颜色，先压栈移出。`;
-    case 'potential': return `剩下的值度数都 ≥ ${count}。选择溢出代价 / 度数最小的 ${event.node}（代价 ${costs[event.node]}，度数 ${event.degree}）作为“可能溢出”压栈；它在着色时也许仍有空寄存器。`;
+    case 'simplify': return T('{#0} 当前只有 {#1} 个未移出的邻居，少于 K = {#2}：之后一定能找到颜色，先压栈移出。', event.node, event.degree, count);
+    case 'potential': return T('剩下的值度数都 ≥ {#0}。选择溢出代价 / 度数最小的 {#1}（代价 {#2}，度数 {#3}）作为“可能溢出”压栈；它在着色时也许仍有空寄存器。', count, event.node, costs[event.node], event.degree);
     case 'select': return event.reason === 'spill'
-      ? `弹出 ${event.node}：邻居已占满 ${event.blocked.map(registerText).join(', ')}，没有空寄存器，真正溢出到栈。`
+      ? T('弹出 {#0}：邻居已占满 {#1}，没有空寄存器，真正溢出到栈。', event.node, event.blocked.map(registerText).join(', '))
       : event.reason === 'bias'
-        ? `弹出 ${event.node}：与 ${event.partner} 之间是复制，且 ${registerText(event.register!)} 未被邻居占用，优先同一寄存器，复制之后可以删去。`
-        : `弹出 ${event.node}：邻居占用 ${event.blocked.map(registerText).join(', ') || '无'}，分配编号最小的空寄存器 ${registerText(event.register!)}。`;
-    case 'expire': return `${event.node} 的区间已在 ${pointText(event.at)} 之前结束，释放 ${registerText(event.register)}。`;
-    case 'assign': return `${event.node} 的区间 [${pointText(event.start)}, ${pointText(event.end)}] 开始，${registerText(event.register)} 空闲，直接分配。`;
+        ? T('弹出 {#0}：与 {#1} 之间是复制，且 {#2} 未被邻居占用，优先同一寄存器，复制之后可以删去。', event.node, event.partner, registerText(event.register!))
+        : T('弹出 {#0}：邻居占用 {#1}，分配编号最小的空寄存器 {#2}。', event.node, event.blocked.map(registerText).join(', ') || T('无'), registerText(event.register!));
+    case 'expire': return T('{#0} 的区间已在 {#1} 之前结束，释放 {#2}。', event.node, pointText(event.at), registerText(event.register));
+    case 'assign': return T('{#0} 的区间 [{#1}, {#2}] 开始，{#3} 空闲，直接分配。', event.node, pointText(event.start), pointText(event.end), registerText(event.register));
     case 'spill': return event.stolenBy
-      ? `寄存器全部占用。活跃区间中 ${event.node} 结束得最晚（${pointText(event.end)}），把它整个溢出，${registerText(event.register!)} 让给 ${event.stolenBy}。`
-      : `寄存器全部占用，且 ${event.node} 自己结束得最晚（${pointText(event.end)}），溢出 ${event.node}。`;
+      ? T('寄存器全部占用。活跃区间中 {#0} 结束得最晚（{#1}），把它整个溢出，{#2} 让给 {#3}。', event.node, pointText(event.end), registerText(event.register!), event.stolenBy)
+      : T('寄存器全部占用，且 {#0} 自己结束得最晚（{#1}），溢出 {#0}。', event.node, pointText(event.end));
   }
 }
 
@@ -512,8 +515,8 @@ export function allocateRegisters(ir: Instruction[], dominance: DominanceAnalysi
     if (record) result.frames.push({ kind: 'complete', round: result.rounds.length - 1, message });
     return result;
   };
-  if (!dominance.converged) return fail('支配分析未收敛，无法确定循环深度，不进行分配。');
-  if (ir.length > MAX_CODE) return fail('IR 超过 10000 条，不进行分配。');
+  if (!dominance.converged) return fail(T('支配分析未收敛，无法确定循环深度，不进行分配。'));
+  if (ir.length > MAX_CODE) return fail(T('IR 超过 10000 条，不进行分配。'));
   const depth = ir.map((_, index) => {
     const block = dominance.graph.instructionBlock[index];
     return dominance.loops.filter((loop) => loop.nodes.includes(block)).length;
@@ -527,10 +530,10 @@ export function allocateRegisters(ir: Instruction[], dominance: DominanceAnalysi
     return `${name}~${next}`;
   };
   for (let round = 0; ; round++) {
-    if (round >= MAX_ALLOCATION_ROUNDS) return fail(`溢出重写超过 ${MAX_ALLOCATION_ROUNDS} 轮，停止分配。`);
+    if (round >= MAX_ALLOCATION_ROUNDS) return fail(T('溢出重写超过 {#0} 轮，停止分配。', MAX_ALLOCATION_ROUNDS));
     const plain = code.map((item) => item.instruction);
     const liveness = instructionLiveness(plain);
-    if (!liveness.converged) return fail('逐条活跃性在限定轮数内没有收敛，不进行分配。');
+    if (!liveness.converged) return fail(T('逐条活跃性在限定轮数内没有收敛，不进行分配。'));
     const graph = buildInterference(plain, liveness);
     const costs: Record<string, number> = Object.fromEntries(graph.nodes.map((name) => [name, 0]));
     code.forEach(({ instruction, origin }) => {
@@ -544,11 +547,11 @@ export function allocateRegisters(ir: Instruction[], dominance: DominanceAnalysi
     result.rounds.push(current);
     const maxLive = Math.max(0, ...liveness.liveOut.map((set) => set.length), ...liveness.liveIn.map((set) => set.length));
     push({ kind: 'liveness', round, message: round === 0
-      ? `第 1 轮：从最后一条指令往前，逐条求“之后仍要读取”的值（live-out）。IR 共 ${plain.length} 条，同时活跃的值最多 ${maxLive} 个，寄存器 K = ${K}。`
-      : `第 ${round + 1} 轮：溢出代码改变了程序，重新逐条求活跃性。现在共 ${plain.length} 条，同时活跃的值最多 ${maxLive} 个。` });
+      ? T('第 1 轮：从最后一条指令往前，逐条求“之后仍要读取”的值（live-out）。IR 共 {#0} 条，同时活跃的值最多 {#1} 个，寄存器 K = {#2}。', plain.length, maxLive, K)
+      : T('第 {#0} 轮：溢出代码改变了程序，重新逐条求活跃性。现在共 {#1} 条，同时活跃的值最多 {#2} 个。', round + 1, plain.length, maxLive) });
     push({ kind: 'graph', round, message: options.algorithm === 'color'
-      ? `建立干涉图：${graph.nodes.length} 个值，${graph.edges.length} 条边。写入某值时，它与此后仍活跃的值连边；复制 x = y 不与 y 连边。`
-      : `把每个值的活跃位置合成一个连续区间，共 ${intervals.length} 个，按起点排序。区间之间的空洞被忽略，所以比干涉图更保守。` });
+      ? T('建立干涉图：{#0} 个值，{#1} 条边。写入某值时，它与此后仍活跃的值连边；复制 x = y 不与 y 连边。', graph.nodes.length, graph.edges.length)
+      : T('把每个值的活跃位置合成一个连续区间，共 {#0} 个，按起点排序。区间之间的空洞被忽略，所以比干涉图更保守。', intervals.length) });
     outcome.events.forEach((event, index) => push({ kind: 'event', round, event: index, message: eventMessage(event, K, costs) }));
     if (outcome.failure) return fail(outcome.failure);
     if (!outcome.spilled.length) break;
@@ -573,16 +576,16 @@ export function allocateRegisters(ir: Instruction[], dominance: DominanceAnalysi
           { origin, instruction: { op: 'spill', value: temp, slot: result.slots[def], variable: def, nodeId: instruction.nodeId } });
       } else rewritten.push({ origin, instruction: next });
     }
-    if (rewritten.length > MAX_CODE) return fail('溢出代码使 IR 超过 10000 条，停止分配。');
+    if (rewritten.length > MAX_CODE) return fail(T('溢出代码使 IR 超过 10000 条，停止分配。'));
     code = rewritten;
-    push({ kind: 'rewrite', round, message: `真正溢出 ${outcome.spilled.join(', ')}：每次读取前插入 load，每次写入后插入 store，变量本身改放栈槽。新出现的 x~n 只活到下一条指令，标记为不可再溢出，然后重新分析。` });
+    push({ kind: 'rewrite', round, message: T('真正溢出 {#0}：每次读取前插入 load，每次写入后插入 store，变量本身改放栈槽。新出现的 x~n 只活到下一条指令，标记为不可再溢出，然后重新分析。', outcome.spilled.join(', ')) });
   }
   const last = result.rounds.at(-1)!;
   result.finalCode = code;
   result.assignment = last.assignment;
   const plain = code.map((item) => item.instruction);
   result.checkIssues = checkAssignment(plain, last.assignment, K);
-  if (result.checkIssues.length) return fail(`分配核对失败：${result.checkIssues.slice(0, 3).join(' ')}`);
+  if (result.checkIssues.length) return fail(T('分配核对失败：{#0}', result.checkIssues.slice(0, 3).join(' ')));
   const reg = (name: string) => last.assignment[name];
   const operand = (value: Operand): RegOperand => value.kind === 'constant' ? value : { kind: 'register', index: reg(value.name) };
   for (const { instruction, origin } of code) {
@@ -610,8 +613,12 @@ export function allocateRegisters(ir: Instruction[], dominance: DominanceAnalysi
   const used = new Set(Object.values(last.assignment)).size;
   const spilledNames = Object.keys(result.slots);
   if (record) result.frames.push({ kind: 'assigned', round: last.index, message: spilledNames.length
-    ? `分配完成：共 ${result.rounds.length} 轮，用到 ${used} 个寄存器，${spilledNames.length} 个值溢出到栈槽（${spilledNames.join(', ')}），插入 ${result.staticLoads} 条 load、${result.staticStores} 条 store。${result.removedMoves ? `另有 ${result.removedMoves} 条复制两端同一寄存器，已删除。` : ''}`
-    : `分配完成：用到 ${used} 个寄存器，没有溢出。${result.removedMoves ? `${result.removedMoves} 条复制两端同一寄存器，已删除。` : ''}现在用寄存器名替换每个值，交给寄存器机执行。` });
+    ? result.removedMoves
+      ? T('分配完成：共 {#0} 轮，用到 {#1} 个寄存器，{#2} 个值溢出到栈槽（{#3}），插入 {#4} 条 load、{#5} 条 store。另有 {#6} 条复制两端同一寄存器，已删除。', result.rounds.length, used, spilledNames.length, spilledNames.join(', '), result.staticLoads, result.staticStores, result.removedMoves)
+      : T('分配完成：共 {#0} 轮，用到 {#1} 个寄存器，{#2} 个值溢出到栈槽（{#3}），插入 {#4} 条 load、{#5} 条 store。', result.rounds.length, used, spilledNames.length, spilledNames.join(', '), result.staticLoads, result.staticStores)
+    : result.removedMoves
+      ? T('分配完成：用到 {#0} 个寄存器，没有溢出。{#1} 条复制两端同一寄存器，已删除。现在用寄存器名替换每个值，交给寄存器机执行。', used, result.removedMoves)
+      : T('分配完成：用到 {#0} 个寄存器，没有溢出。现在用寄存器名替换每个值，交给寄存器机执行。', used) });
   result.execution = executeRegisters(result.program, K, spilledNames.length, { record });
   if (record) {
     const steps = result.execution.steps;
@@ -619,9 +626,9 @@ export function allocateRegisters(ir: Instruction[], dominance: DominanceAnalysi
     if (steps.length > MAX_TRACE) result.traceTruncated = true;
     const execution = result.execution;
     result.frames.push({ kind: 'complete', round: last.index, vmStep: steps.length - 1, message: execution.limited
-      ? '寄存器机达到 2000 条指令上限；只保留输出前缀，不能判定行为一致。'
-      : execution.error ? `寄存器机停止：${execution.error.message}`
-        : `寄存器机执行结束：共 ${execution.executed} 条指令，其中内存读取 ${execution.loads} 次、写入 ${execution.stores} 次。` });
+      ? T('寄存器机达到 2000 条指令上限；只保留输出前缀，不能判定行为一致。')
+      : execution.error ? T('寄存器机停止：{#0}', execution.error.message)
+        : T('寄存器机执行结束：共 {#0} 条指令，其中内存读取 {#1} 次、写入 {#2} 次。', execution.executed, execution.loads, execution.stores) });
   }
   return result;
 }

@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import { CompileError, type DataType, type NodeBase, type Value } from './model';
 import { parseFunctions, type FunctionExpr, type FunctionStmt } from './functions-parser';
 import { executeFunctions } from './functions-vm';
@@ -30,7 +31,7 @@ export function compileFunctions(source: string): CallProgram {
   const ast = parseFunctions(source);
   const functions = new Map<string, CallFunction>();
   for (const fn of ast.functions) {
-    if (functions.has(fn.name)) fail(fn, `函数 ${fn.name} 重复定义；不支持重载。`);
+    if (functions.has(fn.name)) fail(fn, T('函数 {#0} 重复定义；不支持重载。', fn.name));
     functions.set(fn.name, { name: fn.name, returnType: fn.returnType, params: [], locals: [], code: [] });
   }
   functions.set(MAIN_FUNCTION, { name: MAIN_FUNCTION, params: [], locals: [], code: [] });
@@ -50,17 +51,17 @@ export function compileFunctions(source: string): CallProgram {
     };
     const declare = (node: NodeBase, name: string, dataType: DataType, parameter = false): CallLocal => {
       const scope = scopes.at(-1)!;
-      if (scope.has(name)) fail(node, `同一作用域内重复声明 ${name}。`);
+      if (scope.has(name)) fail(node, T('同一作用域内重复声明 {#0}。', name));
       const local = { key: `${name}#${node.id}`, name, dataType, parameter };
       scope.set(name, local); fn.locals.push(local); return local;
     };
     params.forEach((param) => declare(param, param.name, param.dataType, true));
     const lookup = (node: NodeBase, name: string): CallLocal => {
       for (let i = scopes.length - 1; i >= 0; i--) { const local = scopes[i].get(name); if (local) return local; }
-      return fail(node, `变量 ${name} 未在当前函数的词法作用域中声明；函数不读取顶层变量或调用者局部变量。`);
+      return fail(node, T('变量 {#0} 未在当前函数的词法作用域中声明；函数不读取顶层变量或调用者局部变量。', name));
     };
     const expect = (node: NodeBase, actual: DataType, expected: DataType) => {
-      if (actual !== expected) fail(node, `类型不匹配：需要 ${expected}，实际是 ${actual}。`);
+      if (actual !== expected) fail(node, T('类型不匹配：需要 {#0}，实际是 {#1}。', expected, actual));
     };
     function expr(node: FunctionExpr): DataType {
       switch (node.kind) {
@@ -68,8 +69,8 @@ export function compileFunctions(source: string): CallProgram {
         case 'identifier': { const local = lookup(node, node.name); emit(node, { op: 'LOAD', key: local.key }); return local.dataType; }
         case 'call': {
           const target = functions.get(node.name);
-          if (!target) return fail(node, `函数 ${node.name} 未定义。`);
-          if (target.params.length !== node.args.length) fail(node, `函数 ${node.name} 需要 ${target.params.length} 个实参，实际传入 ${node.args.length} 个。`);
+          if (!target) return fail(node, T('函数 {#0} 未定义。', node.name));
+          if (target.params.length !== node.args.length) fail(node, T('函数 {#0} 需要 {#1} 个实参，实际传入 {#2} 个。', node.name, target.params.length, node.args.length));
           node.args.forEach((arg, i) => expect(arg, expr(arg), target.params[i].dataType));
           emit(node, { op: 'CALL', name: node.name, arity: node.args.length }); return target.returnType!;
         }
@@ -98,7 +99,7 @@ export function compileFunctions(source: string): CallProgram {
           emit(node, { op: 'STORE', key: local.key }); break;
         }
         case 'return':
-          if (!fn.returnType) fail(node, '顶层程序不能使用 return；请在函数体中返回值。');
+          if (!fn.returnType) fail(node, T('顶层程序不能使用 return；请在函数体中返回值。'));
           expect(node.value, expr(node.value), fn.returnType!); emit(node, { op: 'RETURN' }); break;
         case 'print': case 'discard':
           expr(node.value); emit(node, { op: node.kind === 'print' ? 'PRINT' : 'DROP' }); break;
@@ -120,7 +121,7 @@ export function compileFunctions(source: string): CallProgram {
     body.forEach(stmt);
   }
   for (const definition of ast.functions) {
-    if (!mustReturn(definition.body)) fail(definition, `函数 ${definition.name} 可能到达末尾而没有返回值；需要明确覆盖所有路径的 return。`);
+    if (!mustReturn(definition.body)) fail(definition, T('函数 {#0} 可能到达末尾而没有返回值；需要明确覆盖所有路径的 return。', definition.name));
     compileBody(functions.get(definition.name)!, definition.body.kind === 'block' ? definition.body.body : [definition.body], definition.params);
   }
   const main = functions.get(MAIN_FUNCTION)!;

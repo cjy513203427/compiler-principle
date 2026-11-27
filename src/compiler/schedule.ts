@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import { evaluateBinary } from './operations';
 import {
   allocateRegisters, compareExecutions, executeRegisters, registerInstructionText, registerReads, registerText,
@@ -16,10 +17,10 @@ export function latencyOf(instruction: RegisterInstruction): number {
   return 1;
 }
 export const latencyTable = [
-  { kind: 'load（从栈槽读取）', cycles: 3 },
-  { kind: '乘法 *', cycles: 3 },
-  { kind: '除法 /', cycles: 4 },
-  { kind: '其他：复制、加减、比较、store、print、跳转', cycles: 1 },
+  { kind: T('load（从栈槽读取）'), cycles: 3 },
+  { kind: T('乘法 *'), cycles: 3 },
+  { kind: T('除法 /'), cycles: 4 },
+  { kind: T('其他：复制、加减、比较、store、print、跳转'), cycles: 1 },
 ];
 
 const slotRead = (instruction: RegisterInstruction) => instruction.op === 'load' ? instruction.slot : undefined;
@@ -99,11 +100,11 @@ export function buildDependences(body: RegisterInstruction[]): DependenceEdge[] 
     for (const name of reads) readsSince.set(name, [...(readsSince.get(name) ?? []), index]);
     if (write) { lastWrite.set(write, index); readsSince.set(write, []); }
     if (isObservable(instruction)) {
-      if (lastObservable !== undefined) add(lastObservable, index, 'order', 1, instruction.op === 'print' ? '输出' : '可能报错');
+      if (lastObservable !== undefined) add(lastObservable, index, 'order', 1, instruction.op === 'print' ? T('输出') : T('可能报错'));
       lastObservable = index;
     }
     if (isTerminator(instruction))
-      for (let other = 0; other < index; other++) if (!edges.some((edge) => edge.from === other && edge.to === index)) add(other, index, 'control', 1, '块末跳转');
+      for (let other = 0; other < index; other++) if (!edges.some((edge) => edge.from === other && edge.to === index)) add(other, index, 'control', 1, T('块末跳转'));
   });
   return edges;
 }
@@ -133,7 +134,7 @@ export function listSchedule(body: RegisterInstruction[], edges: DependenceEdge[
   const order: number[] = [];
   const events: CycleEvent[] = [];
   for (let cycle = 0; done.size < n; cycle++) {
-    if (cycle > n * 8 + 8) throw new Error('指令排序没有在预期周期内完成。');
+    if (cycle > n * 8 + 8) throw new Error(T('指令排序没有在预期周期内完成。'));
     const available = body.map((_, index) => index).filter((index) => !done.has(index) &&
       predecessors[index].every((edge) => done.has(edge.from)));
     const ready = available.filter((index) => earliest[index] <= cycle);
@@ -151,7 +152,7 @@ export function listSchedule(body: RegisterInstruction[], edges: DependenceEdge[
 /** Independent check: any two instructions that touch the same location, or are both observable, keep their order. */
 export function checkOrder(body: RegisterInstruction[], order: number[]): string[] {
   const issues: string[] = [];
-  if (order.length !== body.length || new Set(order).size !== body.length) return ['排序结果不是原指令的排列。'];
+  if (order.length !== body.length || new Set(order).size !== body.length) return [T('排序结果不是原指令的排列。')];
   const position = new Map(order.map((node, index) => [node, index]));
   const touches = (instruction: RegisterInstruction) => ({
     reads: [...registerReads(instruction).map(registerText), ...(slotRead(instruction) !== undefined ? [slotText(slotRead(instruction)!)] : [])],
@@ -163,7 +164,7 @@ export function checkOrder(body: RegisterInstruction[], order: number[]): string
     const conflict = (a.write && (b.reads.includes(a.write) || b.write === a.write)) || (b.write && a.reads.includes(b.write)) ||
       (isObservable(body[i]) && isObservable(body[j])) || isTerminator(body[j]) || isTerminator(body[i]);
     if (conflict && position.get(i)! > position.get(j)!)
-      issues.push(`“${registerInstructionText(body[j])}” 被移到了 “${registerInstructionText(body[i])}” 之前。`);
+      issues.push(T('“{#0}” 被移到了 “{#1}” 之前。', registerInstructionText(body[j]), registerInstructionText(body[i])));
   }
   return issues;
 }
@@ -180,22 +181,22 @@ export function peephole(program: RegisterInstruction[]): { program: RegisterIns
     let rule: PeepholeRewrite['rule'] | undefined, message = '';
     if (a.op === 'move' && a.value.kind === 'register' && a.value.index === a.dest) {
       replacement = []; width = 1; rule = 'self-move';
-      message = `${registerText(a.dest)} = ${registerText(a.dest)} 不改变任何值，删去。`;
+      message = T('{#0} = {#0} 不改变任何值，删去。', registerText(a.dest));
     } else if (a.op === 'store' && b?.op === 'load' && a.slot === b.slot) {
       if (a.value === b.dest) {
         replacement = [a]; rule = 'redundant-load';
-        message = `刚把 ${registerText(a.value)} 存进 ${slotText(a.slot)}，紧接着又读回同一寄存器：这条 load 是冗余的，删去（原书第 08 讲的例子）。`;
+        message = T('刚把 {#0} 存进 {#1}，紧接着又读回同一寄存器：这条 load 是冗余的，删去（原书第 08 讲的例子）。', registerText(a.value), slotText(a.slot));
       } else {
         replacement = [a, { op: 'move', dest: b.dest, value: { kind: 'register', index: a.value }, origin: b.origin, comment: b.comment }];
         rule = 'forward';
-        message = `${slotText(a.slot)} 里的值就是 ${registerText(a.value)}，把 load 改成寄存器复制，省一次内存读取；store 保留，后面可能还要读这个栈槽。`;
+        message = T('{#0} 里的值就是 {#1}，把 load 改成寄存器复制，省一次内存读取；store 保留，后面可能还要读这个栈槽。', slotText(a.slot), registerText(a.value));
       }
     } else if (a.op === 'store' && b?.op === 'store' && a.slot === b.slot) {
       replacement = [b]; rule = 'dead-store';
-      message = `连续两次写 ${slotText(a.slot)}，中间没有读取：前一次 store 无用，删去。`;
+      message = T('连续两次写 {#0}，中间没有读取：前一次 store 无用，删去。', slotText(a.slot));
     } else if (a.op === 'jump' && b?.op === 'label' && a.target === b.name) {
       replacement = [b]; rule = 'jump-next';
-      message = `goto ${a.target} 的目标就是下一条，顺序执行也会到达，删去跳转；标签保留给其他跳转。`;
+      message = T('goto {#0} 的目标就是下一条，顺序执行也会到达，删去跳转；标签保留给其他跳转。', a.target);
     }
     if (!replacement || !rule) { index++; continue; }
     const before = code.slice(index, index + width);
@@ -227,8 +228,15 @@ export interface ScheduleAnalysis {
   traceTruncated: boolean;
 }
 const MAX_TRACE = 240;
-const edgeNames = { raw: '真依赖', war: '反依赖', waw: '输出依赖', order: '顺序约束', control: '块末跳转' };
-export const dependenceName = (kind: DependenceEdge['kind']) => edgeNames[kind];
+export const dependenceName = (kind: DependenceEdge['kind']) => {
+  switch (kind) {
+    case 'raw': return T('真依赖');
+    case 'war': return T('反依赖');
+    case 'waw': return T('输出依赖');
+    case 'order': return T('顺序约束');
+    case 'control': return T('块末跳转');
+  }
+};
 
 export function scheduleAllocation(allocation: RegisterAllocation, settings: { record?: boolean } = {}): ScheduleAnalysis {
   const record = settings.record ?? true;
@@ -240,40 +248,40 @@ export function scheduleAllocation(allocation: RegisterAllocation, settings: { r
     else result.traceTruncated = true;
   };
   if (!allocation.valid) {
-    result.issues.push('寄存器分配没有完成，无法继续排序。');
+    result.issues.push(T('寄存器分配没有完成，无法继续排序。'));
     if (record) result.frames.push({ kind: 'complete', message: result.issues[0] });
     return result;
   }
   const K = allocation.settings.count, slots = Object.keys(allocation.slots).length;
-  push({ kind: 'initial', message: `从实验 17 的分配结果出发：K = ${K}，${allocation.program.length} 条寄存器指令。先用 2 条指令宽的窗口做窥孔优化，再逐块重排。` });
+  push({ kind: 'initial', message: T('从实验 17 的分配结果出发：K = {#0}，{#1} 条寄存器指令。先用 2 条指令宽的窗口做窥孔优化，再逐块重排。', K, allocation.program.length) });
   const optimized = peephole(allocation.program);
   result.rewrites = optimized.rewrites;
   result.afterPeephole = optimized.program;
   optimized.rewrites.forEach((rewrite, index) => push({ kind: 'peephole', rewrite: index, message: rewrite.message }));
-  if (!optimized.rewrites.length) push({ kind: 'peephole', message: '窗口滑过全部指令，没有找到可以改写的相邻指令对。' });
+  if (!optimized.rewrites.length) push({ kind: 'peephole', message: T('窗口滑过全部指令，没有找到可以改写的相邻指令对。') });
   for (const [index, block] of splitBlocks(optimized.program).entries()) {
     const edges = buildDependences(block.body);
     const { priority, order, events } = listSchedule(block.body, edges);
     const identity = block.body.map((_, node) => node);
-    const scheduled: ScheduleBlock = { id: block.label?.op === 'label' ? block.label.name : index === 0 ? '入口' : `块 ${index}`,
+    const scheduled: ScheduleBlock = { id: block.label?.op === 'label' ? block.label.name : index === 0 ? T('入口') : T('块 {#0}', index),
       label: block.label, body: block.body, edges, priority, order, events,
       originalLength: scheduleLength(edges, identity), scheduledLength: scheduleLength(edges, order) };
     result.blocks.push(scheduled);
     result.falseDependences += edges.filter((edge) => edge.kind === 'war' || edge.kind === 'waw').length;
-    result.checkIssues.push(...checkOrder(block.body, order).map((issue) => `${scheduled.id}：${issue}`));
+    result.checkIssues.push(...checkOrder(block.body, order).map((issue) => T('{#0}：{#1}', scheduled.id, issue)));
     if (block.label) result.scheduled.push(block.label);
     result.scheduled.push(...order.map((node) => block.body[node]));
     if (block.body.length < 2) continue;
     const blockIndex = result.blocks.length - 1;
     const counts = (kind: DependenceEdge['kind']) => edges.filter((edge) => edge.kind === kind).length;
-    push({ kind: 'dag', block: blockIndex, message: `${scheduled.id}：${block.body.length} 条指令建依赖图。真依赖 ${counts('raw')} 条，寄存器复用带来的反依赖 / 输出依赖 ${counts('war') + counts('waw')} 条，为保留输出与报错顺序的约束 ${counts('order')} 条。原顺序需要 ${scheduled.originalLength} 个周期。` });
+    push({ kind: 'dag', block: blockIndex, message: T('{#0}：{#1} 条指令建依赖图。真依赖 {#2} 条，寄存器复用带来的反依赖 / 输出依赖 {#3} 条，为保留输出与报错顺序的约束 {#4} 条。原顺序需要 {#5} 个周期。', scheduled.id, block.body.length, counts('raw'), counts('war') + counts('waw'), counts('order'), scheduled.originalLength) });
     events.forEach((event, eventIndex) => push({ kind: 'cycle', block: blockIndex, event: eventIndex,
       message: event.chosen === undefined
-        ? `周期 ${event.cycle}：没有就绪的指令，流水线空转（stall），等待 ${event.waiting.map((item) => `#${item.node} 到周期 ${item.until}`).join('、')}。`
-        : `周期 ${event.cycle}：就绪 ${event.ready.map((node) => `#${node}`).join('、')}，选关键路径最长的 #${event.chosen}「${registerInstructionText(block.body[event.chosen])}」（剩余路径 ${priority[event.chosen]}）。` }));
+        ? T('周期 {#0}：没有就绪的指令，流水线空转（stall），等待 {#1}。', event.cycle, event.waiting.map((item) => T('#{#0} 到周期 {#1}', item.node, item.until)).join(T('、')))
+        : T('周期 {#0}：就绪 {#1}，选关键路径最长的 #{#2}「{#3}」（剩余路径 {#4}）。', event.cycle, event.ready.map((node) => `#${node}`).join(T('、')), event.chosen, registerInstructionText(block.body[event.chosen]), priority[event.chosen]) }));
   }
   if (result.checkIssues.length) {
-    result.issues.push(`排序核对失败：${result.checkIssues.slice(0, 3).join(' ')}`);
+    result.issues.push(T('排序核对失败：{#0}', result.checkIssues.slice(0, 3).join(' ')));
     if (record) result.frames.push({ kind: 'complete', message: result.issues[0] });
     return result;
   }
@@ -282,9 +290,9 @@ export function scheduleAllocation(allocation: RegisterAllocation, settings: { r
   result.valid = true;
   const { allocated, scheduled } = result.runs;
   if (record) {
-    result.frames.push({ kind: 'timing', message: `用同一个流水线模型执行：分配后原顺序 ${allocated.cycles} 个周期（空转 ${allocated.stalls}），窥孔后 ${result.runs.peephole.cycles}，再排序后 ${scheduled.cycles} 个周期（空转 ${scheduled.stalls}）。` });
-    result.frames.push({ kind: 'complete', message: scheduled.limited ? '寄存器机达到 2000 条指令上限；只保留输出前缀，不能判定行为一致。'
-      : scheduled.error ? `排序后的程序停止：${scheduled.error.message}` : '排序后的程序执行结束，可以对照输出、报错与周期数。' });
+    result.frames.push({ kind: 'timing', message: T('用同一个流水线模型执行：分配后原顺序 {#0} 个周期（空转 {#1}），窥孔后 {#2}，再排序后 {#3} 个周期（空转 {#4}）。', allocated.cycles, allocated.stalls, result.runs.peephole.cycles, scheduled.cycles, scheduled.stalls) });
+    result.frames.push({ kind: 'complete', message: scheduled.limited ? T('寄存器机达到 2000 条指令上限；只保留输出前缀，不能判定行为一致。')
+      : scheduled.error ? T('排序后的程序停止：{#0}', scheduled.error.message) : T('排序后的程序执行结束，可以对照输出、报错与周期数。') });
   }
   return result;
 }

@@ -1,5 +1,6 @@
 // Regex → NFA → DFA for lexical rules (原书第 02 讲).
 // Pure functions only: the view renders these results and never recomputes them.
+import { T } from '../i18n';
 
 export type CharRange = readonly [number, number];
 export const AUTOMATA_LIMITS = {
@@ -111,7 +112,7 @@ const allowedChar = (code: number) => rangesContain(UNIVERSE, code);
 export function parseSpec(source: string): AutomataSpec {
   if (source.length > AUTOMATA_LIMITS.source)
     throw new AutomataError({
-      message: `规则与输入合计最多 ${AUTOMATA_LIMITS.source} 个字符。`,
+      message: T('规则与输入合计最多 {#0} 个字符。', AUTOMATA_LIMITS.source),
       start: AUTOMATA_LIMITS.source,
       end: source.length,
     });
@@ -133,7 +134,7 @@ export function parseSpec(source: string): AutomataSpec {
     const name = colon >= 0 ? line.slice(0, colon).trim() : '';
     if (colon < 0 || !NAME.test(name))
       throw new AutomataError({
-        message: '规则写成“名称: 正则”，名称由字母、数字或下划线组成，且不以数字开头。',
+        message: T('规则写成“名称: 正则”，名称由字母、数字或下划线组成，且不以数字开头。'),
         start: lineStart,
         end: lineStart + line.length,
       });
@@ -143,25 +144,25 @@ export function parseSpec(source: string): AutomataSpec {
     const patternOffset = lineStart + colon + 1 + lead;
     if (!pattern)
       throw new AutomataError({
-        message: `规则 ${name} 缺少正则表达式。`,
+        message: T('规则 {#0} 缺少正则表达式。', name),
         start: lineStart,
         end: lineStart + line.length,
       });
     if (pattern.length > AUTOMATA_LIMITS.pattern)
       throw new AutomataError({
-        message: `单条正则最多 ${AUTOMATA_LIMITS.pattern} 个字符。`,
+        message: T('单条正则最多 {#0} 个字符。', AUTOMATA_LIMITS.pattern),
         start: patternOffset,
         end: patternOffset + pattern.length,
       });
     if (rules.some((rule) => rule.name === name))
       throw new AutomataError({
-        message: `规则名 ${name} 重复。需要多种写法时，在一条规则里用 | 连接。`,
+        message: T('规则名 {#0} 重复。需要多种写法时，在一条规则里用 | 连接。', name),
         start: lineStart,
         end: lineStart + colon,
       });
     if (rules.length >= AUTOMATA_LIMITS.rules)
       throw new AutomataError({
-        message: `最多 ${AUTOMATA_LIMITS.rules} 条规则。`,
+        message: T('最多 {#0} 条规则。', AUTOMATA_LIMITS.rules),
         start: lineStart,
         end: lineStart + line.length,
       });
@@ -176,24 +177,27 @@ export function parseSpec(source: string): AutomataSpec {
   }
   if (separator < 0)
     throw new AutomataError({
-      message: '缺少单独一行的 %%。上方写规则，下方写要扫描的输入。',
+      message: T('缺少单独一行的 %%。上方写规则，下方写要扫描的输入。'),
       start: 0,
       end: source.length,
     });
   if (!rules.length)
-    throw new AutomataError({ message: '%% 上方至少需要一条规则。', start: 0, end: offset });
+    throw new AutomataError({ message: T('%% 上方至少需要一条规则。'), start: 0, end: offset });
   const inputOffset = Math.min(offset, source.length);
   const input = source.slice(inputOffset);
   if (input.length > AUTOMATA_LIMITS.input)
     throw new AutomataError({
-      message: `待扫描的输入最多 ${AUTOMATA_LIMITS.input} 个字符。`,
+      message: T('待扫描的输入最多 {#0} 个字符。', AUTOMATA_LIMITS.input),
       start: inputOffset + AUTOMATA_LIMITS.input,
       end: source.length,
     });
   for (let i = 0; i < input.length; i++)
     if (!allowedChar(input.charCodeAt(i)))
       throw new AutomataError({
-        message: `输入含有字母表之外的字符「${input[i]}」。本实验只处理 ASCII 可打印字符、空格、\\t 与换行。`,
+        message: T(
+          '输入含有字母表之外的字符「{#0}」。本实验只处理 ASCII 可打印字符、空格、\\t 与换行。',
+          input[i],
+        ),
         start: inputOffset + i,
         end: inputOffset + i + 1,
       });
@@ -212,7 +216,7 @@ export function parseRegex(pattern: string, base = 0): RegexNode {
     const at = pos;
     pos++; // backslash
     const c = pattern[pos++];
-    if (c === undefined) return fail('反斜杠后缺少字符。', at);
+    if (c === undefined) return fail(T('反斜杠后缺少字符。'), at);
     if (c === 'd') return [[48, 57]];
     if (c === 'w')
       return normalizeRanges([
@@ -231,9 +235,9 @@ export function parseRegex(pattern: string, base = 0): RegexNode {
     if (c === 't') return [[9, 9]];
     if (c === 'r') return [[13, 13]];
     if (/[A-Za-z0-9]/.test(c))
-      return fail(`不支持的转义 \\${c}。可用 \\d \\w \\s \\n \\t \\r，或转义符号本身。`, at, pos);
+      return fail(T('不支持的转义 \\{#0}。可用 \\d \\w \\s \\n \\t \\r，或转义符号本身。', c), at, pos);
     const code = c.charCodeAt(0);
-    if (!allowedChar(code)) return fail('只支持 ASCII 字符。', at, pos);
+    if (!allowedChar(code)) return fail(T('只支持 ASCII 字符。'), at, pos);
     if (!inClass && c === ' ') return [[32, 32]];
     return [[code, code]];
   };
@@ -250,7 +254,7 @@ export function parseRegex(pattern: string, base = 0): RegexNode {
       }
       const code = pattern.charCodeAt(pos);
       if (!allowedChar(code) || code === 9 || code === 10 || code === 13)
-        return fail('字符集里只能直接写 ASCII 可打印字符；制表符等请用转义。');
+        return fail(T('字符集里只能直接写 ASCII 可打印字符；制表符等请用转义。'));
       pos++;
       return code;
     };
@@ -261,18 +265,18 @@ export function parseRegex(pattern: string, base = 0): RegexNode {
         pos++;
         const hi = single();
         if (typeof lo !== 'number' || typeof hi !== 'number')
-          return fail('区间两端必须是单个字符。', itemStart, pos);
+          return fail(T('区间两端必须是单个字符。'), itemStart, pos);
         if (lo > hi)
-          return fail(`区间 ${charText(lo)}-${charText(hi)} 的起点大于终点。`, itemStart, pos);
+          return fail(T('区间 {#0}-{#1} 的起点大于终点。', charText(lo), charText(hi)), itemStart, pos);
         ranges.push([lo, hi]);
       } else if (typeof lo === 'number') ranges.push([lo, lo]);
       else ranges.push(...lo);
     }
-    if (pattern[pos] !== ']') return fail('字符集缺少右方括号 ]。', start, pattern.length);
+    if (pattern[pos] !== ']') return fail(T('字符集缺少右方括号 ]。'), start, pattern.length);
     pos++;
-    if (!ranges.length) return fail('字符集不能为空。', start, pos);
+    if (!ranges.length) return fail(T('字符集不能为空。'), start, pos);
     const set = negate ? complement(ranges) : normalizeRanges(ranges);
-    if (!set.length) return fail('取反后字符集为空。', start, pos);
+    if (!set.length) return fail(T('取反后字符集为空。'), start, pos);
     return { kind: 'set', ranges: set, start, end: pos };
   };
   const atom = (depth: number): RegexNode => {
@@ -281,10 +285,10 @@ export function parseRegex(pattern: string, base = 0): RegexNode {
     const c = pattern[pos];
     if (c === '(') {
       pos++;
-      if (depth > 24) return fail('括号嵌套过深。', start);
+      if (depth > 24) return fail(T('括号嵌套过深。'), start);
       const inner = alternation(depth + 1);
       skipSpace();
-      if (pattern[pos] !== ')') return fail('缺少右括号 )。', start, pos);
+      if (pattern[pos] !== ')') return fail(T('缺少右括号 )。'), start, pos);
       pos++;
       return { ...inner, start, end: pos } as RegexNode;
     }
@@ -298,12 +302,12 @@ export function parseRegex(pattern: string, base = 0): RegexNode {
       return { kind: 'set', ranges, start, end: pos };
     }
     if (c === '{' || c === '}')
-      return fail('暂不支持 {m,n} 计数重复，请展开书写；字面量花括号写成 \\{ 或 \\}。');
-    if (c === ')') return fail('多余的右括号 )。');
-    if (c === '*' || c === '+' || c === '?') return fail(`${c} 前面缺少要重复的内容。`);
-    if (c === '|' || c === undefined) return fail('这里缺少一段正则（不能有空分支）。');
+      return fail(T('暂不支持 {m,n} 计数重复，请展开书写；字面量花括号写成 \\{ 或 \\}。'));
+    if (c === ')') return fail(T('多余的右括号 )。'));
+    if (c === '*' || c === '+' || c === '?') return fail(T('{#0} 前面缺少要重复的内容。', c));
+    if (c === '|' || c === undefined) return fail(T('这里缺少一段正则（不能有空分支）。'));
     const code = c.charCodeAt(0);
-    if (!allowedChar(code)) return fail('只支持 ASCII 字符。');
+    if (!allowedChar(code)) return fail(T('只支持 ASCII 字符。'));
     pos++;
     return { kind: 'set', ranges: [[code, code]], start, end: pos };
   };
@@ -324,7 +328,7 @@ export function parseRegex(pattern: string, base = 0): RegexNode {
       if (pos >= pattern.length || pattern[pos] === '|' || pattern[pos] === ')') break;
       parts.push(repeat(depth));
     }
-    if (!parts.length) return fail('这里缺少一段正则（不能有空分支）。');
+    if (!parts.length) return fail(T('这里缺少一段正则（不能有空分支）。'));
     return parts.length === 1
       ? parts[0]
       : { kind: 'concat', parts, start: parts[0].start, end: parts.at(-1)!.end };
@@ -344,7 +348,7 @@ export function parseRegex(pattern: string, base = 0): RegexNode {
   const tree = alternation(0);
   skipSpace();
   if (pos < pattern.length)
-    fail(pattern[pos] === ')' ? '多余的右括号 )。' : `无法解析的字符「${pattern[pos]}」。`);
+    fail(pattern[pos] === ')' ? T('多余的右括号 )。') : T('无法解析的字符「{#0}」。', pattern[pos]));
   return tree;
 }
 
@@ -392,7 +396,7 @@ export function buildNfa(rules: LexRule[]): { nfa: Nfa; steps: ThompsonStep[] } 
   const newState = () => {
     if (states.length >= AUTOMATA_LIMITS.nfaStates)
       throw new AutomataError({
-        message: `NFA 超过 ${AUTOMATA_LIMITS.nfaStates} 个状态，请缩短规则。`,
+        message: T('NFA 超过 {#0} 个状态，请缩短规则。', AUTOMATA_LIMITS.nfaStates),
         start: 0,
         end: 0,
       });
@@ -434,7 +438,7 @@ export function buildNfa(rules: LexRule[]): { nfa: Nfa; steps: ThompsonStep[] } 
         return finish(
           'set',
           end,
-          `字符 ${rangesText(node.ranges)}：新增状态 ${end}，边 ${start} —${rangesText(node.ranges)}→ ${end}。`,
+          T('字符 {#0}：新增状态 {#1}，边 {#2} —{#0}→ {#1}。', rangesText(node.ranges), end, start),
         );
       }
       case 'concat': {
@@ -447,7 +451,11 @@ export function buildNfa(rules: LexRule[]): { nfa: Nfa; steps: ThompsonStep[] } 
         return finish(
           'concat',
           current,
-          `连接 ${text}：前一段的结束状态直接作为后一段的开始（${joints.join('、')} 合二为一），不另加状态。`,
+          T(
+            '连接 {#0}：前一段的结束状态直接作为后一段的开始（{#1} 合二为一），不另加状态。',
+            text,
+            joints.join(T('、')),
+          ),
         );
       }
       case 'alt': {
@@ -461,7 +469,13 @@ export function buildNfa(rules: LexRule[]): { nfa: Nfa; steps: ThompsonStep[] } 
         return finish(
           'alt',
           end,
-          `选择 ${text}：从 ${start} 用 ε 分成 ${node.options.length} 条路径，各自结束后用 ε 汇合到 ${end}。`,
+          T(
+            '选择 {#0}：从 {#1} 用 ε 分成 {#2} 条路径，各自结束后用 ε 汇合到 {#3}。',
+            text,
+            start,
+            node.options.length,
+            end,
+          ),
         );
       }
       case 'repeat': {
@@ -476,10 +490,22 @@ export function buildNfa(rules: LexRule[]): { nfa: Nfa; steps: ThompsonStep[] } 
           node.op === '*' ? 'star' : node.op === '+' ? 'plus' : 'optional',
           end,
           node.op === '*'
-            ? `${text}：${start} 可经 ε 直接到 ${end}（重复 0 次），也可从 ${last} 回到 ${inner} 再来一遍。`
+            ? T(
+                '{#0}：{#1} 可经 ε 直接到 {#2}（重复 0 次），也可从 {#3} 回到 {#4} 再来一遍。',
+                text,
+                start,
+                end,
+                last,
+                inner,
+              )
             : node.op === '+'
-              ? `${text}：没有跳过的 ε 边，至少走一遍；从 ${last} 可回到 ${inner} 继续重复。`
-              : `${text}：${start} 可经 ε 跳过，或走一遍后到 ${end}；没有回边。`,
+              ? T(
+                  '{#0}：没有跳过的 ε 边，至少走一遍；从 {#1} 可回到 {#2} 继续重复。',
+                  text,
+                  last,
+                  inner,
+                )
+              : T('{#0}：{#1} 可经 ε 跳过，或走一遍后到 {#2}；没有回边。', text, start, end),
         );
       }
     }
@@ -488,7 +514,7 @@ export function buildNfa(rules: LexRule[]): { nfa: Nfa; steps: ThompsonStep[] } 
   record({
     kind: 'start',
     text: '',
-    message: `创建总开始状态 ${start}。每条规则都从这里经 ε 进入。`,
+    message: T('创建总开始状态 {#0}。每条规则都从这里经 ε 进入。', start),
   });
   for (const rule of rules) {
     const ruleStart = newState();
@@ -497,7 +523,13 @@ export function buildNfa(rules: LexRule[]): { nfa: Nfa; steps: ThompsonStep[] } 
       kind: 'rule',
       rule: rule.index,
       text: rule.pattern,
-      message: `开始规则 ${rule.name}（第 ${rule.index + 1} 优先）：${start} —ε→ ${ruleStart}。`,
+      message: T(
+        '开始规则 {#0}（第 {#1} 优先）：{#2} —ε→ {#3}。',
+        rule.name,
+        rule.index + 1,
+        start,
+        ruleStart,
+      ),
     });
     const end = build(rule.ast, ruleStart, rule);
     states[end].rule = rule.index;
@@ -506,7 +538,7 @@ export function buildNfa(rules: LexRule[]): { nfa: Nfa; steps: ThompsonStep[] } 
       kind: 'accept',
       rule: rule.index,
       text: rule.pattern,
-      message: `规则 ${rule.name} 完成：状态 ${end} 成为接受状态，标记 ${rule.name}。`,
+      message: T('规则 {#0} 完成：状态 {#1} 成为接受状态，标记 {#0}。', rule.name, end),
     });
   }
   // A state becomes visible no later than the first visible edge touching it.
@@ -607,15 +639,24 @@ export function buildDfa(nfa: Nfa, rules: LexRule[]): { dfa: Dfa; steps: SubsetS
     state.accept === undefined
       ? ''
       : state.candidates.length > 1
-        ? `（同时接受 ${state.candidates.map((r) => rules[r].name).join('、')}，${rules[state.accept].name} 优先）`
-        : `（接受 ${rules[state.accept].name}）`;
+        ? T(
+            '（同时接受 {#0}，{#1} 优先）',
+            state.candidates.map((r) => rules[r].name).join(T('、')),
+            rules[state.accept].name,
+          )
+        : T('（接受 {#0}）', rules[state.accept].name);
   add(epsilonClosure(nfa, [nfa.start]));
   steps.push({
     kind: 'start',
     dfa: 0,
     moves: [],
     known: 1,
-    message: `D0 = ε-闭包({${nfa.start}}) = ${name(states[0].nfa)}${acceptText(states[0])}。`,
+    message: T(
+      'D0 = ε-闭包({{#0}}) = {#1}{#2}。',
+      nfa.start,
+      name(states[0].nfa),
+      acceptText(states[0]),
+    ),
   });
   let complete = true;
   for (let current = 0; current < states.length; current++) {
@@ -658,8 +699,21 @@ export function buildDfa(nfa: Nfa, rules: LexRule[]): { dfa: Dfa; steps: SubsetS
       moves,
       known: states.length,
       message: moves.length
-        ? `处理 D${current} = ${name(states[current].nfa)}：${moves.length} 组输入各自求 move 和 ε-闭包${fresh.length ? `，新增 ${fresh.join('、')}` : '，没有新状态'}。`
-        : `处理 D${current}：任何输入都无路可走（死状态不画出）。`,
+        ? fresh.length
+          ? T(
+              '处理 D{#0} = {#1}：{#2} 组输入各自求 move 和 ε-闭包，新增 {#3}。',
+              current,
+              name(states[current].nfa),
+              moves.length,
+              fresh.join(T('、')),
+            )
+          : T(
+              '处理 D{#0} = {#1}：{#2} 组输入各自求 move 和 ε-闭包，没有新状态。',
+              current,
+              name(states[current].nfa),
+              moves.length,
+            )
+        : T('处理 D{#0}：任何输入都无路可走（死状态不画出）。', current),
     });
     if (limited) {
       complete = false;
@@ -668,7 +722,10 @@ export function buildDfa(nfa: Nfa, rules: LexRule[]): { dfa: Dfa; steps: SubsetS
         dfa: current,
         moves: [],
         known: states.length,
-        message: `DFA 状态达到上限 ${AUTOMATA_LIMITS.dfaStates}，停止构造。这正是子集构造可能出现的状态膨胀；不发布扫描结果。`,
+        message: T(
+          'DFA 状态达到上限 {#0}，停止构造。这正是子集构造可能出现的状态膨胀；不发布扫描结果。',
+          AUTOMATA_LIMITS.dfaStates,
+        ),
       });
       break;
     }
@@ -735,15 +792,30 @@ export function scan(dfa: Dfa, rules: LexRule[], input: string): ScanResult {
         state,
         lastAccept: last,
         tokens: tokens.length,
-        message: `读 ${charText(input.charCodeAt(i - 1))} → D${state}${accept !== undefined ? `，可接受 ${rules[accept].name}，记下位置 ${i}` : '，暂不可接受'}；继续尝试更长的词素。`,
+        message:
+          accept !== undefined
+            ? T(
+                '读 {#0} → D{#1}，可接受 {#2}，记下位置 {#3}；继续尝试更长的词素。',
+                charText(input.charCodeAt(i - 1)),
+                state,
+                rules[accept].name,
+                i,
+              )
+            : T(
+                '读 {#0} → D{#1}，暂不可接受；继续尝试更长的词素。',
+                charText(input.charCodeAt(i - 1)),
+                state,
+              ),
       });
     }
     const stop =
-      i < input.length ? `D${state} 遇到 ${charText(input.charCodeAt(i))} 无路可走` : '输入结束';
+      i < input.length
+        ? T('D{#0} 遇到 {#1} 无路可走', state, charText(input.charCodeAt(i)))
+        : T('输入结束');
     if (!last) {
       error = {
         position: pos,
-        message: `从位置 ${pos} 开始，没有规则能匹配非空词素（${stop}）。扫描停止。`,
+        message: T('从位置 {#0} 开始，没有规则能匹配非空词素（{#1}）。扫描停止。', pos, stop),
       };
       push({
         kind: 'error',
@@ -772,7 +844,26 @@ export function scan(dfa: Dfa, rules: LexRule[], input: string): ScanResult {
       state,
       lastAccept: last,
       tokens: tokens.length,
-      message: `${stop}：回到最近接受位置 ${last.end}${back ? `，退回多读的 ${back} 个字符` : ''}，${rule.skip ? `丢弃 skip 词素` : `生成 ${rule.name}「${input.slice(pos, last.end)}」`}。`,
+      message: back
+        ? rule.skip
+          ? T('{#0}：回到最近接受位置 {#1}，退回多读的 {#2} 个字符，丢弃 skip 词素。', stop, last.end, back)
+          : T(
+              '{#0}：回到最近接受位置 {#1}，退回多读的 {#2} 个字符，生成 {#3}「{#4}」。',
+              stop,
+              last.end,
+              back,
+              rule.name,
+              input.slice(pos, last.end),
+            )
+        : rule.skip
+          ? T('{#0}：回到最近接受位置 {#1}，丢弃 skip 词素。', stop, last.end)
+          : T(
+              '{#0}：回到最近接受位置 {#1}，生成 {#2}「{#3}」。',
+              stop,
+              last.end,
+              rule.name,
+              input.slice(pos, last.end),
+            ),
     });
     pos = last.end;
   }
@@ -782,7 +873,10 @@ export function scan(dfa: Dfa, rules: LexRule[], input: string): ScanResult {
       tokenStart: pos,
       position: pos,
       tokens: tokens.length,
-      message: `回放只记录前 ${AUTOMATA_LIMITS.scanFrames} 步；扫描本身已完成，下方 Token 列表完整。`,
+      message: T(
+        '回放只记录前 {#0} 步；扫描本身已完成，下方 Token 列表完整。',
+        AUTOMATA_LIMITS.scanFrames,
+      ),
     });
   if (!error)
     frames.push({
@@ -790,7 +884,11 @@ export function scan(dfa: Dfa, rules: LexRule[], input: string): ScanResult {
       tokenStart: input.length,
       position: input.length,
       tokens: tokens.length,
-      message: `扫描完成：${tokens.filter((t) => !t.skip).length} 个 Token，${tokens.filter((t) => t.skip).length} 段被 skip 丢弃。`,
+      message: T(
+        '扫描完成：{#0} 个 Token，{#1} 段被 skip 丢弃。',
+        tokens.filter((t) => !t.skip).length,
+        tokens.filter((t) => t.skip).length,
+      ),
     });
   return { tokens, frames, error };
 }

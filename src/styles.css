@@ -315,7 +315,30 @@ pre {
   display: flex;
   align-items: center;
   gap: 6px;
-  white-space: nowrap;
+}
+.site-language {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+.site-language a {
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #7c8676;
+  text-decoration: none;
+}
+.site-language a:hover {
+  color: var(--ink);
+  background: #edf1e6;
+}
+.site-language a[aria-current] {
+  color: #3f5c35;
+  background: #e7efe0;
+  font-weight: 600;
 }
 .status-dot {
   width: 5px;
@@ -1595,6 +1618,8 @@ tr.highlight-row td {
   font-size: 12px;
   min-width: 15px;
   line-height: 2;
+  /* Longer translated comments must not squeeze the line number. */
+  flex-shrink: 0;
 }
 .code-row code {
   color: var(--ide-text);
@@ -2983,7 +3008,8 @@ tr.highlight-row td {
     margin-bottom: 30px;
   }
   .study-method > div {
-    flex: 1;
+    /* Fill the row beside the mark so the button wraps below, even with longer translations. */
+    flex: 1 1 calc(100% - 50px);
     min-width: 0;
   }
   .study-method h2 {

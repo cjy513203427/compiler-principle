@@ -1,3 +1,4 @@
+import { T } from '../../i18n';
 import type { Instruction } from '../model';
 import type { Execution } from '../vm';
 import { buildCFG } from '../cfg';
@@ -13,8 +14,8 @@ import { instructionText, runX64, CALLER_SAVED, type MInst, type Reg64, type X64
 export type IrSource = 'raw' | 'optimized';
 export interface CodegenSettings { pool: RegisterPool; input: IrSource }
 export const defaultCodegenSettings: CodegenSettings = { pool: 'full', input: 'raw' };
-export const inputNames: Record<IrSource, string> = { raw: '原始 IR', optimized: '实验 05 优化后的 IR' };
-export const strategyNames: Record<Strategy, string> = { tile: '树覆盖', macro: '逐条模板' };
+export const inputNames: Record<IrSource, string> = { raw: T('原始 IR'), optimized: T('实验 05 优化后的 IR') };
+export const strategyNames: Record<Strategy, string> = { tile: T('树覆盖'), macro: T('逐条模板') };
 export { poolNames, POOLS };
 export function normalizeCodegenSettings(pool: unknown, input: unknown): CodegenSettings {
   return {
@@ -72,16 +73,57 @@ function eventMessage(event: ColoringEvent, pool: Reg64[], costs: Record<string,
   const K = pool.length;
   switch (event.kind) {
     case 'simplify':
-      return `${event.node} 只受 ${event.degree} 个约束（未移出的邻居 + 已占用的预着色寄存器），少于可分配的 ${K} 个，先压栈。`;
+      return T(
+        '{#0} 只受 {#1} 个约束（未移出的邻居 + 已占用的预着色寄存器），少于可分配的 {#2} 个，先压栈。',
+        event.node,
+        event.degree,
+        K,
+      );
     case 'potential':
-      return `剩下的值约束都 ≥ ${K}。选“溢出代价 / 约束数”最小的 ${event.node}（代价 ${costs[event.node]}）作为可能溢出压栈。`;
+      return T(
+        '剩下的值约束都 ≥ {#0}。选“溢出代价 / 约束数”最小的 {#1}（代价 {#2}）作为可能溢出压栈。',
+        K,
+        event.node,
+        costs[event.node],
+      );
     case 'select': {
-      const blocked = event.blocked.length ? event.blocked.join(', ') : '无';
-      const call = acrossCall.has(event.node) ? '它在某次 call 之后仍要用，所有 caller-saved 寄存器都被调用破坏，只剩 callee-saved。' : '';
-      if (event.reason === 'spill') return `弹出 ${event.node}：${call}被占用 ${blocked}，没有可用寄存器，溢出到栈槽。`;
-      if (event.reason === 'bias') return `弹出 ${event.node}：和 ${event.partner} 之间有一条 mov，${event.register} 未被占用，选同一个寄存器，这条 mov 之后变成自身复制而删掉。`;
-      if (event.reason === 'callee') return `弹出 ${event.node}：${call}被占用 ${blocked}，分到 callee-saved 的 ${event.register}；序曲要先 push 保存，尾声再 pop 恢复。`;
-      return `弹出 ${event.node}：被占用 ${blocked}，按顺序分到 caller-saved 的 ${event.register}。`;
+      const blocked = event.blocked.length ? event.blocked.join(', ') : T('无');
+      const across = acrossCall.has(event.node);
+      if (event.reason === 'spill')
+        return across
+          ? T(
+              '弹出 {#0}：它在某次 call 之后仍要用，所有 caller-saved 寄存器都被调用破坏，只剩 callee-saved。被占用 {#1}，没有可用寄存器，溢出到栈槽。',
+              event.node,
+              blocked,
+            )
+          : T('弹出 {#0}：被占用 {#1}，没有可用寄存器，溢出到栈槽。', event.node, blocked);
+      if (event.reason === 'bias')
+        return T(
+          '弹出 {#0}：和 {#1} 之间有一条 mov，{#2} 未被占用，选同一个寄存器，这条 mov 之后变成自身复制而删掉。',
+          event.node,
+          event.partner,
+          event.register,
+        );
+      if (event.reason === 'callee')
+        return across
+          ? T(
+              '弹出 {#0}：它在某次 call 之后仍要用，所有 caller-saved 寄存器都被调用破坏，只剩 callee-saved。被占用 {#1}，分到 callee-saved 的 {#2}；序曲要先 push 保存，尾声再 pop 恢复。',
+              event.node,
+              blocked,
+              event.register,
+            )
+          : T(
+              '弹出 {#0}：被占用 {#1}，分到 callee-saved 的 {#2}；序曲要先 push 保存，尾声再 pop 恢复。',
+              event.node,
+              blocked,
+              event.register,
+            );
+      return T(
+        '弹出 {#0}：被占用 {#1}，按顺序分到 caller-saved 的 {#2}。',
+        event.node,
+        blocked,
+        event.register,
+      );
     }
   }
 }
@@ -103,20 +145,41 @@ export function generateCode(ir: Instruction[], requested: CodegenSettings, stra
     if (record) run.frames.push({ kind: 'complete', message });
     return run;
   };
-  if (ir.length > MAX_IR) return fail(`IR 超过 ${MAX_IR} 条，不生成机器代码。`);
+  if (ir.length > MAX_IR) return fail(T('IR 超过 {#0} 条，不生成机器代码。', MAX_IR));
   const graph = buildCFG(ir);
   const dominance = analyzeDominance(graph);
   const depthOf = ir.map((_, index) => dominance.converged
     ? dominance.loops.filter((loop) => loop.nodes.includes(graph.instructionBlock[index])).length : 0);
   const depth = (origin: number) => (origin >= 0 ? depthOf[origin] ?? 0 : 0);
-  push({ kind: 'input', message: `输入是${inputNames[options.input]}，共 ${ir.length} 条三地址指令。${strategy === 'tile'
-    ? '树覆盖先把只用一次、就在同一块里被用到的临时值接回它的使用处，得到表达式树；再从树根开始，每次选能盖住最多节点的 x86 模式（最大吞进，maximal munch）。'
-    : '逐条模板不看相邻指令：每条三地址指令按固定模板展开，作为对照基线。'}` });
+  push({
+    kind: 'input',
+    message:
+      strategy === 'tile'
+        ? T(
+            '输入是{#0}，共 {#1} 条三地址指令。树覆盖先把只用一次、就在同一块里被用到的临时值接回它的使用处，得到表达式树；再从树根开始，每次选能盖住最多节点的 x86 模式（最大吞进，maximal munch）。',
+            inputNames[options.input],
+            ir.length,
+          )
+        : T(
+            '输入是{#0}，共 {#1} 条三地址指令。逐条模板不看相邻指令：每条三地址指令按固定模板展开，作为对照基线。',
+            inputNames[options.input],
+            ir.length,
+          ),
+  });
   run.selection = selectInstructions(ir, strategy);
   if (run.selection.issues.length) return fail(run.selection.issues.join(' '));
   run.selection.decisions.forEach((decision, index) => {
     const count = decision.end - decision.start;
-    push({ kind: 'select', decision: index, message: `${decision.tree}：${decision.rules.length ? decision.rules.map(ruleText).join('、') : '不产生指令'}${count ? `，产生 ${count} 条虚拟寄存器指令` : ''}。` });
+    const rules = decision.rules.length
+      ? decision.rules.map(ruleText).join(T('、'))
+      : T('不产生指令');
+    push({
+      kind: 'select',
+      decision: index,
+      message: count
+        ? T('{#0}：{#1}，产生 {#2} 条虚拟寄存器指令。', decision.tree, rules, count)
+        : T('{#0}：{#1}。', decision.tree, rules),
+    });
   });
   const allocation = allocateMachine(run.selection.code, pool, depth);
   run.rounds = allocation.rounds;
@@ -126,12 +189,43 @@ export function generateCode(ir: Instruction[], requested: CodegenSettings, stra
   for (const round of allocation.rounds) {
     const across = new Set(round.graph.acrossCall);
     const calls = round.code.filter((instruction) => instruction.op === 'call' && instruction.target !== '__mc_trap').length;
-    push({ kind: 'constraints', round: round.index, message: round.index === 0
-      ? `开始分配：可分配 ${pool.length} 个寄存器（${pool.join(' ')}）。预着色约束：cqo / idiv 固定读写 rax、rdx；传参固定用 rdi；${calls} 次 call 会破坏全部 caller-saved 寄存器（${CALLER_SAVED.join(' ')}）。${across.size ? `跨调用仍活跃的值：${[...across].join(', ')}。` : '没有值跨调用活跃。'}`
-      : `第 ${round.index + 1} 轮：溢出代码改变了程序，重新求活跃性与冲突。现在共 ${round.code.length} 条。` });
+    push({
+      kind: 'constraints',
+      round: round.index,
+      message:
+        round.index === 0
+          ? across.size
+            ? T(
+                '开始分配：可分配 {#0} 个寄存器（{#1}）。预着色约束：cqo / idiv 固定读写 rax、rdx；传参固定用 rdi；{#2} 次 call 会破坏全部 caller-saved 寄存器（{#3}）。跨调用仍活跃的值：{#4}。',
+                pool.length,
+                pool.join(' '),
+                calls,
+                CALLER_SAVED.join(' '),
+                [...across].join(', '),
+              )
+            : T(
+                '开始分配：可分配 {#0} 个寄存器（{#1}）。预着色约束：cqo / idiv 固定读写 rax、rdx；传参固定用 rdi；{#2} 次 call 会破坏全部 caller-saved 寄存器（{#3}）。没有值跨调用活跃。',
+                pool.length,
+                pool.join(' '),
+                calls,
+                CALLER_SAVED.join(' '),
+              )
+          : T(
+              '第 {#0} 轮：溢出代码改变了程序，重新求活跃性与冲突。现在共 {#1} 条。',
+              round.index + 1,
+              round.code.length,
+            ),
+    });
     round.events.forEach((event, index) => push({ kind: 'event', round: round.index, event: index, message: eventMessage(event, pool, round.costs, across) }));
     if (round.spilled.length)
-      push({ kind: 'rewrite', round: round.index, message: `真正溢出 ${round.spilled.join(', ')}：每次读取前从栈槽 mov 回来，每次写入后存回栈槽；新的 x~n 只活一两条指令，标为不可再溢出，然后重新分析。` });
+      push({
+        kind: 'rewrite',
+        round: round.index,
+        message: T(
+          '真正溢出 {#0}：每次读取前从栈槽 mov 回来，每次写入后存回栈槽；新的 x~n 只活一两条指令，标为不可再溢出，然后重新分析。',
+          round.spilled.join(', '),
+        ),
+      });
   }
   if (!allocation.valid) return fail(allocation.issues.join(' '));
   const slotCount = Object.keys(allocation.slots).length;
@@ -141,18 +235,67 @@ export function generateCode(ir: Instruction[], requested: CodegenSettings, stra
   run.layout = layout;
   run.stats = countStats(program);
   run.valid = true;
-  push({ kind: 'layout', message: `布局栈帧：push rbp 后 rsp 对齐 16 字节；${layout.calleeSaved.length ? `用到 callee-saved ${layout.calleeSaved.join(', ')}，序曲 push、尾声 pop；` : '没有用到 callee-saved 寄存器；'}${slotCount ? `${slotCount} 个栈槽` : '没有栈槽'}${layout.padding ? '，再补 8 字节使 call 时 rsp 仍按 16 对齐' : ''}。${removedMoves ? `${removedMoves} 条 mov 两端是同一寄存器，已删除。` : ''}共 ${run.stats.instructions} 条指令，其中安全检查 ${run.stats.checks} 条。` });
+  const calleePart = layout.calleeSaved.length
+    ? T('用到 callee-saved {#0}，序曲 push、尾声 pop', layout.calleeSaved.join(', '))
+    : T('没有用到 callee-saved 寄存器');
+  const slotPart = slotCount
+    ? layout.padding
+      ? T('{#0} 个栈槽，再补 8 字节使 call 时 rsp 仍按 16 对齐', slotCount)
+      : T('{#0} 个栈槽', slotCount)
+    : layout.padding
+      ? T('没有栈槽，再补 8 字节使 call 时 rsp 仍按 16 对齐')
+      : T('没有栈槽');
+  push({
+    kind: 'layout',
+    message: removedMoves
+      ? T(
+          '布局栈帧：push rbp 后 rsp 对齐 16 字节；{#0}；{#1}。{#2} 条 mov 两端是同一寄存器，已删除。共 {#3} 条指令，其中安全检查 {#4} 条。',
+          calleePart,
+          slotPart,
+          removedMoves,
+          run.stats.instructions,
+          run.stats.checks,
+        )
+      : T(
+          '布局栈帧：push rbp 后 rsp 对齐 16 字节；{#0}；{#1}。共 {#2} 条指令，其中安全检查 {#3} 条。',
+          calleePart,
+          slotPart,
+          run.stats.instructions,
+          run.stats.checks,
+        ),
+  });
   run.execution = runX64(program, { record });
   if (baseline) run.outcome = compareExecutions(baseline, run.execution);
   if (record) {
     run.execution.steps.forEach((step, index) => push({ kind: 'execute', step: index, message: step.message }));
     const execution = run.execution;
     if (execution.traceTruncated) run.traceTruncated = true;
-    run.frames.push({ kind: 'complete', step: execution.steps.length - 1, message: execution.fault
-      ? `模拟器发现机器级错误：${execution.fault} 这说明生成的代码有问题，不是源程序的运行时错误。`
-      : execution.limited ? `执行达到 ${execution.executed} 条机器指令的上限；只保留输出前缀，不能判定行为一致。`
-        : execution.error ? `运行时报告错误并终止：${execution.error.message} 共执行 ${execution.executed} 条机器指令。`
-          : `ret 返回调用者，callee-saved 寄存器和 rsp 都已恢复。共执行 ${execution.executed} 条机器指令，${execution.calls} 次 call，${execution.loads + execution.stores} 次栈访问。` });
+    run.frames.push({
+      kind: 'complete',
+      step: execution.steps.length - 1,
+      message: execution.fault
+        ? T(
+            '模拟器发现机器级错误：{#0} 这说明生成的代码有问题，不是源程序的运行时错误。',
+            execution.fault,
+          )
+        : execution.limited
+          ? T(
+              '执行达到 {#0} 条机器指令的上限；只保留输出前缀，不能判定行为一致。',
+              execution.executed,
+            )
+          : execution.error
+            ? T(
+                '运行时报告错误并终止：{#0} 共执行 {#1} 条机器指令。',
+                execution.error.message,
+                execution.executed,
+              )
+            : T(
+                'ret 返回调用者，callee-saved 寄存器和 rsp 都已恢复。共执行 {#0} 条机器指令，{#1} 次 call，{#2} 次栈访问。',
+                execution.executed,
+                execution.calls,
+                execution.loads + execution.stores,
+              ),
+    });
   }
   return run;
 }

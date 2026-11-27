@@ -1,6 +1,7 @@
 // Bottom-up parsing: LR(0) item sets, SLR(1) ACTION / GOTO tables and shift-reduce parsing (原书第 03 讲后半).
 // Reuses the grammar text format and FIRST / FOLLOW from grammar.ts.
 
+import { T } from '../i18n';
 import {
   END,
   EPSILON,
@@ -90,7 +91,7 @@ export function buildItemSets(spec: GrammarSpec) {
   const add = (kernel: Item[], from?: LrState['from']) => {
     if (states.length >= LR_LIMITS.states)
       throw new GrammarError({
-        message: `LR(0) 状态超过 ${LR_LIMITS.states} 个，请缩小文法。`,
+        message: T('LR(0) 状态超过 {#0} 个，请缩小文法。', LR_LIMITS.states),
         start: 0,
         end: 0,
       });
@@ -127,13 +128,39 @@ export function buildItemSets(spec: GrammarSpec) {
       }
       state.transitions.push({ symbol, target });
     }
-    const closureText = state.closure.length
-      ? `点后面是 ${[...new Set(state.closure.map((c) => c.because))].join('、')}，接下来可能开始认它们，所以把它们的产生式（点在最前）也加进来；`
-      : '';
+    const headText =
+      s === 0
+        ? T(
+            '状态 0 从 {#0} → · {#1} 出发：还什么都没读，正等着认出整个 {#1}。',
+            AUGMENTED,
+            spec.grammar.start,
+          )
+        : T(
+            '状态 {#0}（由状态 {#1} 读入 {#2} 得到）：把点往后挪一格。',
+            s,
+            state.from!.state,
+            state.from!.symbol,
+          );
+    const advanceText = symbols.length
+      ? created.length
+        ? T(
+            '再按点后面的符号 {#0} 分别前进，新得到状态 {#1}。',
+            symbols.join(' '),
+            created.join(T('、')),
+          )
+        : T('再按点后面的符号 {#0} 分别前进，没有新状态。', symbols.join(' '))
+      : T('所有项目的点都在末尾，这里只能规约。');
     steps.push({
       state: s,
       created,
-      message: `${s === 0 ? `状态 0 从 ${AUGMENTED} → · ${spec.grammar.start} 出发：还什么都没读，正等着认出整个 ${spec.grammar.start}。` : `状态 ${s}（由状态 ${state.from!.state} 读入 ${state.from!.symbol} 得到）：把点往后挪一格。`}${closureText}${symbols.length ? `再按点后面的符号 ${symbols.join(' ')} 分别前进${created.length ? `，新得到状态 ${created.join('、')}` : '，没有新状态'}。` : '所有项目的点都在末尾，这里只能规约。'}`,
+      message: state.closure.length
+        ? T(
+            '{#0}点后面是 {#1}，接下来可能开始认它们，所以把它们的产生式（点在最前）也加进来；{#2}',
+            headText,
+            [...new Set(state.closure.map((c) => c.because))].join(T('、')),
+            advanceText,
+          )
+        : T('{#0}{#1}', headText, advanceText),
     });
   }
   return { productions, states, steps };
@@ -147,7 +174,7 @@ export interface LrConflict {
   state: number;
   terminal: string;
   actions: LrAction[];
-  kind: '移进/规约' | '规约/规约';
+  kind: 'shift-reduce' | 'reduce-reduce';
 }
 export interface TableStep {
   state: number;
@@ -176,25 +203,35 @@ export function buildLrTable(
       else goto[state.id][symbol] = target;
     const shifts = state.transitions.filter((t) => terminals.includes(t.symbol));
     if (shifts.length)
-      notes.push(`点后面是 ${shifts.map((t) => t.symbol).join('、')}：读到它们就移进`);
+      notes.push(T('点后面是 {#0}：读到它们就移进', shifts.map((t) => t.symbol).join(T('、'))));
     for (const item of state.items) {
       const p = productions[item.production];
       if (item.dot < p.rhs.length) continue;
       if (p.id === 0) {
         push(state.id, END, { kind: 'accept' });
-        notes.push(`${AUGMENTED} → ${p.rhs[0]} · 完整了：读到 $ 就接受`);
+        notes.push(T('{#0} → {#1} · 完整了：读到 $ 就接受', AUGMENTED, p.rhs[0]));
         continue;
       }
       const lookahead = follow[p.lhs];
       for (const t of lookahead) push(state.id, t, { kind: 'reduce', production: p.id });
       notes.push(
-        `${p.lhs} → ${p.rhs.length ? p.rhs.join(' ') : EPSILON} · 已经完整：只有下一个 Token 在 FOLLOW(${p.lhs}) = ${setText(lookahead)} 里时才规约`,
+        T(
+          '{#0} → {#1} · 已经完整：只有下一个 Token 在 FOLLOW({#0}) = {#2} 里时才规约',
+          p.lhs,
+          p.rhs.length ? p.rhs.join(' ') : EPSILON,
+          setText(lookahead),
+        ),
       );
     }
     const gotos = Object.entries(goto[state.id]);
     if (gotos.length)
-      notes.push(`规约出 ${gotos.map(([n, t]) => `${n} 后转到状态 ${t}`).join('，')}（GOTO）`);
-    steps.push({ state: state.id, message: `状态 ${state.id}：${notes.join('；')}。` });
+      notes.push(
+        T(
+          '规约出 {#0}（GOTO）',
+          gotos.map(([n, t]) => T('{#0} 后转到状态 {#1}', n, t)).join(T('，')),
+        ),
+      );
+    steps.push({ state: state.id, message: T('状态 {#0}：{#1}。', state.id, notes.join(T('；'))) });
   }
   const conflicts: LrConflict[] = [];
   action.forEach((row, s) => {
@@ -204,7 +241,7 @@ export function buildLrTable(
           state: s,
           terminal,
           actions,
-          kind: actions.some((a) => a.kind === 'shift') ? '移进/规约' : '规约/规约',
+          kind: actions.some((a) => a.kind === 'shift') ? 'shift-reduce' : 'reduce-reduce',
         });
   });
   return { action, goto, steps, conflicts };
@@ -254,7 +291,9 @@ export function parseLr(
   const steps: LrParseStep[] = [];
   const show = (i: number) =>
     i < input.length
-      ? `${input[i].type}${input[i].type !== input[i].text ? `「${input[i].text}」` : ''}`
+      ? input[i].type !== input[i].text
+        ? T('{#0}「{#1}」', input[i].type, input[i].text)
+        : input[i].type
       : '$';
   const snapshot = () => stack.map((e) => ({ ...e }));
   const forms: string[][] = [input.map((t) => t.type)];
@@ -262,7 +301,7 @@ export function parseLr(
     kind: 'start',
     stack: snapshot(),
     position: 0,
-    message: '栈里先放状态 0，还没有任何符号。栈是拼装语法树的工作区，右边是还没读的 Token。',
+    message: T('栈里先放状态 0，还没有任何符号。栈是拼装语法树的工作区，右边是还没读的 Token。'),
   });
   let i = 0;
   while (steps.length < LR_LIMITS.parseSteps) {
@@ -272,7 +311,12 @@ export function parseLr(
     const cell = { state: top.state, terminal: lookahead };
     if (!actions.length) {
       const expected = Object.keys(table.action[top.state]);
-      const error = `状态 ${top.state} 遇到 ${show(i)} 时没有可做的动作：这里只能出现 ${setText(expected)}。`;
+      const error = T(
+        '状态 {#0} 遇到 {#1} 时没有可做的动作：这里只能出现 {#2}。',
+        top.state,
+        show(i),
+        setText(expected),
+      );
       steps.push({ kind: 'error', stack: snapshot(), position: i, cell, message: error });
       return { steps, nodes, accepted: false, error, derivation: [] };
     }
@@ -283,7 +327,7 @@ export function parseLr(
         stack: snapshot(),
         position: i,
         cell,
-        message: `栈里只剩一个 ${stack[1].symbol}，输入也读完了：整棵树拼好了，接受。`,
+        message: T('栈里只剩一个 {#0}，输入也读完了：整棵树拼好了，接受。', stack[1].symbol),
       });
       return { steps, nodes, accepted: true, derivation: forms.reverse() };
     }
@@ -312,7 +356,17 @@ export function parseLr(
         stack: snapshot(),
         position: i,
         cell,
-        message: `状态 ${top.state} 遇到 ${show(i - 1)}：移进，把它压栈，转到状态 ${act.target}。${waiting.length ? `虽然 ${waiting.map((p) => `${p.lhs} → ${p.rhs.join(' ')}`).join('、')} 已经完整，但 ${lookahead} 不会跟在 ${waiting.map((p) => p.lhs).join('、')} 后面，所以先不规约。` : ''}`,
+        message: waiting.length
+          ? T(
+              '状态 {#0} 遇到 {#1}：移进，把它压栈，转到状态 {#2}。虽然 {#3} 已经完整，但 {#4} 不会跟在 {#5} 后面，所以先不规约。',
+              top.state,
+              show(i - 1),
+              act.target,
+              waiting.map((p) => `${p.lhs} → ${p.rhs.join(' ')}`).join(T('、')),
+              lookahead,
+              waiting.map((p) => p.lhs).join(T('、')),
+            )
+          : T('状态 {#0} 遇到 {#1}：移进，把它压栈，转到状态 {#2}。', top.state, show(i - 1), act.target),
       });
       continue;
     }
@@ -342,11 +396,24 @@ export function parseLr(
       cell,
       production: p.id,
       message: p.rhs.length
-        ? `栈顶的 ${p.rhs.join(' ')} 正好是 ${p.lhs} → ${p.rhs.join(' ')} 的右边，下一个 ${show(i)} 在 FOLLOW(${p.lhs}) 里：规约，把它们合成一个 ${p.lhs}。露出的状态 ${under.state} 按 GOTO 遇到 ${p.lhs} 转到状态 ${target}。`
-        : `下一个是 ${show(i)}，在 FOLLOW(${p.lhs}) 里：按 ${p.lhs} → ε 规约出一个空的 ${p.lhs}，不弹出任何东西，状态 ${under.state} 按 GOTO 转到状态 ${target}。`,
+        ? T(
+            '栈顶的 {#0} 正好是 {#1} → {#0} 的右边，下一个 {#2} 在 FOLLOW({#1}) 里：规约，把它们合成一个 {#1}。露出的状态 {#3} 按 GOTO 遇到 {#1} 转到状态 {#4}。',
+            p.rhs.join(' '),
+            p.lhs,
+            show(i),
+            under.state,
+            target,
+          )
+        : T(
+            '下一个是 {#0}，在 FOLLOW({#1}) 里：按 {#1} → ε 规约出一个空的 {#1}，不弹出任何东西，状态 {#2} 按 GOTO 转到状态 {#3}。',
+            show(i),
+            p.lhs,
+            under.state,
+            target,
+          ),
     });
   }
-  const error = `解析超过 ${LR_LIMITS.parseSteps} 步，已停止。`;
+  const error = T('解析超过 {#0} 步，已停止。', LR_LIMITS.parseSteps);
   steps.push({ kind: 'error', stack: snapshot(), position: i, message: error });
   return { steps, nodes, accepted: false, error, derivation: [] };
 }
@@ -395,7 +462,10 @@ export function analyzeLr(source: string): LrOutcome {
       frames.push({
         phase: 'table',
         index: table.steps.length,
-        message: `表里有 ${table.conflicts.length} 个格子放了不止一个动作：遇到这个 Token 时，既可以这样又可以那样，SLR(1) 决定不了，所以不做解析。`,
+        message: T(
+          '表里有 {#0} 个格子放了不止一个动作：遇到这个 Token 时，既可以这样又可以那样，SLR(1) 决定不了，所以不做解析。',
+          table.conflicts.length,
+        ),
       });
     return {
       ok: true,

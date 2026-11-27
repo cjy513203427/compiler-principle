@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import { buildCFG, type ControlFlowGraph } from './cfg';
 import { analyzeLiveness, referencedVariables, MAX_ANALYSIS_PASSES } from './dataflow';
 import { analyzeDominance, type DominanceAnalysis } from './dominance';
@@ -162,7 +163,7 @@ function hoistLoop(code: Instruction[], label: string): { code: Instruction[]; r
   const outside = graph.edges.filter((edge) => edge.to === header && !loop.nodes.includes(edge.from));
   const previous = graph.blocks.find((block) => block.end === headerIndex);
   if (outside.length !== 1 || !previous || outside[0].from !== previous.id || !['next', 'true'].includes(outside[0].kind)) {
-    report.reason = '循环头不是只从前一个块顺序进入，没有安全的位置放外提代码，跳过。';
+    report.reason = T('循环头不是只从前一个块顺序进入，没有安全的位置放外提代码，跳过。');
     return { code, report };
   }
   report.hoistable = true;
@@ -184,19 +185,19 @@ function hoistLoop(code: Instruction[], label: string): { code: Instruction[]; r
       report.decisions.push({ text, status, reason });
       if (inHeader && mayTrap(instruction) && status !== 'hoisted') blockedTrap = true;
     };
-    if (variant && variant.kind === 'ref') { record('variant', `${variant.name} 在循环内被改写，每轮的值可能不同。`); continue; }
-    if (definitions.get(instruction.dest) !== 1) { record('blocked', `${instruction.dest} 有多处赋值，搬走其中一处会改变其他路径看到的值。`); continue; }
-    if (liveAtHeader.has(instruction.dest)) { record('blocked', `进入循环头时 ${instruction.dest} 的旧值还会被读取。`); continue; }
+    if (variant && variant.kind === 'ref') { record('variant', T('{#0} 在循环内被改写，每轮的值可能不同。', variant.name)); continue; }
+    if (definitions.get(instruction.dest) !== 1) { record('blocked', T('{#0} 有多处赋值，搬走其中一处会改变其他路径看到的值。', instruction.dest)); continue; }
+    if (liveAtHeader.has(instruction.dest)) { record('blocked', T('进入循环头时 {#0} 的旧值还会被读取。', instruction.dest)); continue; }
     if (mayTrap(instruction)) {
-      if (!inHeader) { record('trap', '不变，但可能溢出或除零。它在循环体里，零轮循环时不会执行，也可能排在 print 之后；外提会凭空报错或改变输出顺序。'); continue; }
-      if (blockedTrap) { record('trap', '不变，但循环条件里更早的可能报错的计算留在原处；外提它会改变报错的先后。'); continue; }
+      if (!inHeader) { record('trap', T('不变，但可能溢出或除零。它在循环体里，零轮循环时不会执行，也可能排在 print 之后；外提会凭空报错或改变输出顺序。')); continue; }
+      if (blockedTrap) { record('trap', T('不变，但循环条件里更早的可能报错的计算留在原处；外提它会改变报错的先后。')); continue; }
     }
     hoisted.add(index);
     hoistedNames.add(instruction.dest);
     report.hoisted.push(text);
     report.decisions.push({ text, status: 'hoisted', reason: inHeader
-      ? '位于循环条件的计算里：每次进入循环都会先执行它，且操作数不变；提前到循环前只算一次。'
-      : '操作数不变且不会报错：即使循环零轮，提前算一次也不改变输出与错误。' });
+      ? T('位于循环条件的计算里：每次进入循环都会先执行它，且操作数不变；提前到循环前只算一次。')
+      : T('操作数不变且不会报错：即使循环零轮，提前算一次也不改变输出与错误。') });
   }
   if (!hoisted.size) return { code, report };
   const moved = code.filter((_, index) => hoisted.has(index));
@@ -279,7 +280,7 @@ function run(code: Instruction[]): RedundancyRun {
   const operations = execution.steps.filter((step) => step.pc >= 0 && OPERATIONS.has(bytecode[step.pc]?.op)).length;
   return { bytecode, execution, operations };
 }
-const factText = (facts: string[]) => facts.join('；') || '∅';
+const factText = (facts: string[]) => facts.join(T('；')) || '∅';
 
 export function analyzeRedundancy(ir: Instruction[], dominance: DominanceAnalysis): RedundancyAnalysis {
   const available = analyzeAvailable(ir);
@@ -290,18 +291,18 @@ export function analyzeRedundancy(ir: Instruction[], dominance: DominanceAnalysi
     else result.traceTruncated = true;
   };
   const fail = (message: string) => { result.issues.push(message); result.frames.push({ kind: 'complete', message }); return result; };
-  push({ kind: 'initial', message: `从原始三地址代码出发（${ir.length} 条）。先求“可用表达式”：在每个位置，哪些计算结果仍然有效，由哪个临时值保存。` });
-  if (!available.converged || !dominance.converged) return fail('可用表达式或支配分析没有收敛，保留原始 IR。');
+  push({ kind: 'initial', message: T('从原始三地址代码出发（{#0} 条）。先求“可用表达式”：在每个位置，哪些计算结果仍然有效，由哪个临时值保存。', ir.length) });
+  if (!available.converged || !dominance.converged) return fail(T('可用表达式或支配分析没有收敛，保留原始 IR。'));
   available.steps.forEach((step, index) => push({ kind: 'available', step: index,
-    message: `第 ${step.pass} 轮处理 ${step.block}：IN 取所有前驱 OUT 的交集（每条路径都算过才算可用）。OUT = ${factText(step.output)}。` }));
+    message: T('第 {#0} 轮处理 {#1}：IN 取所有前驱 OUT 的交集（每条路径都算过才算可用）。OUT = {#2}。', step.pass, step.block, factText(step.output)) }));
   const cse = eliminateCommonSubexpressions(ir, available);
   result.replacements = cse.replacements;
   result.saved = cse.saved;
   result.afterCse = cse.code;
   cse.replacements.forEach((item, index) => push({ kind: 'cse', replacement: index, message: item.source !== undefined
-    ? `#${item.index} 要算 ${item.key}。到这里每条路径上 #${item.source} 的结果 ${item.holder} 都仍然有效：改为 ${item.after}。`
-    : `#${item.index} 要算 ${item.key}。每条路径都算过它，但由不同指令算出、存在不同临时值里：新建 ${item.holder}，在每次计算 ${item.key} 之后保存结果，这里改为 ${item.after}。` }));
-  if (!cse.replacements.length) push({ kind: 'cse', message: '没有找到在所有路径上都已算过的同一表达式，公共子表达式消除不改动代码。' });
+    ? T('#{#0} 要算 {#1}。到这里每条路径上 #{#2} 的结果 {#3} 都仍然有效：改为 {#4}。', item.index, item.key, item.source, item.holder, item.after)
+    : T('#{#0} 要算 {#1}。每条路径都算过它，但由不同指令算出、存在不同临时值里：新建 {#2}，在每次计算 {#1} 之后保存结果，这里改为 {#3}。', item.index, item.key, item.holder, item.after) }));
+  if (!cse.replacements.length) push({ kind: 'cse', message: T('没有找到在所有路径上都已算过的同一表达式，公共子表达式消除不改动代码。') });
   const labels = dominance.loops.slice().sort((a, b) => a.nodes.length - b.nodes.length).map((loop) => {
     const block = dominance.graph.blocks.find((item) => item.id === loop.header)!;
     const first = ir[block.start];
@@ -314,23 +315,23 @@ export function analyzeRedundancy(ir: Instruction[], dominance: DominanceAnalysi
     code = outcome.code;
     const loopIndex = result.loops.push(outcome.report) - 1;
     push({ kind: 'loop', loop: loopIndex, message: outcome.report.reason
-      ? `循环 ${label}：${outcome.report.reason}`
-      : `循环 ${label}（${outcome.report.blocks.join('、')}）：外提代码放在循环头之前，只在进入循环时执行一次。逐条判断循环里的计算是否不变、能否安全外提。` });
+      ? T('循环 {#0}：{#1}', label, outcome.report.reason)
+      : T('循环 {#0}（{#1}）：外提代码放在循环头之前，只在进入循环时执行一次。逐条判断循环里的计算是否不变、能否安全外提。', label, outcome.report.blocks.join(T('、'))) });
     outcome.report.decisions.forEach((decision, index) => push({ kind: 'decision', loop: loopIndex, decision: index,
-      message: `${decision.text}：${decision.reason}` }));
+      message: T('{#0}：{#1}', decision.text, decision.reason) }));
   }
   result.afterLicm = code;
-  if (!dominance.loops.length) push({ kind: 'loop', message: '程序没有自然循环，不做循环不变代码外提。' });
+  if (!dominance.loops.length) push({ kind: 'loop', message: T('程序没有自然循环，不做循环不变代码外提。') });
   const entryLive = (instructions: Instruction[]) => analyzeLiveness(instructions).input[buildCFG(instructions).blocks[0].id] ?? [];
   const before = entryLive(ir).join(','), after = entryLive(code).join(',');
-  if (before !== after) return fail(`优化后入口处出现了未定义就读取的值（${after}），撤销结果。`);
+  if (before !== after) return fail(T('优化后入口处出现了未定义就读取的值（{#0}），撤销结果。', after));
   result.valueNumbers = localValueNumbering(ir, available.graph, new Set(cse.replacements.map((item) => item.index)));
   result.runs = { original: run(ir), cse: run(cse.code), licm: run(code) };
   result.valid = true;
   const { original, licm } = result.runs;
-  result.frames.push({ kind: 'execute', message: `三个版本都交给原栈式 VM 执行：原始 ${original.operations} 次运算，公共子表达式消除后 ${result.runs.cse.operations} 次，再外提后 ${licm.operations} 次。` });
+  result.frames.push({ kind: 'execute', message: T('三个版本都交给原栈式 VM 执行：原始 {#0} 次运算，公共子表达式消除后 {#1} 次，再外提后 {#2} 次。', original.operations, result.runs.cse.operations, licm.operations) });
   result.frames.push({ kind: 'complete', message: licm.execution.limited || original.execution.limited
-    ? '至少一个版本达到 2000 条字节码上限；只比较输出前缀，不能判定行为一致。'
-    : '执行结束，可以对照输出、报错和运算次数。' });
+    ? T('至少一个版本达到 2000 条字节码上限；只比较输出前缀，不能判定行为一致。')
+    : T('执行结束，可以对照输出、报错和运算次数。') });
   return result;
 }

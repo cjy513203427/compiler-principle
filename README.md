@@ -21,6 +21,8 @@ npm run preview    # 本地预览生产构建
 
 浏览器测试使用 Chrome channel；未安装 Chrome 时，可安装 Chrome，或在 `playwright.config.ts` 移除 `channel` 并安装 Playwright Chromium。
 
+界面提供中文、英文、德文三种语言：中文在 `/?lab=…`，英文在 `/en/?lab=…`，德文在 `/de/?lab=…`，左侧目录底部可切换并保留当前实验与步骤。新增或修改界面文字的流程见 [docs/i18n.md](docs/i18n.md)。
+
 ## 可以做什么
 
 | 实验       | 对应章节                | 可操作内容                                              |

@@ -1,3 +1,4 @@
+import { T } from '../../i18n';
 import {
   CALLEE_SAVED, CALLER_SAVED, defs, isVirtual, mapRegs, preg, regKey, successors, uses, vreg,
   type MInst, type MOp, type Reg, type Reg64,
@@ -9,7 +10,10 @@ export const POOLS: Record<RegisterPool, Reg64[]> = {
   full: ['rax', 'rcx', 'rdx', 'rsi', 'rdi', 'r8', 'r9', 'r10', 'rbx', 'r12', 'r13', 'r14', 'r15'],
   tight: ['rax', 'rcx', 'rdx', 'rbx'],
 };
-export const poolNames: Record<RegisterPool, string> = { full: '13 个通用寄存器', tight: '紧张：rax rcx rdx rbx' };
+export const poolNames: Record<RegisterPool, string> = {
+  full: T('13 个通用寄存器'),
+  tight: T('紧张：rax rcx rdx rbx'),
+};
 export const MAX_CODEGEN_ROUNDS = 16;
 const MAX_PASSES = 400;
 
@@ -121,7 +125,7 @@ function colorRound(graph: MachineGraph, pool: Reg64[], costs: Record<string, nu
       if (!remaining.has(key) || unspillable.has(key)) continue;
       if (!best || costs[key] / degree(key) < costs[best] / degree(best)) best = key;
     }
-    if (!best) return { events, assignment: {}, spilled: [], failure: `剩余的值都是溢出产生的短临时值，${K} 个可分配寄存器仍放不下它们。` };
+    if (!best) return { events, assignment: {}, spilled: [], failure: T('剩余的值都是溢出产生的短临时值，{#0} 个可分配寄存器仍放不下它们。', K) };
     events.push({ kind: 'potential', node: best, degree: degree(best), cost: costs[best] });
     remaining.delete(best);
     stack.push(best);
@@ -164,21 +168,21 @@ function colorRound(graph: MachineGraph, pool: Reg64[], costs: Record<string, nu
 export function checkMachineAssignment(code: MOp[], assignment: Record<string, Reg64>, pool: Reg64[]): string[] {
   const issues: string[] = [];
   const liveness = machineLiveness(code);
-  if (!liveness.converged) return ['机器代码活跃性没有收敛，无法核对分配。'];
+  if (!liveness.converged) return [T('机器代码活跃性没有收敛，无法核对分配。')];
   const color = (key: string) => (isVirtual(key) ? assignment[key] : (key as Reg64));
   const names = new Set(code.flatMap((instruction) => [...uses(instruction), ...defs(instruction)].map(regKey)).filter(isVirtual));
   for (const name of names) {
-    if (!assignment[name]) issues.push(`${name} 没有物理寄存器。`);
-    else if (!pool.includes(assignment[name])) issues.push(`${name} 用了不在可分配集合里的 ${assignment[name]}。`);
+    if (!assignment[name]) issues.push(T('{#0} 没有物理寄存器。', name));
+    else if (!pool.includes(assignment[name])) issues.push(T('{#0} 用了不在可分配集合里的 {#1}。', name, assignment[name]));
   }
   const entry = liveness.liveIn[0]?.filter(isVirtual) ?? [];
-  if (entry.length) issues.push(`入口处仍有未定义就使用的值：${entry.join(', ')}。`);
+  if (entry.length) issues.push(T('入口处仍有未定义就使用的值：{#0}。', entry.join(', ')));
   code.forEach((instruction, index) => {
     const source = moveSource(instruction);
     for (const written of defs(instruction).map(regKey))
       for (const live of liveness.liveOut[index])
         if (live !== written && live !== source && color(live) === color(written) && (isVirtual(live) || isVirtual(written)))
-          issues.push(`#${index} 写入 ${written} 会覆盖仍要使用的 ${live}（同在 ${color(written)}）。`);
+          issues.push(T('#{#0} 写入 {#1} 会覆盖仍要使用的 {#2}（同在 {#3}）。', index, written, live, color(written)));
   });
   return issues;
 }
@@ -198,9 +202,9 @@ export function allocateMachine(code: MInst[], pool: Reg64[], depth: (origin: nu
   const counters = new Map<string, number>();
   let current = code;
   for (let round = 0; ; round++) {
-    if (round >= MAX_CODEGEN_ROUNDS) { result.issues.push(`溢出重写超过 ${MAX_CODEGEN_ROUNDS} 轮，停止分配。`); return result; }
+    if (round >= MAX_CODEGEN_ROUNDS) { result.issues.push(T('溢出重写超过 {#0} 轮，停止分配。', MAX_CODEGEN_ROUNDS)); return result; }
     const liveness = machineLiveness(current);
-    if (!liveness.converged) { result.issues.push('机器代码活跃性没有收敛，不进行分配。'); return result; }
+    if (!liveness.converged) { result.issues.push(T('机器代码活跃性没有收敛，不进行分配。')); return result; }
     const graph = buildMachineGraph(current, liveness);
     const costs: Record<string, number> = Object.fromEntries(graph.nodes.map((key) => [key, 0]));
     current.forEach((instruction) => {
@@ -230,10 +234,10 @@ export function allocateMachine(code: MInst[], pool: Reg64[], depth: (origin: nu
       const read = new Set(uses(instruction).map(regKey));
       const written = new Set(defs(instruction).map(regKey));
       for (const key of touched) if (read.has(key))
-        rewritten.push({ op: 'load', dst: names.get(key)!, src: { kind: 'slot', slot: result.slots[key] }, origin: instruction.origin, role: 'spill', note: `重新取回溢出的 ${key}` });
+        rewritten.push({ op: 'load', dst: names.get(key)!, src: { kind: 'slot', slot: result.slots[key] }, origin: instruction.origin, role: 'spill', note: T('重新取回溢出的 {#0}', key) });
       rewritten.push(mapRegs(instruction, (reg) => names.get(regKey(reg)) ?? reg));
       for (const key of touched) if (written.has(key))
-        rewritten.push({ op: 'store', dst: { kind: 'slot', slot: result.slots[key] }, src: names.get(key)!, origin: instruction.origin, role: 'spill', note: `把 ${key} 写回栈槽` });
+        rewritten.push({ op: 'store', dst: { kind: 'slot', slot: result.slots[key] }, src: names.get(key)!, origin: instruction.origin, role: 'spill', note: T('把 {#0} 写回栈槽', key) });
     }
     current = rewritten;
   }
@@ -241,7 +245,7 @@ export function allocateMachine(code: MInst[], pool: Reg64[], depth: (origin: nu
   result.assignment = last.assignment;
   result.finalVirtual = current;
   result.checkIssues = checkMachineAssignment(current, last.assignment, pool);
-  if (result.checkIssues.length) { result.issues.push(`分配核对失败：${result.checkIssues.slice(0, 3).join(' ')}`); return result; }
+  if (result.checkIssues.length) { result.issues.push(T('分配核对失败：{#0}', result.checkIssues.slice(0, 3).join(' '))); return result; }
   result.valid = true;
   return result;
 }
@@ -264,17 +268,17 @@ export function layoutFrame(code: MInst[], assignment: Record<string, Reg64>, sl
   const size = 8 * slotCount + padding;
   const frame = frameInst;
   const prologue: MInst[] = [
-    frame({ op: 'push', reg: preg('rbp') }, '保存调用者的帧指针'),
-    frame({ op: 'mov', dst: preg('rbp'), src: preg('rsp') }, '建立本函数的帧'),
-    ...calleeSaved.map((reg) => frame({ op: 'push', reg: preg(reg) }, `${reg} 是 callee-saved，用之前先保存`)),
-    ...(size ? [frame({ op: 'subsp', amount: size }, `${slotCount} 个栈槽${padding ? ' + 8 字节对齐填充' : ''}`)] : []),
+    frame({ op: 'push', reg: preg('rbp') }, T('保存调用者的帧指针')),
+    frame({ op: 'mov', dst: preg('rbp'), src: preg('rsp') }, T('建立本函数的帧')),
+    ...calleeSaved.map((reg) => frame({ op: 'push', reg: preg(reg) }, T('{#0} 是 callee-saved，用之前先保存', reg))),
+    ...(size ? [frame({ op: 'subsp', amount: size }, padding ? T('{#0} 个栈槽 + 8 字节对齐填充', slotCount) : T('{#0} 个栈槽', slotCount))] : []),
   ];
   const epilogue: MInst[] = [
-    frame({ op: 'zero', dst: preg('rax') }, 'main 返回 0'),
-    ...(size ? [frame({ op: 'addsp', amount: size }, '释放栈槽')] : []),
-    ...[...calleeSaved].reverse().map((reg) => frame({ op: 'pop', reg: preg(reg) }, `恢复 ${reg}`)),
-    frame({ op: 'pop', reg: preg('rbp') }, '恢复调用者的帧指针'),
-    frame({ op: 'ret' }, '返回调用者'),
+    frame({ op: 'zero', dst: preg('rax') }, T('main 返回 0')),
+    ...(size ? [frame({ op: 'addsp', amount: size }, T('释放栈槽'))] : []),
+    ...[...calleeSaved].reverse().map((reg) => frame({ op: 'pop', reg: preg(reg) }, T('恢复 {#0}', reg))),
+    frame({ op: 'pop', reg: preg('rbp') }, T('恢复调用者的帧指针')),
+    frame({ op: 'ret' }, T('返回调用者')),
   ];
   const offset = (slot: number) => 8 * (calleeSaved.length + 1 + slot);
   const program: MInst[] = [...prologue];

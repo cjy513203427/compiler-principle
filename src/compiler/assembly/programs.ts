@@ -1,3 +1,4 @@
+import { T } from '../../i18n';
 import {
   type Alias,
   type AssemblyLine,
@@ -140,7 +141,7 @@ export function buildProgram(topic: AssemblyTopic, parameters: AssemblyParameter
     program.array = { address: ARRAY_BASE, values: [...p.array] };
     program.signedReturn = true;
     program.bindings = [
-      { name: 'a 的首地址', register: 'RCX' },
+      { name: T('a 的首地址'), register: 'RCX' },
       { name: 'i', register: 'EDX' },
     ];
     label('read_at', 0);
@@ -162,8 +163,8 @@ export function buildProgram(topic: AssemblyTopic, parameters: AssemblyParameter
       '}',
     ];
     program.bindings = [
-      { name: 'add 的 a', register: 'ECX' },
-      { name: 'add 的 b', register: 'EDX' },
+      { name: T('add 的 a'), register: 'ECX' },
+      { name: T('add 的 b'), register: 'EDX' },
     ];
     label('caller', 4);
     binary('MOV', 'ECX', imm(p.a), 5);
@@ -183,7 +184,7 @@ export function buildProgram(topic: AssemblyTopic, parameters: AssemblyParameter
     program.returnWidth = 64;
     program.initialRax = before;
     program.source = [
-      '// 寄存器窗口操作；不是可编译的 C 程序',
+      T('// 寄存器窗口操作；不是可编译的 C 程序'),
       `RAX = 0x${p.registerHex};`,
       `${p.alias} = 0x${p.writeHex};`,
     ];

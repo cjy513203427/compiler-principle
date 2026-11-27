@@ -1,3 +1,4 @@
+import { T } from '../../i18n';
 import type { Value } from '../model';
 import { DIVIDE_BY_ZERO, UNSAFE_INTEGER } from '../operations';
 
@@ -110,7 +111,7 @@ export function instructionText(instruction: MOp): string {
     case 'subsp': return `sub rsp, ${instruction.amount}`;
     case 'addsp': return `add rsp, ${instruction.amount}`;
     case 'ret': return 'ret';
-    case 'exit': return '; 函数尾声（布局时展开）';
+    case 'exit': return T('; 函数尾声（布局时展开）');
   }
 }
 
@@ -169,7 +170,7 @@ export function successors(code: MOp[]): number[][] {
   code.forEach((instruction, index) => { if (instruction.op === 'label') labels.set(instruction.name, index); });
   const target = (name: string) => {
     const index = labels.get(name);
-    if (index === undefined) throw new Error(`机器代码缺少标签 ${name}。`);
+    if (index === undefined) throw new Error(T('机器代码缺少标签 {#0}。', name));
     return index;
   };
   return code.map((instruction, index) => {
@@ -245,23 +246,23 @@ export function runX64(code: MInst[], settings: { record?: boolean; budget?: num
     if (steps.length >= traceLimit) { traceTruncated = true; return; }
     steps.push({ ...step, registers: [...registers], flags: flags && { ...flags }, output: [...output], stack: stackView() });
   };
-  snapshot({ pc: -1, nextPc: 0, message: '进入 main：rsp 指向调用者压入的返回地址；callee-saved 寄存器里是调用者的值，返回前必须原样交还。caller-saved 寄存器内容未知。', written: [] });
+  snapshot({ pc: -1, nextPc: 0, message: T('进入 main：rsp 指向调用者压入的返回地址；callee-saved 寄存器里是调用者的值，返回前必须原样交还。caller-saved 寄存器内容未知。'), written: [] });
   const labels = new Map<string, number>();
   code.forEach((instruction, i) => { if (instruction.op === 'label') labels.set(instruction.name, i); });
   const read = (reg: Reg): bigint => {
-    if (reg.kind === 'v') throw new Fault(`虚拟寄存器 %${reg.name} 没有分配物理寄存器。`);
+    if (reg.kind === 'v') throw new Fault(T('虚拟寄存器 %{#0} 没有分配物理寄存器。', reg.name));
     const value = registers[index(reg.reg)];
-    if (value === undefined) throw new Fault(`读取内容未知的寄存器 ${reg.reg}（从未写入，或已被调用破坏）。`);
+    if (value === undefined) throw new Fault(T('读取内容未知的寄存器 {#0}（从未写入，或已被调用破坏）。', reg.reg));
     return value;
   };
   const write = (reg: Reg, value: bigint, written: Reg64[]) => {
-    if (reg.kind === 'v') throw new Fault(`虚拟寄存器 %${reg.name} 没有分配物理寄存器。`);
+    if (reg.kind === 'v') throw new Fault(T('虚拟寄存器 %{#0} 没有分配物理寄存器。', reg.name));
     registers[index(reg.reg)] = signed(value);
     written.push(reg.reg);
   };
   const source = (value: Reg | Imm) => (value.kind === 'imm' ? value.value : read(value));
   const address = (mem: Mem) => {
-    if (mem.kind === 'slot') throw new Fault('栈槽尚未布局到帧内。');
+    if (mem.kind === 'slot') throw new Fault(T('栈槽尚未布局到帧内。'));
     return read(preg('rbp')) - BigInt(mem.offset);
   };
   const subtractFlags = (a: bigint, b: bigint): Flags => {
@@ -269,7 +270,7 @@ export function runX64(code: MInst[], settings: { record?: boolean; budget?: num
     return { ZF: result === 0n, SF: result < 0n, OF: exact !== result, CF: BigInt.asUintN(64, a) < BigInt.asUintN(64, b) };
   };
   const condition = (cond: Cond) => {
-    if (!flags) throw new Fault('条件跳转读取了尚未设置（或已被调用破坏）的标志位。');
+    if (!flags) throw new Fault(T('条件跳转读取了尚未设置（或已被调用破坏）的标志位。'));
     const { ZF, SF, OF } = flags;
     return cond === 'l' ? SF !== OF : cond === 'le' ? ZF || SF !== OF : cond === 'g' ? !ZF && SF === OF
       : cond === 'ge' ? SF === OF : cond === 'e' ? ZF : cond === 'ne' ? !ZF : OF;
@@ -295,11 +296,11 @@ export function runX64(code: MInst[], settings: { record?: boolean; budget?: num
         }
         case 'load': {
           const at = address(instruction.src), value = memory.get(at);
-          if (value === undefined) throw new Fault(`读取从未写入的栈地址 [rbp - ${(instruction.src as { offset: number }).offset}]。`);
+          if (value === undefined) throw new Fault(T('读取从未写入的栈地址 [rbp - {#0}]。', (instruction.src as { offset: number }).offset));
           write(instruction.dst, value, written);
           loads++;
           access = { kind: 'load', offset: Number(ENTRY_RSP - at), value };
-          message = `从栈读取 ${value} 放入 ${written[0]}`;
+          message = T('从栈读取 {#0} 放入 {#1}', value, written[0]);
           break;
         }
         case 'store': {
@@ -307,13 +308,13 @@ export function runX64(code: MInst[], settings: { record?: boolean; budget?: num
           memory.set(at, value);
           stores++;
           access = { kind: 'store', offset: Number(ENTRY_RSP - at), value };
-          message = `把 ${value} 写入栈`;
+          message = T('把 {#0} 写入栈', value);
           break;
         }
         case 'lea': {
           const value = read(instruction.base) + (instruction.index ? read(instruction.index) : 0n) + instruction.disp;
           write(instruction.dst, value, written);
-          message = `${written[0]} = ${signed(value)}（地址计算单元做加法，不改标志位）`;
+          message = T('{#0} = {#1}（地址计算单元做加法，不改标志位）', written[0], signed(value));
           break;
         }
         case 'add': case 'sub': {
@@ -334,7 +335,9 @@ export function runX64(code: MInst[], settings: { record?: boolean; budget?: num
           write(instruction.dst, result, written);
           const overflow = exact !== result;
           flags = { ZF: result === 0n, SF: result < 0n, OF: overflow, CF: overflow };
-          message = `${written[0]} = ${result}${overflow ? '，超出 64 位，OF = 1' : '，OF = 0'}`;
+          message = overflow
+            ? T('{#0} = {#1}，超出 64 位，OF = 1', written[0], result)
+            : T('{#0} = {#1}，OF = 0', written[0], result);
           break;
         }
         case 'neg': {
@@ -347,79 +350,89 @@ export function runX64(code: MInst[], settings: { record?: boolean; budget?: num
         case 'cmp': {
           const a = read(instruction.left), b = source(instruction.right);
           flags = subtractFlags(a, b);
-          message = `比较 ${a} 与 ${b}：ZF=${+flags.ZF} SF=${+flags.SF} OF=${+flags.OF}`;
+          message = T('比较 {#0} 与 {#1}：ZF={#2} SF={#3} OF={#4}', a, b, +flags.ZF, +flags.SF, +flags.OF);
           break;
         }
         case 'test': {
           const result = read(instruction.left) & read(instruction.right);
           flags = { ZF: result === 0n, SF: signed(result) < 0n, OF: false, CF: false };
-          message = `按位与结果${result === 0n ? '为 0，ZF = 1' : '非 0，ZF = 0'}`;
+          message = result === 0n ? T('按位与结果为 0，ZF = 1') : T('按位与结果非 0，ZF = 0');
           break;
         }
         case 'set': {
           const old = read(instruction.dst), bit = condition(instruction.cond) ? 1n : 0n;
           write(instruction.dst, (old & ~0xffn) | bit, written);
-          message = `条件 ${instruction.cond} ${bit ? '成立' : '不成立'}，低 8 位写 ${bit}`;
+          message = bit
+            ? T('条件 {#0} 成立，低 8 位写 {#1}', instruction.cond, bit)
+            : T('条件 {#0} 不成立，低 8 位写 {#1}', instruction.cond, bit);
           break;
         }
         case 'zero': {
           write(instruction.dst, 0n, written);
           flags = { ZF: true, SF: false, OF: false, CF: false };
-          message = `${written[0]} = 0（xor 清零，同时改写标志位）`;
+          message = T('{#0} = 0（xor 清零，同时改写标志位）', written[0]);
           break;
         }
         case 'cqo': {
           const value = read(preg('rax')) < 0n ? -1n : 0n;
           write(preg('rdx'), value, written);
-          message = `把 rax 的符号扩展到 rdx（rdx = ${value}），组成 128 位被除数`;
+          message = T('把 rax 的符号扩展到 rdx（rdx = {#0}），组成 128 位被除数', value);
           break;
         }
         case 'idiv': {
           const divisor = read(instruction.src);
           const dividend = (read(preg('rdx')) << 64n) | BigInt.asUintN(64, read(preg('rax')));
-          if (divisor === 0n) throw new Fault('处理器除法异常 #DE：除数为 0，生成的代码漏掉了除零检查。');
+          if (divisor === 0n) throw new Fault(T('处理器除法异常 #DE：除数为 0，生成的代码漏掉了除零检查。'));
           const quotient = dividend / divisor;
-          if (quotient !== signed(quotient)) throw new Fault('处理器除法异常 #DE：商超出 64 位。');
+          if (quotient !== signed(quotient)) throw new Fault(T('处理器除法异常 #DE：商超出 64 位。'));
           write(preg('rax'), quotient, written);
           write(preg('rdx'), dividend - quotient * divisor, written);
           flags = undefined;
-          message = `rax = ${quotient}（向零取整），rdx = ${dividend - quotient * divisor}（余数）`;
+          message = T('rax = {#0}（向零取整），rdx = {#1}（余数）', quotient, dividend - quotient * divisor);
           break;
         }
         case 'jmp': {
           const target = labels.get(instruction.target);
-          if (target === undefined) throw new Fault(`不存在的标签 ${instruction.target}。`);
+          if (target === undefined) throw new Fault(T('不存在的标签 {#0}。', instruction.target));
           nextPc = target;
-          message = `跳转到 ${instruction.target}`;
+          message = T('跳转到 {#0}', instruction.target);
           break;
         }
         case 'j': {
           const taken = condition(instruction.cond);
           const target = labels.get(instruction.target);
-          if (target === undefined) throw new Fault(`不存在的标签 ${instruction.target}。`);
+          if (target === undefined) throw new Fault(T('不存在的标签 {#0}。', instruction.target));
           if (taken) nextPc = target;
-          message = taken ? `条件 ${instruction.cond} 成立，跳到 ${instruction.target}` : `条件 ${instruction.cond} 不成立，顺序执行`;
+          message = taken
+            ? T('条件 {#0} 成立，跳到 {#1}', instruction.cond, instruction.target)
+            : T('条件 {#0} 不成立，顺序执行', instruction.cond);
           break;
         }
         case 'call': {
           const rsp = read(preg('rsp'));
-          if (rsp % 16n !== 0n) throw new Fault(`call ${instruction.target} 时 rsp 没有按 16 字节对齐，违反 System V 调用约定。`);
+          if (rsp % 16n !== 0n) throw new Fault(T('call {#0} 时 rsp 没有按 16 字节对齐，违反 System V 调用约定。', instruction.target));
           calls++;
           const argument = read(preg('rdi'));
           if (instruction.target === '__mc_trap') {
-            const text = TRAP_MESSAGES[Number(BigInt.asIntN(32, argument))];
-            if (!text) throw new Fault(`__mc_trap 收到未知错误码 ${argument}。`);
-            snapshot({ pc, nextPc: pc, message: `执行 ${instructionText(instruction)}：运行时报告错误并终止程序：${text}`, written });
+            const trapCode = Number(BigInt.asIntN(32, argument));
+            const text =
+              trapCode === 1
+                ? T('整数除法的除数不能为 0。')
+                : trapCode === 2
+                  ? T('计算结果超出安全整数范围。')
+                  : TRAP_MESSAGES[trapCode];
+            if (!text) throw new Fault(T('__mc_trap 收到未知错误码 {#0}。', argument));
+            snapshot({ pc, nextPc: pc, message: T('执行 {#0}：运行时报告错误并终止程序：{#1}', instructionText(instruction), text), written });
             return finish({ error: { message: text, pc } });
           }
           if (instruction.target === '__mc_print_bool') {
-            if (argument !== 0n && argument !== 1n) throw new Fault(`__mc_print_bool 收到 ${argument}，bool 只能是 0 或 1。`);
+            if (argument !== 0n && argument !== 1n) throw new Fault(T('__mc_print_bool 收到 {#0}，bool 只能是 0 或 1。', argument));
             output.push(argument === 1n);
           } else output.push(Number(argument));
           // The callee may leave anything in caller-saved registers and flags.
           for (const reg of CALLER_SAVED) registers[index(reg)] = undefined;
           flags = undefined;
-          message = `调用 ${instruction.target} 输出 ${String(output.at(-1))}；返回后 caller-saved 寄存器与标志位内容未知`;
+          message = T('调用 {#0} 输出 {#1}；返回后 caller-saved 寄存器与标志位内容未知', instruction.target, String(output.at(-1)));
           break;
         }
         case 'push': {
@@ -428,17 +441,17 @@ export function runX64(code: MInst[], settings: { record?: boolean; budget?: num
           memory.set(rsp, value);
           stores++;
           access = { kind: 'store', offset: Number(ENTRY_RSP - rsp), value };
-          message = `rsp -= 8，把 ${regText(instruction.reg)} 存到栈顶`;
+          message = T('rsp -= 8，把 {#0} 存到栈顶', regText(instruction.reg));
           break;
         }
         case 'pop': {
           const rsp = read(preg('rsp')), value = memory.get(rsp);
-          if (value === undefined) throw new Fault('pop 读取了未写入的栈地址。');
+          if (value === undefined) throw new Fault(T('pop 读取了未写入的栈地址。'));
           write(instruction.reg, value, written);
           write(preg('rsp'), rsp + 8n, written);
           loads++;
           access = { kind: 'load', offset: Number(ENTRY_RSP - rsp), value };
-          message = `从栈顶取回 ${regText(instruction.reg)}，rsp += 8`;
+          message = T('从栈顶取回 {#0}，rsp += 8', regText(instruction.reg));
           break;
         }
         case 'subsp': case 'addsp': {
@@ -450,23 +463,25 @@ export function runX64(code: MInst[], settings: { record?: boolean; budget?: num
         case 'ret': {
           const rsp = read(preg('rsp'));
           const target = memory.get(rsp);
-          if (rsp !== ENTRY_RSP || target !== RETURN_SENTINEL) throw new Fault('ret 时 rsp 没有回到入口位置，返回地址不对。');
+          if (rsp !== ENTRY_RSP || target !== RETURN_SENTINEL) throw new Fault(T('ret 时 rsp 没有回到入口位置，返回地址不对。'));
           const broken = [...CALLEE_SAVED, 'rbp' as const].filter((reg) => registers[index(reg)] !== entry[index(reg)]);
-          if (broken.length) throw new Fault(`返回前没有恢复 callee-saved 寄存器：${broken.join(', ')}。`);
+          if (broken.length) throw new Fault(T('返回前没有恢复 callee-saved 寄存器：{#0}。', broken.join(', ')));
           write(preg('rsp'), rsp + 8n, written);
-          snapshot({ pc, nextPc: code.length, message: '执行 ret：rsp 回到入口，callee-saved 寄存器都已恢复，返回调用者。', written });
+          snapshot({ pc, nextPc: code.length, message: T('执行 ret：rsp 回到入口，callee-saved 寄存器都已恢复，返回调用者。'), written });
           return finish({ halted: true });
         }
-        case 'exit': throw new Fault('尾声伪指令没有展开。');
+        case 'exit': throw new Fault(T('尾声伪指令没有展开。'));
       }
-      snapshot({ pc, nextPc, message: `执行 ${instructionText(instruction)}：${message}。`, written, memory: access });
+      snapshot({ pc, nextPc, message: T('执行 {#0}：{#1}。', instructionText(instruction), message), written, memory: access });
       pc = nextPc;
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
-      snapshot({ pc, nextPc: pc, message: `机器级错误：${text}`, written });
-      return finish({ fault: text, error: { message: `机器级错误：${text}`, pc } });
+      const faultMessage = T('机器级错误：{#0}', text);
+      snapshot({ pc, nextPc: pc, message: faultMessage, written });
+      return finish({ fault: text, error: { message: faultMessage, pc } });
     }
   }
-  return finish({ fault: '执行越过代码末尾，缺少 ret。', error: { message: '机器级错误：执行越过代码末尾，缺少 ret。', pc } });
+  const missingRet = T('执行越过代码末尾，缺少 ret。');
+  return finish({ fault: missingRet, error: { message: T('机器级错误：{#0}', missingRet), pc } });
 }
 export const registerIndex = index;

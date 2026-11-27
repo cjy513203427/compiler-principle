@@ -1,11 +1,7 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
+import { initLocale } from './i18n';
 import './styles.css';
 import './styles-dataflow.css';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+// Page modules translate their text when they are imported, so the language and its catalog
+// must be ready before anything else loads.
+void initLocale().then(() => import('./bootstrap'));

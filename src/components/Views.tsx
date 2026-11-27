@@ -21,6 +21,8 @@ import { RedundancyView } from './RedundancyView';
 import { SsaOptView } from './SsaOptView';
 import { CodegenView } from './CodegenView';
 import type { OptimizationOptions } from '../compiler/model';
+import { T } from '../i18n';
+import { Tx } from '../i18n/jsx';
 
 const valueText = (value: Value) => String(value);
 function revealCurrentRow(container: HTMLDivElement | null) {
@@ -90,8 +92,12 @@ export function traceMessage(result: Compilation, stage: Stage, step: number): s
       return result.semantic?.steps[step]?.message || '';
     case 'ir':
       return step === 0
-        ? '准备后序遍历 AST，依次生成三地址指令。'
-        : `生成第 ${step} 条指令：${result.ir?.[step - 1] ? instructionText(result.ir[step - 1]) : ''}`;
+        ? T('准备后序遍历 AST，依次生成三地址指令。')
+        : T(
+            '生成第 {#0} 条指令：{#1}',
+            step,
+            result.ir?.[step - 1] ? instructionText(result.ir[step - 1]) : '',
+          );
     case 'optimize':
       return result.optimization?.[step]?.detail || '';
     case 'vm':
@@ -182,14 +188,14 @@ export function AstTree({
         ref={treeContainer}
         className="tree-scroll"
         tabIndex={0}
-        aria-label="抽象语法树，可横向滚动"
+        aria-label={T('抽象语法树，可横向滚动')}
       >
         <svg
           className="ast-tree"
           width={width}
           height={height}
           role="group"
-          aria-label="按文法构造的抽象语法树"
+          aria-label={T('按文法构造的抽象语法树')}
         >
           {positions.map((p) => {
             const parent = positions.find((item) => item.node.id === p.parent);
@@ -209,7 +215,7 @@ export function AstTree({
               transform={`translate(${x},${y})`}
               tabIndex={0}
               role="button"
-              aria-label={`${nodeLabel(node)}，源码位置 ${node.start + 1} 至 ${node.end}`}
+              aria-label={T('{#0}，源码位置 {#1} 至 {#2}', nodeLabel(node), node.start + 1, node.end)}
               onClick={() => setSelected(node.id)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -231,15 +237,24 @@ export function AstTree({
         </svg>
       </div>
       <div className="figure-caption">
-        {selectedNode ? (
-          <>
-            <strong>{nodeLabel(selectedNode)}</strong> · 节点 #{selectedNode.id} · 源码区间 [
-            {selectedNode.start}, {selectedNode.end})
-            {types?.get(selectedNode.id) ? ` · 类型 ${types.get(selectedNode.id)}` : ''}
-          </>
-        ) : (
-          '点击节点查看源码区间。绿色节点对应当前构造步骤，连线表示父子关系。'
-        )}
+        {selectedNode
+          ? types?.get(selectedNode.id)
+            ? Tx(
+                '{#0} · 节点 #{#1} · 源码区间 [{#2}, {#3}) · 类型 {#4}',
+                <strong>{nodeLabel(selectedNode)}</strong>,
+                selectedNode.id,
+                selectedNode.start,
+                selectedNode.end,
+                types.get(selectedNode.id),
+              )
+            : Tx(
+                '{#0} · 节点 #{#1} · 源码区间 [{#2}, {#3})',
+                <strong>{nodeLabel(selectedNode)}</strong>,
+                selectedNode.id,
+                selectedNode.start,
+                selectedNode.end,
+              )
+          : T('点击节点查看源码区间。绿色节点对应当前构造步骤，连线表示父子关系。')}
       </div>
     </>
   );
@@ -257,7 +272,7 @@ function CodeRows({
   const container = useRef<HTMLDivElement>(null);
   useEffect(() => revealCurrentRow(container.current), [active, revealed, instructions]);
   return (
-    <div ref={container} className="code-rows" aria-label="三地址代码">
+    <div ref={container} className="code-rows" aria-label={T('三地址代码')}>
       {instructions.length ? (
         instructions.map((instruction, index) => (
           <div
@@ -266,28 +281,28 @@ function CodeRows({
           >
             <span>{String(index).padStart(2, '0')}</span>
             <code>{index >= revealed ? '· · ·' : instructionText(instruction)}</code>
-            {index === active && <b aria-label="当前指令">←</b>}
+            {index === active && <b aria-label={T('当前指令')}>←</b>}
           </div>
         ))
       ) : (
-        <p className="empty-inline">没有需要执行的指令。</p>
+        <p className="empty-inline">{T('没有需要执行的指令。')}</p>
       )}
     </div>
   );
 }
 function StateMachine({ state }: { state: string }) {
   const nodes = [
-    { state: 'start', x: 55, y: 84, label: '起始' },
-    { state: 'identifier', x: 260, y: 35, label: '标识符' },
-    { state: 'number', x: 260, y: 115, label: '数字' },
-    { state: 'symbol', x: 455, y: 84, label: '符号' },
+    { state: 'start', x: 55, y: 84, label: T('起始') },
+    { state: 'identifier', x: 260, y: 35, label: T('标识符') },
+    { state: 'number', x: 260, y: 115, label: T('数字') },
+    { state: 'symbol', x: 455, y: 84, label: T('符号') },
   ];
   return (
     <svg
       className="state-machine"
       viewBox="0 0 510 175"
       role="img"
-      aria-label={`扫描状态示意，当前状态 ${state}`}
+      aria-label={T('扫描状态示意，当前状态 {#0}', state)}
     >
       <defs>
         <marker
@@ -308,13 +323,13 @@ function StateMachine({ state }: { state: string }) {
         d="M 248 10 C 210 -12 310 -12 276 10 M 248 141 C 210 167 310 167 276 141"
       />
       <text x="141" y="42">
-        字母 / _
+        {T('字母 / _')}
       </text>
       <text x="141" y="131">
         0–9
       </text>
       <text x="349" y="74">
-        运算符 / 分隔符
+        {T('运算符 / 分隔符')}
       </text>
       {nodes.map((node) => (
         <g
@@ -356,17 +371,15 @@ export function ResultView({
     return (
       <div className="blocked-state">
         <span className="blocked-icon">!</span>
-        <h3>先修复这段程序</h3>
+        <h3>{T('先修复这段程序')}</h3>
         <p>
-          当前程序在
           {result.diagnostic?.stage === 'lex'
-            ? '词法'
+            ? T('当前程序在词法分析阶段被拒绝，尚未生成本阶段的结果。')
             : result.diagnostic?.stage === 'parse'
-              ? '语法'
-              : '语义'}
-          分析阶段被拒绝，尚未生成本阶段的结果。
+              ? T('当前程序在语法分析阶段被拒绝，尚未生成本阶段的结果。')
+              : T('当前程序在语义分析阶段被拒绝，尚未生成本阶段的结果。')}
         </p>
-        <p>可以切换到错误所在的实验，或选择基础预设继续观察。</p>
+        <p>{T('可以切换到错误所在的实验，或选择基础预设继续观察。')}</p>
       </div>
     );
   if (stage === 'lex') {
@@ -375,9 +388,13 @@ export function ResultView({
     return (
       <>
         <div className="view-label">
-          <span>01 / 字符流</span>
+          <span>{T('01 / 字符流')}</span>
           <small>
-            位置 {Math.min(source.length, Math.max(0, current.position + 1))} / {source.length}
+            {T(
+              '位置 {#0} / {#1}',
+              Math.min(source.length, Math.max(0, current.position + 1)),
+              source.length,
+            )}
           </small>
         </div>
         <pre className="character-stream">
@@ -394,19 +411,19 @@ export function ResultView({
             >
               {char === ' ' ? '·' : char}
             </span>
-          )) || '空输入'}
+          )) || T('空输入')}
           {current.position === source.length && <span className="cursor-char"> EOF </span>}
         </pre>
         <div className="view-label">
-          <span>02 / 扫描状态</span>
-          <small>示意图 · 单行注释另行跳过</small>
+          <span>{T('02 / 扫描状态')}</span>
+          <small>{T('示意图 · 单行注释另行跳过')}</small>
         </div>
         <div className="diagram-scroll">
           <StateMachine state={current.state} />
         </div>
         <div className="view-label">
-          <span>03 / 已生成的 Token</span>
-          <small>{current.emitted} 个 / 含 EOF</small>
+          <span>{T('03 / 已生成的 Token')}</span>
+          <small>{T('{#0} 个 / 含 EOF', current.emitted)}</small>
         </div>
         <div ref={tokenContainer} className="tokens">
           {tokens.slice(0, current.emitted).map((token, index) => (
@@ -418,7 +435,9 @@ export function ResultView({
               </small>
             </div>
           ))}
-          {!current.emitted && <p className="empty-inline">扫描器正在等待第一个完整的词素。</p>}
+          {!current.emitted && (
+            <p className="empty-inline">{T('扫描器正在等待第一个完整的词素。')}</p>
+          )}
         </div>
       </>
     );
@@ -428,8 +447,8 @@ export function ResultView({
     return (
       <>
         <div className="view-label">
-          <span>输入 / Token 串</span>
-          <small>已消费 {current.cursor} 个</small>
+          <span>{T('输入 / Token 串')}</span>
+          <small>{T('已消费 {#0} 个', current.cursor)}</small>
         </div>
         <div className="token-tape">
           {result.lex!.tokens.map((token, index) => (
@@ -442,12 +461,12 @@ export function ResultView({
           ))}
         </div>
         <div className="view-label">
-          <span>输出 / 抽象语法树</span>
-          <small>最终结构 + 当前构造节点</small>
+          <span>{T('输出 / 抽象语法树')}</span>
+          <small>{T('最终结构 + 当前构造节点')}</small>
         </div>
         <AstTree root={result.syntax!.ast} activeId={current.nodeId} />
         <details className="grammar">
-          <summary>本实验使用的表达式文法 EBNF</summary>
+          <summary>{T('本实验使用的表达式文法 EBNF')}</summary>
           <pre>
             {
               'expression → comparison (("==" | "!=") comparison)*\ncomparison → addition (("<" | "<=" | ">" | ">=") addition)*\naddition   → term (("+" | "-") term)*\nterm       → unary (("*" | "/") unary)*\nunary      → "-" unary | primary\nprimary    → number | bool | id | "(" expression ")"'
@@ -462,28 +481,28 @@ export function ResultView({
     return (
       <>
         <div className="view-label">
-          <span>作用域链 / 从右向左查找</span>
-          <small>当前 S{current.scopes.at(-1)}</small>
+          <span>{T('作用域链 / 从右向左查找')}</span>
+          <small>{T('当前 S{#0}', current.scopes.at(-1))}</small>
         </div>
         <div className="scope-chain">
           {current.scopes.map((scope, index) => (
             <span key={scope}>
               {index > 0 && <b>→</b>}
               <code className={index === current.scopes.length - 1 ? 'active' : ''}>
-                S{scope} {scope === 0 ? '全局' : '语句块'}
+                {scope === 0 ? T('S{#0} 全局', scope) : T('S{#0} 语句块', scope)}
               </code>
             </span>
           ))}
         </div>
         <div className="table-scroll">
           <table>
-            <caption>当前可见的符号表条目（内层同名条目优先）</caption>
+            <caption>{T('当前可见的符号表条目（内层同名条目优先）')}</caption>
             <thead>
               <tr>
-                <th>变量</th>
-                <th>类型</th>
-                <th>作用域</th>
-                <th>内部名称</th>
+                <th>{T('变量')}</th>
+                <th>{T('类型')}</th>
+                <th>{T('作用域')}</th>
+                <th>{T('内部名称')}</th>
               </tr>
             </thead>
             <tbody>
@@ -504,7 +523,9 @@ export function ResultView({
               ))}
             </tbody>
           </table>
-          {!current.symbols.length && <p className="empty-inline">此时还没有可见的变量声明。</p>}
+          {!current.symbols.length && (
+            <p className="empty-inline">{T('此时还没有可见的变量声明。')}</p>
+          )}
         </div>
         <AstTree
           root={result.syntax!.ast}
@@ -518,15 +539,13 @@ export function ResultView({
     return (
       <>
         <div className="view-label">
-          <span>输出 / 三地址代码 TAC</span>
-          <small>
-            {step} / {result.ir!.length} 条
-          </small>
+          <span>{T('输出 / 三地址代码 TAC')}</span>
+          <small>{T('{#0} / {#1} 条', step, result.ir!.length)}</small>
         </div>
         <CodeRows instructions={result.ir!} active={step - 1} revealed={step} />
         <div className="view-label">
-          <span>来源 / 对应 AST 节点</span>
-          <small>t 为临时结果 · v 为绑定后的变量</small>
+          <span>{T('来源 / 对应 AST 节点')}</span>
+          <small>{T('t 为临时结果 · v 为绑定后的变量')}</small>
         </div>
         <AstTree root={result.syntax!.ast} activeId={result.ir![step - 1]?.nodeId} />
       </>
@@ -537,25 +556,28 @@ export function ResultView({
       JSON.stringify(result.execution!.output) === JSON.stringify(result.baseline!.output) &&
       result.execution!.error?.message === result.baseline!.error?.message;
     const inconclusive = result.execution!.limited || result.baseline!.limited;
+    const baseOut = result.baseline!.output.slice(-30).map(valueText).join(', ');
+    const optOut = result.execution!.output.slice(-30).map(valueText).join(', ');
+    const err = result.execution!.error;
     return (
       <>
         <div className="optimization-heading">
           <div>
-            <small>当前变换</small>
+            <small>{T('当前变换')}</small>
             <h3>{current.title}</h3>
           </div>
           <div className="count">
             <strong>{current.instructions.length}</strong>
-            <span>/ {result.ir!.length} 条 IR</span>
+            <span>{T('/ {#0} 条 IR', result.ir!.length)}</span>
           </div>
         </div>
         <div className="comparison">
           <div>
-            <div className="view-label">优化前</div>
+            <div className="view-label">{T('优化前')}</div>
             <CodeRows instructions={result.ir!} />
           </div>
           <div>
-            <div className="view-label">当前阶段</div>
+            <div className="view-label">{T('当前阶段')}</div>
             <CodeRows instructions={current.instructions} />
           </div>
         </div>
@@ -564,23 +586,38 @@ export function ResultView({
           <div>
             <strong>
               {inconclusive
-                ? '达到回放上限，暂不能判定行为一致'
+                ? T('达到回放上限，暂不能判定行为一致')
                 : equivalent
-                  ? '两版程序的输出与错误一致'
-                  : '发现行为差异'}
+                  ? T('两版程序的输出与错误一致')
+                  : T('发现行为差异')}
             </strong>
             <p>
               {inconclusive
-                ? '以下是暂停前的输出前缀。原始输出'
-                : '最终优化结果已实际执行。原始输出'}{' '}
-              [{result.baseline!.output.slice(-30).map(valueText).join(', ')}] → 优化输出 [
-              {result.execution!.output.slice(-30).map(valueText).join(', ')}]{' '}
-              {result.execution!.error && `· 运行时报告：${result.execution!.error.message}`}
+                ? err
+                  ? T(
+                      '以下是暂停前的输出前缀。原始输出 [{#0}] → 优化输出 [{#1}] · 运行时报告：{#2}',
+                      baseOut,
+                      optOut,
+                      err.message,
+                    )
+                  : T(
+                      '以下是暂停前的输出前缀。原始输出 [{#0}] → 优化输出 [{#1}]',
+                      baseOut,
+                      optOut,
+                    )
+                : err
+                  ? T(
+                      '最终优化结果已实际执行。原始输出 [{#0}] → 优化输出 [{#1}] · 运行时报告：{#2}',
+                      baseOut,
+                      optOut,
+                      err.message,
+                    )
+                  : T('最终优化结果已实际执行。原始输出 [{#0}] → 优化输出 [{#1}]', baseOut, optOut)}
             </p>
           </div>
         </div>
         <p className="figure-caption">
-          仅比较本次输入的输出和错误；条数不是运行时间，也不是通用的语义等价证明。
+          {T('仅比较本次输入的输出和错误；条数不是运行时间，也不是通用的语义等价证明。')}
         </p>
       </>
     );
@@ -602,8 +639,8 @@ export function ResultView({
       <div className="vm-grid">
         <div>
           <div className="view-label">
-            <span>字节码</span>
-            <small>下一 PC = {current.nextPc}</small>
+            <span>{T('字节码')}</span>
+            <small>{T('下一 PC = {#0}', current.nextPc)}</small>
           </div>
           <div ref={bytecodeContainer} className="code-rows bytecode">
             {result.bytecode!.map((instruction, index) => (
@@ -617,8 +654,8 @@ export function ResultView({
         </div>
         <div>
           <div className="view-label">
-            <span>操作数栈</span>
-            <small>栈顶 ↑ · {current.stack.length} 项</small>
+            <span>{T('操作数栈')}</span>
+            <small>{T('栈顶 ↑ · {#0} 项', current.stack.length)}</small>
           </div>
           <div className="operand-stack">
             {[...current.stack].reverse().map((value, index) => (
@@ -626,10 +663,10 @@ export function ResultView({
                 {valueText(value)}
               </div>
             ))}
-            {!current.stack.length && <span>空栈</span>}
+            {!current.stack.length && <span>{T('空栈')}</span>}
             <div className="stack-base" />
           </div>
-          <div className="view-label">局部变量表</div>
+          <div className="view-label">{T('局部变量表')}</div>
           <dl className="memory">
             {Object.entries(current.memory).map(([name, value]) => (
               <div key={name}>
@@ -638,13 +675,15 @@ export function ResultView({
               </div>
             ))}
           </dl>
-          {!Object.keys(current.memory).length && <p className="empty-inline">尚未写入局部变量</p>}
+          {!Object.keys(current.memory).length && (
+            <p className="empty-inline">{T('尚未写入局部变量')}</p>
+          )}
         </div>
       </div>
       <div className="output-console">
         <span>stdout</span>
         <pre>
-          {current.output.length ? current.output.map(valueText).join('\n') : '等待 print…'}
+          {current.output.length ? current.output.map(valueText).join('\n') : T('等待 print…')}
         </pre>
       </div>
     </>

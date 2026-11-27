@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import type { Value } from './model';
 import { evaluateBinary } from './operations';
 import type { CallInstruction, CallProgram } from './functions';
@@ -40,72 +41,72 @@ export function executeFunctions(program: CallProgram, budget = MAX_CALL_STEPS):
   const result = (halted: boolean, limited: boolean, error?: string): CallExecution => ({
     frames, events, output, halted, limited, error, executed, calls, maxDepth, truncated,
   });
-  snapshot('顶层帧就绪；CALL 将创建独立的局部变量表和操作数栈。', 'running');
+  snapshot(T('顶层帧就绪；CALL 将创建独立的局部变量表和操作数栈。'), 'running');
   const limit = Number.isFinite(budget) ? Math.max(1, Math.min(MAX_CALL_STEPS, Math.floor(budget))) : MAX_CALL_STEPS;
   while (executed < limit) {
     const active = activations.at(-1)!;
     const fn = program.functions.get(active.name)!;
     const instruction = fn.code[active.pc];
     if (!instruction) {
-      const error = '执行到函数末尾或无效 PC；缺少 RETURN / HALT。'; snapshot(error, 'error'); return result(false, false, error);
+      const error = T('执行到函数末尾或无效 PC；缺少 RETURN / HALT。'); snapshot(error, 'error'); return result(false, false, error);
     }
     const location = { start: instruction.start, end: instruction.end };
     const oldStack = [...active.stack];
-    let message = `${active.name} : ${active.pc} · ${callInstructionText(instruction)}。`;
-    const pop = () => { if (!active.stack.length) throw new Error('当前帧的操作数栈下溢。'); return active.stack.pop()!; };
+    const instText = callInstructionText(instruction);
+    const message = T('{#0} : {#1} · {#2}。', active.name, active.pc, instText);
+    const pop = () => { if (!active.stack.length) throw new Error(T('当前帧的操作数栈下溢。')); return active.stack.pop()!; };
     executed++;
     try {
       let next = active.pc + 1;
       switch (instruction.op) {
         case 'PUSH': active.stack.push(instruction.value); break;
         case 'LOAD':
-          if (!Object.hasOwn(active.locals, instruction.key)) throw new Error(`读取未初始化局部变量 ${instruction.key}。`);
+          if (!Object.hasOwn(active.locals, instruction.key)) throw new Error(T('读取未初始化局部变量 {#0}。', instruction.key));
           active.stack.push(active.locals[instruction.key]); break;
         case 'STORE': active.locals[instruction.key] = pop(); break;
         case 'BINARY': { const right = pop(), left = pop(); active.stack.push(evaluateBinary(instruction.operator, left, right)); break; }
         case 'PRINT': output.push(pop()); break;
         case 'DROP': pop(); break;
         case 'JUMP': next = instruction.target; break;
-        case 'BR_FALSE': { const value = pop(); if (typeof value !== 'boolean') throw new Error('条件跳转需要 bool 值。'); if (!value) next = instruction.target; break; }
+        case 'BR_FALSE': { const value = pop(); if (typeof value !== 'boolean') throw new Error(T('条件跳转需要 bool 值。')); if (!value) next = instruction.target; break; }
         case 'CALL': {
           if (activations.length >= MAX_CALL_DEPTH) {
-            snapshot(`调用深度达到 ${MAX_CALL_DEPTH} 帧（含顶层），暂停执行；这不等于证明递归不会结束。`, 'limit', location);
+            snapshot(T('调用深度达到 {#0} 帧（含顶层），暂停执行；这不等于证明递归不会结束。', MAX_CALL_DEPTH), 'limit', location);
             return result(false, true);
           }
           const callee = program.functions.get(instruction.name);
-          if (!callee || instruction.arity !== callee.params.length || active.stack.length < instruction.arity) throw new Error('调用目标、参数数量或操作数栈无效。');
+          if (!callee || instruction.arity !== callee.params.length || active.stack.length < instruction.arity) throw new Error(T('调用目标、参数数量或操作数栈无效。'));
           const args = active.stack.splice(active.stack.length - instruction.arity, instruction.arity);
           const locals: Record<string, Value> = Object.create(null);
           callee.params.forEach((param, i) => { locals[param.key] = args[i]; });
           const id = serial++;
+          const pcBefore = active.pc;
           active.pc = next;
           activations.push({ id, name: callee.name, pc: 0, returnTo: { name: active.name, pc: next }, locals, stack: [] });
           calls++; maxDepth = Math.max(maxDepth, activations.length);
           events.push({ kind: 'call', id, name: callee.name, depth: activations.length, args: [...args], executed });
-          message += ` 创建帧 #${id}，按值绑定形参；调用者暂停在返回位置 ${next}。`;
-          snapshot(message, 'running', location); continue;
+          snapshot(T('{#0} : {#1} · {#2}。 创建帧 #{#3}，按值绑定形参；调用者暂停在返回位置 {#4}。', active.name, pcBefore, instText, id, next), 'running', location); continue;
         }
         case 'RETURN': {
-          if (activations.length === 1 || active.stack.length !== 1) throw new Error('RETURN 需要一个返回值与调用者帧。');
+          if (activations.length === 1 || active.stack.length !== 1) throw new Error(T('RETURN 需要一个返回值与调用者帧。'));
           const value = pop(); activations.pop(); const caller = activations.at(-1)!;
           caller.stack.push(value);
           events.push({ kind: 'return', id: active.id, name: active.name, depth: activations.length + 1, value, executed });
-          message += ` 帧 #${active.id} 出栈，${value} 压入调用者操作数栈，继续 ${caller.name} : ${caller.pc}。`;
-          snapshot(message, 'running', location); continue;
+          snapshot(T('{#0} : {#1} · {#2}。 帧 #{#3} 出栈，{#4} 压入调用者操作数栈，继续 {#5} : {#6}。', active.name, active.pc, instText, active.id, value, caller.name, caller.pc), 'running', location); continue;
         }
         case 'HALT':
-          if (activations.length !== 1 || active.stack.length) throw new Error('HALT 时调用栈或操作数栈不平衡。');
-          snapshot('HALT：顶层程序结束；所有函数均已返回。', 'halted', location); return result(true, false);
+          if (activations.length !== 1 || active.stack.length) throw new Error(T('HALT 时调用栈或操作数栈不平衡。'));
+          snapshot(T('HALT：顶层程序结束；所有函数均已返回。'), 'halted', location); return result(true, false);
       }
-      if (next < 0 || next >= fn.code.length) throw new Error('函数内跳转地址越界。');
+      if (next < 0 || next >= fn.code.length) throw new Error(T('函数内跳转地址越界。'));
       active.pc = next; snapshot(message, 'running', location);
     } catch (error) {
       active.stack = oldStack;
       const detail = error instanceof Error ? error.message : String(error);
-      snapshot(`运行时错误：${detail} 当前调用链保留供检查，后续输出不执行。`, 'error', location);
+      snapshot(T('运行时错误：{#0} 当前调用链保留供检查，后续输出不执行。', detail), 'error', location);
       return result(false, false, detail);
     }
   }
-  snapshot(`已执行 ${limit} 条字节码，暂停于本次前缀；这不等于证明程序不会终止。`, 'limit');
+  snapshot(T('已执行 {#0} 条字节码，暂停于本次前缀；这不等于证明程序不会终止。', limit), 'limit');
   return result(false, true);
 }

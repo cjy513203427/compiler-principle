@@ -25,6 +25,9 @@
 }
 .auto-phases li strong {
   font-size: 13px;
+  /* German compounds such as “Teilmengenkonstruktion” are wider than a narrow phase card. */
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 .auto-phases li span {
   font-size: 12px;

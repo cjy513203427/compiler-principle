@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import type { ControlEdge } from './cfg';
 import type { DominanceAnalysis } from './dominance';
 import { referencedVariables } from './dataflow';
@@ -19,7 +20,7 @@ const MAX_IR = 10000;
 /** Emit a destination only after all pending reads of its old value have been preserved. */
 export function scheduleParallelCopies(copies: ParallelCopy[], fresh?: () => string): CopySchedule {
   if (new Set(copies.map((copy) => copy.dest)).size !== copies.length)
-    throw new Error('一组并行复制中，每个目标只能写入一次。');
+    throw new Error(T('一组并行复制中，每个目标只能写入一次。'));
   const used = new Set(copies.flatMap((copy) => [copy.dest, copy.source]));
   let counter = 0;
   const allocate = fresh || (() => {
@@ -33,25 +34,25 @@ export function scheduleParallelCopies(copies: ParallelCopy[], fresh?: () => str
   const temporaries: string[] = [];
   const snapshot = () => pending.map((copy) => ({ ...copy }));
   for (const copy of copies.filter((copy) => copy.dest === copy.source))
-    steps.push({ kind: 'identity', copy: { ...copy }, remaining: snapshot(), message: `${copy.dest} ← ${copy.source} 是自身复制，可以省略。` });
+    steps.push({ kind: 'identity', copy: { ...copy }, remaining: snapshot(), message: T('{#0} ← {#1} 是自身复制，可以省略。', copy.dest, copy.source) });
   while (pending.length) {
     const index = pending.findIndex((copy) => !pending.some((other) => other.source === copy.dest));
     if (index >= 0) {
       const [copy] = pending.splice(index, 1);
       moves.push(copy);
       steps.push({ kind: 'copy', copy, remaining: snapshot(),
-        message: `执行 ${copy.dest} ← ${copy.source}：其他待处理复制已不再读取 ${copy.dest} 的旧值。` });
+        message: T('执行 {#0} ← {#1}：其他待处理复制已不再读取 {#0} 的旧值。', copy.dest, copy.source) });
     } else {
       const dest = pending[0].dest;
       const temporary = allocate();
       if (copies.some((copy) => copy.dest === temporary || copy.source === temporary) || temporaries.includes(temporary))
-        throw new Error('复制临时变量与已有名字冲突。');
+        throw new Error(T('复制临时变量与已有名字冲突。'));
       const copy = { dest: temporary, source: dest };
       temporaries.push(temporary);
       moves.push(copy);
       pending = pending.map((item) => item.source === dest ? { ...item, source: temporary } : item);
       steps.push({ kind: 'save', copy, remaining: snapshot(),
-        message: `发现复制环：先把 ${dest} 的旧值保存到 ${temporary}，再把相关读取改为这个临时变量。` });
+        message: T('发现复制环：先把 {#0} 的旧值保存到 {#1}，再把相关读取改为这个临时变量。', dest, temporary) });
     }
   }
   return { moves, temporaries, steps };
@@ -97,12 +98,12 @@ export function lowerSSA(ssa: Pick<SsaAnalysis, 'valid' | 'blocks'>, dominance: 
     result.frames.push({ kind: 'complete', block: dominance.entry, message });
     return result;
   };
-  if (!ssa.valid || !dominance.converged) return fail('SSA 或支配分析未通过校验，不执行消除。');
+  if (!ssa.valid || !dominance.converged) return fail(T('SSA 或支配分析未通过校验，不执行消除。'));
   const ids = ssa.blocks.map((block) => block.id);
   if (new Set(ids).size !== ids.length || ids.length !== dominance.reachable.length ||
-      dominance.reachable.some((id) => !ids.includes(id))) return fail('SSA 块没有完整覆盖原始入口可达图。');
+      dominance.reachable.some((id) => !ids.includes(id))) return fail(T('SSA 块没有完整覆盖原始入口可达图。'));
   const issues = validateSSA(ssa.blocks, dominance);
-  if (issues.length) return fail(`SSA 校验失败：${issues.join(' ')}`);
+  if (issues.length) return fail(T('SSA 校验失败：{#0}', issues.join(' ')));
   const byId = new Map(ssa.blocks.map((block) => [block.id, block]));
   const edges = dominance.graph.edges.filter((edge) => ids.includes(edge.from) && ids.includes(edge.to));
   const rewritten = edges.map((edge) => ({ ...edge }));
@@ -128,7 +129,7 @@ export function lowerSSA(ssa: Pick<SsaAnalysis, 'valid' | 'blocks'>, dominance: 
     else result.traceTruncated = true;
   };
   record({ kind: 'initial', block: dominance.entry,
-    message: '先按前驱边收集全部 φ 的并行复制，再选择落点、调度复制并重建普通 IR。此时尚未运行转换结果。' });
+    message: T('先按前驱边收集全部 φ 的并行复制，再选择落点、调度复制并重建普通 IR。此时尚未运行转换结果。') });
   for (const block of ssa.blocks) {
     if (!block.phis.length) continue;
     const predecessors = [...new Set(edges.filter((edge) => edge.to === block.id).map((edge) => edge.from))];
@@ -152,9 +153,9 @@ export function lowerSSA(ssa: Pick<SsaAnalysis, 'valid' | 'blocks'>, dominance: 
         placement, host, copies, ...schedule };
       const planIndex = result.plans.push(plan) - 1;
       record({ kind: 'edge', block: host, plan: planIndex, message: placement === 'split'
-        ? `${from} 有多个后继，${block.id} 有多个前驱：拆分关键边为 ${from} → ${host} → ${block.id}，复制只在这条路径执行。`
-        : placement === 'predecessor' ? `${from} 只有一条后继边，将复制放在 ${from} 的普通指令之后、跳转之前。`
-          : `${block.id} 只有一个前驱，将复制放在 ${block.id} 的入口。` });
+        ? T('{#0} 有多个后继，{#1} 有多个前驱：拆分关键边为 {#0} → {#2} → {#1}，复制只在这条路径执行。', from, block.id, host)
+        : placement === 'predecessor' ? T('{#0} 只有一条后继边，将复制放在 {#0} 的普通指令之后、跳转之前。', from)
+          : T('{#0} 只有一个前驱，将复制放在 {#0} 的入口。', block.id) });
       schedule.steps.forEach((step, index) => record({ kind: 'copy', block: host,
         plan: planIndex, copyStep: index, message: step.message }));
       const moves: Instruction[] = schedule.moves.map((copy) => ({ op: 'move', dest: copy.dest,
@@ -173,24 +174,24 @@ export function lowerSSA(ssa: Pick<SsaAnalysis, 'valid' | 'blocks'>, dominance: 
       const branch = byId.get(id)?.instructions.at(-1);
       const yes = successors.find((edge) => edge.kind === 'true');
       const no = successors.find((edge) => edge.kind === 'false');
-      if (branch?.op !== 'branch' || !yes || !no) return fail(`${id} 的条件跳转与 CFG 不一致。`);
+      if (branch?.op !== 'branch' || !yes || !no) return fail(T('{#0} 的条件跳转与 CFG 不一致。', id));
       code.push({ ...branch, target: label(no.to) }, { op: 'jump', target: label(yes.to), nodeId: branch.nodeId });
     } else if (successors.length <= 1) {
-      if (byId.get(id)?.instructions.at(-1)?.op === 'branch') return fail(`${id} 的条件跳转缺少完整的真/假边。`);
+      if (byId.get(id)?.instructions.at(-1)?.op === 'branch') return fail(T('{#0} 的条件跳转缺少完整的真/假边。', id));
       code.push({ op: 'jump', target: successors.length ? label(successors[0].to) : halt, nodeId: -1 });
-    } else return fail(`${id} 有超过两条后继边，超出当前 IR 范围。`);
+    } else return fail(T('{#0} 有超过两条后继边，超出当前 IR 范围。', id));
     result.blocks.push({ id, instructions: code, original: byId.has(id) });
     result.instructions.push(...code);
     result.instructionBlocks.push(...code.map(() => id));
-    if (result.instructions.length > MAX_IR) return fail('SSA 消除后的 IR 超过 10000 条，停止生成和执行。');
+    if (result.instructions.length > MAX_IR) return fail(T('SSA 消除后的 IR 超过 10000 条，停止生成和执行。'));
   }
   result.instructions.push({ op: 'label', name: halt, nodeId: -1 });
   result.instructionBlocks.push('HALT');
-  if (result.instructions.length > MAX_IR) return fail('SSA 消除后的 IR 超过 10000 条，停止生成和执行。');
+  if (result.instructions.length > MAX_IR) return fail(T('SSA 消除后的 IR 超过 10000 条，停止生成和执行。'));
   result.bytecode = generateBytecode(result.instructions);
   result.valid = true;
   result.frames.push({ kind: 'ready', block: dominance.entry,
-    message: `φ 已全部替换为普通复制：${result.plans.length} 组边复制，${result.blocks.filter((block) => !block.original).length} 个新边块。现在交给现有字节码生成器与栈式 VM。` });
+    message: T('φ 已全部替换为普通复制：{#0} 组边复制，{#1} 个新边块。现在交给现有字节码生成器与栈式 VM。', result.plans.length, result.blocks.filter((block) => !block.original).length) });
   result.execution = execute(result.bytecode);
   const executedBlock = (pc: number) => pc < 0 ? dominance.entry
     : result.instructionBlocks[result.bytecode![pc]?.irIndex ?? -1] || 'HALT';
@@ -204,9 +205,9 @@ export function lowerSSA(ssa: Pick<SsaAnalysis, 'valid' | 'blocks'>, dominance: 
   if (result.execution.steps.length > MAX_TRACE) result.traceTruncated = true;
   result.frames.push({ kind: 'complete', block: executedBlock(result.execution.steps.at(-1)!.pc),
     vmStep: result.execution.steps.length - 1,
-    message: result.execution.limited ? '转换后 VM 达到 2000 条字节码上限；只保留输出前缀，不能判定行为一致。'
-      : result.execution.error ? `转换后 VM 停止：${result.execution.error.message}`
-        : '转换后的普通 IR 已由原栈式 VM 执行结束；保留版本名，但 φ 目标现在可以在不同前驱边上被写入。' });
+    message: result.execution.limited ? T('转换后 VM 达到 2000 条字节码上限；只保留输出前缀，不能判定行为一致。')
+      : result.execution.error ? T('转换后 VM 停止：{#0}', result.execution.error.message)
+        : T('转换后的普通 IR 已由原栈式 VM 执行结束；保留版本名，但 φ 目标现在可以在不同前驱边上被写入。') });
   return result;
 }
 
@@ -226,26 +227,26 @@ export interface CopyExperiment {
 }
 export type CopyOutcome = { ok: true; experiment: CopyExperiment } | { ok: false; issue: string };
 export function analyzeCopyExperiment(text: string): CopyOutcome {
-  if (text.length > 500) return { ok: false, issue: '并行复制实验最多 500 字符。' };
+  if (text.length > 500) return { ok: false, issue: T('并行复制实验最多 500 字符。') };
   const sections = text.split(/^%%\s*$/m);
-  if (sections.length !== 2) return { ok: false, issue: '用单独一行 %% 分隔复制和初始值。' };
+  if (sections.length !== 2) return { ok: false, issue: T('用单独一行 %% 分隔复制和初始值。') };
   const copies: ParallelCopy[] = [];
   const initial = new Map<string, number>();
   const name = '[A-Za-z_][A-Za-z0-9_]{0,23}';
   for (const line of sections[0].split('\n').filter((line) => line.trim())) {
     const match = line.trim().match(new RegExp(`^(${name})\\s*(?:<-|←)\\s*(${name})$`));
-    if (!match) return { ok: false, issue: '复制写成 a <- b，每行一条，名字最多 24 字符。' };
+    if (!match) return { ok: false, issue: T('复制写成 a <- b，每行一条，名字最多 24 字符。') };
     copies.push({ dest: match[1], source: match[2] });
   }
-  if (!copies.length || copies.length > 12) return { ok: false, issue: '需要 1–12 条并行复制。' };
+  if (!copies.length || copies.length > 12) return { ok: false, issue: T('需要 1–12 条并行复制。') };
   for (const line of sections[1].split('\n').filter((line) => line.trim())) {
     const match = line.trim().match(new RegExp(`^(${name})\\s*=\\s*(-?\\d+)$`));
-    if (!match || !Number.isSafeInteger(Number(match[2]))) return { ok: false, issue: '初始值写成 a = 1，数值必须是安全整数。' };
-    if (initial.has(match[1])) return { ok: false, issue: '每个初始名字只能出现一次。' };
+    if (!match || !Number.isSafeInteger(Number(match[2]))) return { ok: false, issue: T('初始值写成 a = 1，数值必须是安全整数。') };
+    if (initial.has(match[1])) return { ok: false, issue: T('每个初始名字只能出现一次。') };
     initial.set(match[1], Number(match[2]));
   }
-  if (initial.size > 24) return { ok: false, issue: '最多 24 个初始名字。' };
-  if (copies.some((copy) => !initial.has(copy.source))) return { ok: false, issue: '每个复制源都需要初始值。' };
+  if (initial.size > 24) return { ok: false, issue: T('最多 24 个初始名字。') };
+  if (copies.some((copy) => !initial.has(copy.source))) return { ok: false, issue: T('每个复制源都需要初始值。') };
   try {
     const schedule = scheduleParallelCopies(copies);
     const parallel = new Map(initial), naive = new Map(initial), scheduled = new Map(initial);

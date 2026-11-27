@@ -2,9 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import type { Compilation } from '../compiler';
 import { instructionText } from '../compiler/ir';
 import type { ControlEdge } from '../compiler/cfg';
+import { T } from '../i18n';
 
 const edgeLabel = (kind: ControlEdge['kind']) =>
-  ({ true: 'true', false: 'false', jump: '跳转', next: '顺序' })[kind];
+  ({ true: 'true', false: 'false', jump: T('跳转'), next: T('顺序') })[kind];
+const WIDE = /[　-鿿＀-￯]/;
+/** Estimated width of 14px monospace text (CJK glyphs are square). */
+const monoWidth = (text: string) => [...text].reduce((w, c) => w + (WIDE.test(c) ? 14 : 8.4), 0);
+/** Estimated width of a 12px label; translations are longer than the Chinese source. */
+const labelWidth = (text: string) => [...text].reduce((w, c) => w + (WIDE.test(c) ? 12 : 6.6), 0);
 export function ControlFlowView({ result, step }: { result: Compilation; step: number }) {
   const graph = result.cfg!;
   const trace = result.controlTrace!;
@@ -18,6 +24,14 @@ export function ControlFlowView({ result, step }: { result: Compilation; step: n
   const nodeRight = nodeLeft + nodeWidth;
   const center = graphWidth / 2;
   const maxChars = Math.floor((nodeWidth - 34) / 8.4);
+  const visitsText = (id: string) => T('经过 {#0} 次', visits.get(id) || 0);
+  const moreText = (count: number) => T('查看全部 {#0} 条', count);
+  /** “B0 · this step” when it fits beside the visit count; the highlight already marks the block. */
+  const blockName = (id: string) => {
+    if (current.block !== id) return id;
+    const full = T('{#0} · 本步', id);
+    return monoWidth(full) + 12 + labelWidth(visitsText(id)) <= nodeWidth - 34 ? full : id;
+  };
   useEffect(() => {
     const container = scroll.current;
     if (!container) return;
@@ -47,29 +61,27 @@ export function ControlFlowView({ result, step }: { result: Compilation; step: n
     <div className="cfg-view">
       <div className="cfg-summary">
         <div>
-          <span>本步执行</span>
+          <span>{T('本步执行')}</span>
           <strong>{current.block}</strong>
         </div>
         <span>→</span>
         <div>
-          <span>下一基本块</span>
-          <strong>{current.nextBlock || (result.baseline?.halted ? '已结束' : '已停止')}</strong>
+          <span>{T('下一基本块')}</span>
+          <strong>{current.nextBlock || (result.baseline?.halted ? T('已结束') : T('已停止'))}</strong>
         </div>
         <div className="cfg-visit-total">
-          <span>已经过</span>
-          <strong>
-            {visits.size} / {graph.blocks.length} 块
-          </strong>
+          <span>{T('已经过')}</span>
+          <strong>{T('{#0} / {#1} 块', visits.size, graph.blocks.length)}</strong>
         </div>
       </div>
-      <p className="figure-caption">原始 IR 的控制流图 · 点击方框检查指令 · 小屏可在图内横向滚动</p>
-      <div ref={scroll} className="cfg-scroll" tabIndex={0} aria-label="控制流图，可在图内滚动">
+      <p className="figure-caption">{T('原始 IR 的控制流图 · 点击方框检查指令 · 小屏可在图内横向滚动')}</p>
+      <div ref={scroll} className="cfg-scroll" tabIndex={0} aria-label={T('控制流图，可在图内滚动')}>
         <svg
           className="cfg-graph"
           width={graphWidth}
           height={graph.blocks.length * 170 + 25}
           role="group"
-          aria-label="基本块与可能的执行路径"
+          aria-label={T('基本块与可能的执行路径')}
         >
           <defs>
             <marker
@@ -109,7 +121,7 @@ export function ControlFlowView({ result, step }: { result: Compilation; step: n
                   y={adjacent ? start + 154 : start + 104}
                   textAnchor={!adjacent && !back ? 'end' : 'start'}
                 >
-                  {back ? (graphWidth < 500 ? '回边' : '跳转 / 回边') : edgeLabel(edge.kind)}
+                  {back ? (graphWidth < 500 ? T('回边') : T('跳转 / 回边')) : edgeLabel(edge.kind)}
                 </text>
                 <title>
                   {edge.from} → {edge.to} · {edgeLabel(edge.kind)}
@@ -124,7 +136,7 @@ export function ControlFlowView({ result, step }: { result: Compilation; step: n
               className={`cfg-block ${block.id === current.block ? 'active' : ''} ${visits.has(block.id) ? 'visited' : ''} ${block.id === selected ? 'selected' : ''}`}
               tabIndex={0}
               role="button"
-              aria-label={`检查基本块 ${block.id}`}
+              aria-label={T('检查基本块 {#0}', block.id)}
               onClick={() => setSelected(block.id)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -135,28 +147,33 @@ export function ControlFlowView({ result, step }: { result: Compilation; step: n
             >
               <rect width={nodeWidth} height={125} rx={8} />
               <text className="cfg-block-name" x={17} y={27}>
-                {block.id}
-                {current.block === block.id ? ' · 本步' : ''}
+                {blockName(block.id)}
               </text>
               <text className="cfg-block-visits" x={nodeWidth - 17} y={27} textAnchor="end">
-                经过 {visits.get(block.id) || 0} 次
+                {visitsText(block.id)}
               </text>
               {block.instructions.length ? (
-                block.instructions.slice(0, 3).map((instruction, line) => (
-                  <text className="cfg-instruction" key={line} x={17} y={54 + line * 24}>
-                    {instructionText(instruction).length > maxChars
-                      ? instructionText(instruction).slice(0, maxChars - 1) + '…'
-                      : instructionText(instruction)}
-                  </text>
-                ))
+                block.instructions.slice(0, 3).map((instruction, line) => {
+                  // The last line shares its row with “show all”, so it leaves room for it.
+                  const limit =
+                    line === 2 && block.instructions.length > 3
+                      ? Math.floor((nodeWidth - 44 - labelWidth(moreText(block.instructions.length))) / 8.4)
+                      : maxChars;
+                  const text = instructionText(instruction);
+                  return (
+                    <text className="cfg-instruction" key={line} x={17} y={54 + line * 24}>
+                      {text.length > limit ? text.slice(0, limit - 1) + '…' : text}
+                    </text>
+                  );
+                })
               ) : (
                 <text className="cfg-instruction" x={17} y={66}>
-                  HALT · 程序出口
+                  {T('HALT · 程序出口')}
                 </text>
               )}
               {block.instructions.length > 3 && (
                 <text className="cfg-more" x={nodeWidth - 17} y={111} textAnchor="end">
-                  查看全部 {block.instructions.length} 条
+                  {moreText(block.instructions.length)}
                 </text>
               )}
             </g>
@@ -164,12 +181,12 @@ export function ControlFlowView({ result, step }: { result: Compilation; step: n
         </svg>
       </div>
       <div className="cfg-legend">
-        <span>粗线：本步选择</span>
-        <span>虚线：回边</span>
-        <span>未高亮：本次尚未经过</span>
+        <span>{T('粗线：本步选择')}</span>
+        <span>{T('虚线：回边')}</span>
+        <span>{T('未高亮：本次尚未经过')}</span>
       </div>
       <details className="cfg-inspection" open>
-        <summary>{inspected.id} · 完整指令与后继</summary>
+        <summary>{T('{#0} · 完整指令与后继', inspected.id)}</summary>
         <div className="code-rows">
           {inspected.instructions.length ? (
             inspected.instructions.map((instruction, index) => (
@@ -192,12 +209,12 @@ export function ControlFlowView({ result, step }: { result: Compilation; step: n
                 {edgeLabel(edge.kind)} → {edge.to}
               </button>
             ))}
-          {inspected.id === 'Exit' && <span>程序出口，没有后继块。</span>}
+          {inspected.id === 'Exit' && <span>{T('程序出口，没有后继块。')}</span>}
         </div>
       </details>
       <div className="view-label">
-        <span>本步之后 / 局部变量</span>
-        <small>字节码快照 #{current.vmStep}</small>
+        <span>{T('本步之后 / 局部变量')}</span>
+        <small>{T('字节码快照 #{#0}', current.vmStep)}</small>
       </div>
       <dl className="memory cfg-memory">
         {Object.entries(state.memory)
@@ -209,19 +226,19 @@ export function ControlFlowView({ result, step }: { result: Compilation; step: n
             </div>
           ))}
       </dl>
-      {!Object.keys(state.memory).length && <p className="empty-inline">还没有执行变量写入。</p>}
+      {!Object.keys(state.memory).length && <p className="empty-inline">{T('还没有执行变量写入。')}</p>}
       <div className="output-console">
-        <span>stdout / 本次实际输出</span>
-        <pre>{state.output.length ? state.output.map(String).join('\n') : '等待 print…'}</pre>
+        <span>{T('stdout / 本次实际输出')}</span>
+        <pre>{state.output.length ? state.output.map(String).join('\n') : T('等待 print…')}</pre>
       </div>
       <div className="cfg-route-history">
-        <span>实际路径</span>
+        <span>{T('实际路径')}</span>
         <code>
           {trace
             .slice(Math.max(1, step - 10), step + 1)
             .map((frame) => frame.block)
-            .join(' → ') || '尚未执行'}
-          {step > 11 ? '（仅显示最近步骤）' : ''}
+            .join(' → ') || T('尚未执行')}
+          {step > 11 ? T('（仅显示最近步骤）') : ''}
         </code>
       </div>
     </div>

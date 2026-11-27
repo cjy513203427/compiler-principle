@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import type { DominanceAnalysis } from './dominance';
 import { referencedVariables, type LivenessAnalysis } from './dataflow';
 import { instructionText } from './ir';
@@ -62,7 +63,7 @@ export function validateSSA(blocks: SsaBlock[], dominance: DominanceAnalysis): s
   const issues: string[] = [];
   const definitions = new Map<string, { block: string; index: number }>();
   const define = (name: string, block: string, index: number) => {
-    if (definitions.has(name)) issues.push(`${name} 存在重复定义。`);
+    if (definitions.has(name)) issues.push(T('{#0} 存在重复定义。', name));
     definitions.set(name, { block, index });
   };
   for (const block of blocks) {
@@ -73,11 +74,11 @@ export function validateSSA(blocks: SsaBlock[], dominance: DominanceAnalysis): s
   }
   const use = (name: string, block: string, index: number) => {
     const definition = definitions.get(name);
-    if (!definition) issues.push(`${block} 使用了没有定义的版本 ${name}。`);
+    if (!definition) issues.push(T('{#0} 使用了没有定义的版本 {#1}。', block, name));
     else if (
       !dominance.dominators[block]?.includes(definition.block) ||
       (definition.block === block && definition.index >= index)
-    ) issues.push(`${name} 的定义没有支配 ${block} 中的这次使用。`);
+    ) issues.push(T('{#0} 的定义没有支配 {#1} 中的这次使用。', name, block));
   };
   for (const block of blocks) {
     const predecessors = [...new Set(dominance.graph.edges
@@ -87,7 +88,7 @@ export function validateSSA(blocks: SsaBlock[], dominance: DominanceAnalysis): s
       if (phi.inputs.length !== predecessors.length ||
           new Set(phi.inputs.map((input) => input.predecessor)).size !== predecessors.length ||
           phi.inputs.some((input) => !predecessors.includes(input.predecessor)))
-        issues.push(`${block.id} 的 φ 输入没有与可达前驱一一对应。`);
+        issues.push(T('{#0} 的 φ 输入没有与可达前驱一一对应。', block.id));
       for (const input of phi.inputs) use(input.name, input.predecessor, Infinity);
     }
     block.instructions.forEach((instruction, index) => {
@@ -112,9 +113,9 @@ export function buildSSA(dominance: DominanceAnalysis, liveness: LivenessAnalysi
   };
   const placements: SsaAnalysis['placements'] = [];
   record({ kind: 'initial', block: dominance.entry,
-    message: '从原始 CFG 出发：先按活跃性裁剪 φ 位置，再沿支配树重命名，最后校验并执行。这里保留全部结构边。' });
+    message: T('从原始 CFG 出发：先按活跃性裁剪 φ 位置，再沿支配树重命名，最后校验并执行。这里保留全部结构边。') });
   if (!dominance.converged || !liveness.converged) {
-    const issues = ['支配分析或活跃性尚未收敛，停止构造 SSA。'];
+    const issues = [T('支配分析或活跃性尚未收敛，停止构造 SSA。')];
     steps.push({ kind: 'complete', block: dominance.entry, message: issues[0] });
     return { blocks, placements, steps, issues, valid: false, traceTruncated };
   }
@@ -137,11 +138,11 @@ export function buildSSA(dominance: DominanceAnalysis, liveness: LivenessAnalysi
       const retained = inserted.has(block);
       placements.push({ variable, block, retained });
       record({ kind: 'place', block,
-        original: `${block}: ${variable} 的 φ 候选`,
-        renamed: retained ? `${variable} = φ(待补齐前驱版本)` : '裁掉这个 φ',
+        original: T('{#0}: {#1} 的 φ 候选', block, variable),
+        renamed: retained ? T('{#0} = φ(待补齐前驱版本)', variable) : T('裁掉这个 φ'),
         message: retained
-          ? `${variable} 在 ${block} 入口活跃：保留 φ，并把它当作新定义继续传播。`
-          : `${variable} 在此处不需要合并到达定义：活跃性裁剪后不插入 φ。` });
+          ? T('{#0} 在 {#1} 入口活跃：保留 φ，并把它当作新定义继续传播。', variable, block)
+          : T('{#0} 在此处不需要合并到达定义：活跃性裁剪后不插入 φ。', variable) });
     }
   }
   const stacks = new Map<string, string[]>();
@@ -156,7 +157,7 @@ export function buildSSA(dominance: DominanceAnalysis, liveness: LivenessAnalysi
     stacks.get(name)!.push(version);
     return version;
   };
-  const current = (name: string) => stacks.get(name)?.at(-1) || `缺失:${name}`;
+  const current = (name: string) => stacks.get(name)?.at(-1) || T('缺失:{#0}', name);
   const operand = (value: Operand): Operand => value.kind === 'constant'
     ? value : { kind: 'ref', name: current(value.name) };
   const pending: { id: string; leaving?: string[] }[] = [{ id: dominance.entry }];
@@ -166,7 +167,7 @@ export function buildSSA(dominance: DominanceAnalysis, liveness: LivenessAnalysi
     if (event.leaving) {
       for (const name of event.leaving) stacks.get(name)!.pop();
       record({ kind: 'leave', block: block.id, stacks: snapshot(),
-        message: `离开 ${block.id} 的支配子树，弹出本块定义；兄弟子树恢复进入前的版本。版本计数器不会回退。` });
+        message: T('离开 {#0} 的支配子树，弹出本块定义；兄弟子树恢复进入前的版本。版本计数器不会回退。', block.id) });
       continue;
     }
     const pushed: string[] = [];
@@ -175,7 +176,7 @@ export function buildSSA(dominance: DominanceAnalysis, liveness: LivenessAnalysi
       pushed.push(phi.variable);
     }
     record({ kind: 'enter', block: block.id, stacks: snapshot(),
-      message: `沿支配树进入 ${block.id}，先给块首 ${block.phis.length} 个 φ 分配新版本。` });
+      message: T('沿支配树进入 {#0}，先给块首 {#1} 个 φ 分配新版本。', block.id, block.phis.length) });
     for (const instruction of originalById.get(block.id)!.instructions) {
       // Read the old stack top before pushing the assignment's new version (x = x + 1).
       let renamed: Instruction = instruction.op === 'binary'
@@ -192,7 +193,7 @@ export function buildSSA(dominance: DominanceAnalysis, liveness: LivenessAnalysi
       block.instructions.push(renamed);
       record({ kind: 'rename', block: block.id, original: instructionText(instruction),
         renamed: instructionText(renamed), stacks: snapshot(),
-        message: `${block.id}：先从版本栈读取操作数，再为写入创建唯一名字。` });
+        message: T('{#0}：先从版本栈读取操作数，再为写入创建唯一名字。', block.id) });
     }
     for (const target of new Set(dominance.graph.edges.filter((edge) => edge.from === block.id)
       .map((edge) => edge.to))) {
@@ -200,8 +201,8 @@ export function buildSSA(dominance: DominanceAnalysis, liveness: LivenessAnalysi
         const name = current(phi.variable);
         phi.inputs.push({ predecessor: block.id, name });
         record({ kind: 'edge', block: block.id, original: `${block.id} → ${target}`,
-          renamed: `${phi.variable} 的输入 = ${name}`, stacks: snapshot(),
-          message: `给 ${target} 的 φ 补上前驱 ${block.id} 对应的栈顶版本。循环回边也按同样的规则填写。` });
+          renamed: T('{#0} 的输入 = {#1}', phi.variable, name), stacks: snapshot(),
+          message: T('给 {#0} 的 φ 补上前驱 {#1} 对应的栈顶版本。循环回边也按同样的规则填写。', target, block.id) });
       }
     }
     pending.push({ id: block.id, leaving: pushed });
@@ -211,16 +212,16 @@ export function buildSSA(dominance: DominanceAnalysis, liveness: LivenessAnalysi
   const issues = validateSSA(blocks, dominance);
   const valid = issues.length === 0;
   steps.push({ kind: 'validated', block: dominance.entry,
-    message: valid ? 'SSA 校验通过：版本定义唯一，普通使用由定义支配，φ 输入覆盖每个可达前驱，且其定义支配对应前驱。'
-      : `SSA 校验失败：${issues.join(' ')}` });
+    message: valid ? T('SSA 校验通过：版本定义唯一，普通使用由定义支配，φ 输入覆盖每个可达前驱，且其定义支配对应前驱。')
+      : T('SSA 校验失败：{#0}', issues.join(' ')) });
   const execution = valid ? executeSSA(blocks, dominance) : undefined;
   if (execution) steps.push(...execution.steps);
   steps.push({ kind: 'complete', block: execution?.block || dominance.entry,
     output: execution?.output,
-    message: !valid ? '构造结果未通过校验，不执行。'
-      : execution?.limited ? 'SSA 执行达到 2000 次操作上限；输出仅为前缀，不能判定行为一致。'
-      : execution?.error ? `SSA 执行停止：${execution.error}`
-      : 'SSA 执行结束。静态版本名可以在循环的多次动态执行中重复获得值；每个名字仍只有一处静态定义。' });
+    message: !valid ? T('构造结果未通过校验，不执行。')
+      : execution?.limited ? T('SSA 执行达到 2000 次操作上限；输出仅为前缀，不能判定行为一致。')
+      : execution?.error ? T('SSA 执行停止：{#0}', execution.error)
+      : T('SSA 执行结束。静态版本名可以在循环的多次动态执行中重复获得值；每个名字仍只有一处静态定义。') });
   return { blocks, placements, steps, issues, valid, traceTruncated, execution };
 }
 
@@ -235,7 +236,7 @@ export function executeSSA(blocks: SsaBlock[], dominance: DominanceAnalysis): Ss
   let id = dominance.entry;
   let predecessor: string | undefined;
   const read = (name: string) => {
-    if (!memory.has(name)) throw new Error(`读取未初始化版本 ${name}。`);
+    if (!memory.has(name)) throw new Error(T('读取未初始化版本 {#0}。', name));
     return memory.get(name)!;
   };
   const value = (operand: Operand) => operand.kind === 'constant' ? operand.value : read(operand.name);
@@ -248,17 +249,23 @@ export function executeSSA(blocks: SsaBlock[], dominance: DominanceAnalysis): Ss
   try {
     while (count < MAX_EXECUTION) {
       const block = byId.get(id);
-      if (!block) throw new Error(`SSA 缺少基本块 ${id}。`);
+      if (!block) throw new Error(T('SSA 缺少基本块 {#0}。', id));
       count++;
       const selections = block.phis.map((phi) => {
         const input = phi.inputs.find((item) => item.predecessor === predecessor);
-        if (!input) throw new Error(`${id} 的 φ 缺少前驱 ${predecessor}。`);
+        if (!input) throw new Error(T('{#0} 的 φ 缺少前驱 {#1}。', id, predecessor));
         return { dest: phi.dest, source: input.name, value: read(input.name) };
       });
       // All incoming values must be read before any phi writes: loop-carried swaps depend on it.
       selections.forEach((selection) => memory.set(selection.dest, selection.value));
       record({ kind: 'execute', block: id, predecessor, selections,
-        message: `执行进入 ${id}${predecessor ? `，来自 ${predecessor}` : '（入口）'}。${selections.length ? '按这条前驱边读取全部 φ 输入，然后同时写入。' : '本块没有 φ。'}` });
+        message: predecessor
+          ? selections.length
+            ? T('执行进入 {#0}，来自 {#1}。按这条前驱边读取全部 φ 输入，然后同时写入。', id, predecessor)
+            : T('执行进入 {#0}，来自 {#1}。本块没有 φ。', id, predecessor)
+          : selections.length
+            ? T('执行进入 {#0}（入口）。按这条前驱边读取全部 φ 输入，然后同时写入。', id)
+            : T('执行进入 {#0}（入口）。本块没有 φ。', id) });
       let branch: boolean | undefined;
       for (const instruction of block.instructions) {
         if (count >= MAX_EXECUTION) return result(false, true);
@@ -272,24 +279,26 @@ export function executeSSA(blocks: SsaBlock[], dominance: DominanceAnalysis): Ss
         } else if (instruction.op === 'print') output.push(value(instruction.value));
         else if (instruction.op === 'branch') {
           const condition = value(instruction.condition);
-          if (typeof condition !== 'boolean') throw new Error('条件跳转需要 bool 值。');
+          if (typeof condition !== 'boolean') throw new Error(T('条件跳转需要 bool 值。'));
           branch = condition;
         }
         record({ kind: 'execute', block: id, original: instructionText(instruction), write,
-          message: `执行 ${instructionText(instruction)}。${write ? `得到 ${write.value}。` : ''}` });
+          message: write
+            ? T('执行 {#0}。得到 {#1}。', instructionText(instruction), write.value)
+            : T('执行 {#0}。', instructionText(instruction)) });
       }
       const edges = dominance.graph.edges.filter((edge) => edge.from === id);
       if (!edges.length) return result(true, false);
       const edge = branch === undefined ? edges[0]
         : edges.find((edge) => edge.kind === (branch ? 'true' : 'false'));
-      if (!edge) throw new Error(`${id} 缺少对应的控制流边。`);
+      if (!edge) throw new Error(T('{#0} 缺少对应的控制流边。', id));
       predecessor = id;
       id = edge.to;
     }
     return result(false, true);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    record({ kind: 'execute', block: id, message: `运行时错误：${message}` });
+    record({ kind: 'execute', block: id, message: T('运行时错误：{#0}', message) });
     return result(false, false, message);
   }
 }

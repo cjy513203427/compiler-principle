@@ -1,3 +1,4 @@
+import { T } from '../i18n';
 import { evaluateBinary } from './operations';
 import { optimizeControlFlow } from './global-optimizer';
 import type { DataflowAnalysis } from './dataflow';
@@ -104,8 +105,8 @@ export function optimize(
 ): OptimizationStep[] {
   const steps: OptimizationStep[] = [
     {
-      title: '原始三地址代码',
-      detail: '先保留原始指令，作为语义等价的比较基线。',
+      title: T('原始三地址代码'),
+      detail: T('先保留原始指令，作为语义等价的比较基线。'),
       instructions: original,
     },
   ];
@@ -149,8 +150,8 @@ export function optimize(
     return updated;
   });
   steps.push({
-    title: '传播与折叠',
-    detail: `替换已知常量，并计算合法的常量表达式。本轮发生 ${changes} 次变换；每次赋值都会更新或清除旧常量信息。`,
+    title: T('传播与折叠'),
+    detail: T('替换已知常量，并计算合法的常量表达式。本轮发生 {#0} 次变换；每次赋值都会更新或清除旧常量信息。', changes),
     instructions: transformed,
   });
   let final = transformed;
@@ -180,10 +181,10 @@ export function optimize(
     final = kept.reverse();
   }
   steps.push({
-    title: '清理无用写入',
+    title: T('清理无用写入'),
     detail: options.dead
-      ? `从 print 等可观察操作反向分析，去掉 ${transformed.length - final.length} 条无用写入。可能发生异常的算术操作仍然保留。`
-      : '未启用清理；保留全部写入。',
+      ? T('从 print 等可观察操作反向分析，去掉 {#0} 条无用写入。可能发生异常的算术操作仍然保留。', transformed.length - final.length)
+      : T('未启用清理；保留全部写入。'),
     instructions: final,
   });
   return steps;

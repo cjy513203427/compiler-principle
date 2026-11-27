@@ -160,14 +160,14 @@ describe('SLR(1) parsing', () => {
 describe('conflicts', () => {
   it('finds shift/reduce in an ambiguous grammar and reduce/reduce between twins', () => {
     const ambiguous = ok(preset('lr-ambiguous'));
-    expect(ambiguous.conflicts.map((c) => [c.terminal, c.kind])).toEqual([['+', '移进/规约']]);
+    expect(ambiguous.conflicts.map((c) => [c.terminal, c.kind])).toEqual([['+', 'shift-reduce']]);
     expect(ambiguous.parse).toBeUndefined();
     const twins = ok(preset('lr-reduce'));
-    expect(twins.conflicts.map((c) => [c.terminal, c.kind])).toEqual([['$', '规约/规约']]);
+    expect(twins.conflicts.map((c) => [c.terminal, c.kind])).toEqual([['$', 'reduce-reduce']]);
   });
   it('shows the documented SLR limitation on an LR(1) grammar', () => {
     const a = ok('S -> L = R | R\nL -> * R | Id\nR -> L\n%%\n');
-    expect(a.conflicts.map((c) => [c.terminal, c.kind])).toEqual([['=', '移进/规约']]);
+    expect(a.conflicts.map((c) => [c.terminal, c.kind])).toEqual([['=', 'shift-reduce']]);
   });
   it('keeps every preset timeline in phase order with messages', () => {
     for (const p of lrPresets) {
