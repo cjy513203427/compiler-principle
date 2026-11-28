@@ -1,0 +1,18 @@
+// 纯静态站点：Workers Static Assets，没有 Worker 请求处理代码、绑定或数据库。
+// 本地 `npm run deploy` 与 Workers Builds（推送 main，部署命令 `npx wrangler deploy`）都读取本文件。
+// `name` 必须与 Cloudflare 控制台里连接仓库的 Worker 名称一致。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "compiler-principle",
+  "compatibility_date": "2026-11-28",
+  // 类型检查、单元测试，再做生产构建；任一步失败则不部署。
+  "build": { "command": "npm run build:deploy" },
+  "assets": {
+    "directory": "./dist",
+    // `/en/…`、`/de/…` 与其他未命中静态文件的路径回退到 index.html。
+    "not_found_handling": "single-page-application",
+  },
+  // 公开在 <name>.<账号子域>.workers.dev；不生成版本预览 URL。
+  "workers_dev": true,
+  "preview_urls": false,
+}

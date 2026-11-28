@@ -6,3 +6,7 @@ test-results/
 playwright-report/
 *.local
 *.log
+.wrangler/
+.dev.vars*
+.env
+.env.*

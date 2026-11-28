@@ -4,19 +4,23 @@
 
 ## 本地运行
 
-需要 Node.js 22.12+（或更新的受支持版本）和 npm。
+需要 Node.js 22.12+（或更新的受支持版本）和 npm；部署构建使用 `.nvmrc` 中的版本。
 
 ```sh
 npm ci
 npm run dev
 ```
 
-打开终端显示的地址（默认 `http://127.0.0.1:5173`）。所有编译与执行发生在浏览器中，无后端、账号或 API Key。仅在本仓库交付，没有创建云资源或发布网站。
+打开终端显示的地址（默认 `http://127.0.0.1:5173`）。所有编译与执行发生在浏览器中，无后端、账号或 API Key。
+
+线上版本公开发布在 Cloudflare Workers：<https://compiler-principle.cjyhobbyprojects.workers.dev>（英文 `/en/`、德文 `/de/`）。只上传静态构建产物，不加载统计脚本，详见 [部署说明](docs/cloudflare.md)。
 
 ```sh
 npm run check       # 类型检查、算法与状态测试、生产构建
 npm run test:e2e    # 桌面与手机尺寸的浏览器测试，需要本机 Chrome
 npm run preview    # 本地预览生产构建
+npm run deploy -- --dry-run  # 检查、构建并校验 Cloudflare 部署配置，不上传
+npm run deploy     # 发布到 Cloudflare（需先 npx wrangler login）
 ```
 
 浏览器测试使用 Chrome channel；未安装 Chrome 时，可安装 Chrome，或在 `playwright.config.ts` 移除 `channel` 并安装 Playwright Chromium。
@@ -59,7 +63,7 @@ npm run preview    # 本地预览生产构建
 - 首页按“基础流程 / 词法与文法进阶 / 程序表示与调用”给出建议顺序；原理页可直接跳到建议前置和后续实验。关联关系维护在 `src/content/learning.ts`。
 - 站内切换保留已运行输入和未运行草稿，分享与回放继续使用已运行内容。草稿只在当前页面内存中保留，刷新不会恢复，也不进入私人笔记导出。
 - 每个实验有原理说明、常见误区、实现边界、来源链接、选择题和复述提示。
-- 分享 URL 保存实验、已编译源码、步骤和优化选项；**不保存私人笔记**。本地地址需要接收者也运行项目，不能当作已发布的网站。
+- 分享 URL 保存实验、已编译源码、步骤和优化选项；**不保存私人笔记**。线上站点的分享链接可以直接发给别人；本地 `127.0.0.1` 地址需要接收者也运行项目。
 - 笔记与复习进度使用 `localStorage`，可以导出 JSON、导入合并和清除。没有跨设备同步。导入会覆盖同一实验的笔记，保留其他实验。
 
 ## 编译中的汇编速查 / 随书附录
@@ -395,5 +399,5 @@ src/App.tsx         学习界面、回放、本地笔记
 src/styles.css      响应式阅读与实验布局
 tests/              Playwright 浏览器测试
 scripts/            手动单页参考缓存
-docs/               内容映射与维护约定
+docs/               内容映射、界面语言与 Cloudflare 部署说明
 ```
